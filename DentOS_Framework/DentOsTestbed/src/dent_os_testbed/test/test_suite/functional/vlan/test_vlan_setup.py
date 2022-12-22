@@ -39,10 +39,16 @@ async def test_vlan_simple_set_up(testbed):
         out = await BridgeVlan.add(
             input_data=[{dev.host_name: [{"device": f"{swp}", "vid": 10, "pvid": True, "untagged": True}]}])
         assert out[0][dev.host_name]["rc"] == 0, out
+        out = await BridgeVlan.delete(
+            input_data=[{dev.host_name: [{"device": f"{swp}", "vid": 1, "pvid": True}]}])
+        assert out[0][dev.host_name]["rc"] == 0, out
 
 
     # Put links  swp3, swp4 into VLAN 20
     for swp in ["swp3", "swp4"]:
         out = await BridgeVlan.add(
             input_data=[{dev.host_name: [{"device": f"{swp}", "vid": 20, "pvid": True, "untagged": True}]}])
+        assert out[0][dev.host_name]["rc"] == 0, out
+        out = await BridgeVlan.delete(
+            input_data=[{dev.host_name: [{"device": f"{swp}", "vid": 1, "pvid": True}]}])
         assert out[0][dev.host_name]["rc"] == 0, out
