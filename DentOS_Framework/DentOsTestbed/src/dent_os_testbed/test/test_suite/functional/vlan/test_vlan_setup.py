@@ -2,8 +2,9 @@ import pytest
 
 from dent_os_testbed.lib.ip.ip_link import IpLink
 from dent_os_testbed.lib.bridge.bridge_vlan import BridgeVlan
+from dent_os_testbed.utils.test_utils.tb_utils import tb_get_all_devices
 
-pytestmark = pytest.mark.suite_vlan_functioning
+pytestmark = pytest.mark.suite_functional_vlan
 
 
 @pytest.mark.asyncio
@@ -13,42 +14,35 @@ async def test_vlan_simple_set_up(testbed):
     Test Suite: suite_vlan_functioning
     Test Overview: Test VLAN setup
     Test Procedure:
-    1. Configure a VLAN-aware bridge with 4 links
-    2. Put links into different VLANs
+        1. Configure a VLAN-aware bridge with 4 links
+        2. Put links  swp1, swp2 into VLAN 10
+        2. Put links  swp3, swp4 into VLAN 20
 
     """
-
-    links = [10, 20, 30, 40]
-    dev = testbed.devices[0]
-    veth_pairs = {}
+    port_names = ["swp1", "swp2", "swp3", "swp4"]
+    infra_device = await tb_get_all_devices(testbed)
+    dev = infra_device[0]
 
     out = await IpLink.add(input_data=[{dev.host_name: [{"device": "br0", "type": "bridge", "vlan_filtering": 1}]}])
     assert out[0][dev.host_name]["rc"] == 0, out
     await IpLink.set(input_data=[{dev.host_name: [{"device": "br0", "operstate": "up"}]}])
-    for link_beg, link_end in enumerate(links):
-        out = await IpLink.add(input_data=[{dev.host_name: [{"name": f"veth{link_end}", "type": "veth"}]}])
+    for port in port_names:
+        peer_name = port_names.index(port) + 1
+        out = await IpLink.set(input_data=[{dev.host_name: [{"device": f"{port}", "operstate": "up"}]}])
         assert out[0][dev.host_name]["rc"] == 0, out
-        await IpLink.set(input_data=[{dev.host_name: [{"device": f"veth{link_end}", "operstate": "up"}]}])
+        out = await IpLink.set(input_data=[{dev.host_name: [{"device": f"veth{peer_name}", "operstate": "up"}]}])
         assert out[0][dev.host_name]["rc"] == 0, out
-        await IpLink.set(input_data=[{dev.host_name: [{"device": f"veth{link_beg}", "operstate": "up"}]}])
-        assert out[0][dev.host_name]["rc"] == 0, out
-        await IpLink.set(input_data=[{dev.host_name: [{"device": f"veth{link_end}", "master": "br0"}]}])
-        assert out[0][dev.host_name]["rc"] == 0, out
-        if link_end in [10, 20]:
-            out = await BridgeVlan.add(
-                input_data=[
-                    {dev.host_name: [{"device": f"veth{link_end}", "vid": 10, "pvid": True, "untagged": True}]}])
-            assert out[0][dev.host_name]["rc"] == 0, out
-            await BridgeVlan.delete(
-                input_data=[
-                    {dev.host_name: [{"device": f"veth{link_end}", "vid": 1, "untagged": True}]}])
-        else:
-            out = await BridgeVlan.add(
-                input_data=[
-                    {dev.host_name: [{"device": f"veth{link_end}", "vid": 20, "pvid": True, "untagged": True}]}])
-            await BridgeVlan.delete(
-                input_data=[
-                    {dev.host_name: [{"device": f"veth{link_end}", "vid": 1, "untagged": True}]}])
+        await IpLink.set(input_data=[{dev.host_name: [{"device": f"{port}", "master": "br0"}]}])
 
-            assert out[0][dev.host_name]["rc"] == 0, out
-        veth_pairs[f"veth{link_beg}"] = f"veth{link_end}"
+    # Put links  swp1, swp2 into VLAN 10
+    for swp in ["swp1", "swp2"]:
+        out = await BridgeVlan.add(
+            input_data=[{dev.host_name: [{"device": f"{swp}", "vid": 10, "pvid": True, "untagged": True}]}])
+        assert out[0][dev.host_name]["rc"] == 0, out
+
+
+    # Put links  swp3, swp4 into VLAN 20
+    for swp in ["swp3", "swp4"]:
+        out = await BridgeVlan.add(
+            input_data=[{dev.host_name: [{"device": f"{swp}", "vid": 20, "pvid": True, "untagged": True}]}])
+        assert out[0][dev.host_name]["rc"] == 0, out

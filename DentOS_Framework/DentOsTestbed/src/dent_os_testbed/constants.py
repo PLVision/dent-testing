@@ -68,7 +68,7 @@ PYTEST_SUITES = {
     "suite_acl_performance": "ACL Performance related tests",
     "suite_poe_cli": "POE related tests with the cli tool",
     "suite_cleanup": "Test marker for test cleanup",
-    "suite_vlan_functioning": "VLAN functional tests"
+    "suite_functional_vlan": "VLAN functional tests",
 }
 
 PYTEST_SUITE_GROUPS = {
@@ -98,10 +98,9 @@ PYTEST_SUITE_GROUPS = {
         "suite_acl_scale",
         "suite_acl_performance",
         "suite_poe_cli",
-        "suite_vlan"
     ],
     "suite_group_connection": ["suite_connection"],
     "suite_group_platform": ["suite_poe", "suite_onlpdump", "suite_lldp"],
     "suite_group_cleanup": ["suite_cleanup"],
-    "functional": ["suite_vlan_functioning"],
+    "suite_group_functional": ["suite_functional_vlan"],
 }
