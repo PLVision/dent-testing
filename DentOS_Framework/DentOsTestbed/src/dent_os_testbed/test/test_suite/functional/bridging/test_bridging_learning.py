@@ -23,7 +23,7 @@ pytestmark = pytest.mark.suite_functional_bridging
 
 
 @pytest.mark.asyncio
-async def test_bridging(testbed):
+async def test_bridging_learning_address(testbed):
     """
     Test Name: test_bridging_learning_address
     Test Suite: suite_functional_bridging
@@ -75,7 +75,7 @@ async def test_bridging(testbed):
 
 
 @pytest.mark.asyncio
-async def test_bridging(testbed):
+async def test_bridging_learning_address_rate(testbed):
     """
     Test Name: test_bridging_learning_address_rate
     Test Suite: suite_functional_bridging
@@ -129,7 +129,7 @@ async def test_bridging(testbed):
 
 
 @pytest.mark.asyncio
-async def test_bridging(testbed):
+async def test_bridging_learning_jumbo_frame(testbed):
     """
     Test Name: test_bridging_learning_jumbo_frame
     Test Suite: suite_functional_bridging

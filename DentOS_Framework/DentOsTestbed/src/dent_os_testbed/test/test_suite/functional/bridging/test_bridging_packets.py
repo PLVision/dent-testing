@@ -23,7 +23,7 @@ pytestmark = pytest.mark.suite_functional_bridging
 
 
 @pytest.mark.asyncio
-async def test_bridging(testbed):
+async def test_bridging_packets_undersize(testbed):
     """
     Test Name: test_bridging_packets_undersize
     Test Suite: suite_functional_bridging
@@ -74,7 +74,7 @@ async def test_bridging(testbed):
 
 
 @pytest.mark.asyncio
-async def test_bridging(testbed):
+async def test_bridging_packets_oversize(testbed):
     """
     Test Name: test_bridging_packets_oversize
     Test Suite: suite_functional_bridging

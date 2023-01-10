@@ -24,7 +24,7 @@ pytestmark = pytest.mark.suite_functional_bridging
 
 
 @pytest.mark.asyncio
-async def test_bridging_refresh(testbed):
+async def test_bridging_ageing_refresh(testbed):
     """
     Test Name: test_bridging_ageing_refresh
     Test Suite: suite_functional_bridging
@@ -96,7 +96,7 @@ async def test_bridging_refresh(testbed):
 
 
 @pytest.mark.asyncio
-async def test_bridging_under_continue(testbed):
+async def test_bridging_ageing_under_continue(testbed):
     """
     Test Name: test_bridging_ageing_under_continue
     Test Suite: suite_functional_bridging
