@@ -52,7 +52,7 @@ async def test_can_set_max_vlans(testbed):
 @pytest.mark.asyncio
 async def test_can_not_add_interface_to_vlan_wo_bridge(testbed):
     """
-    Test Name: Add  interface to vlan without enslaving to bridge entity
+    Test Name: Add  interface to vlan without enslaving to bridge entity (negative scenario)
     Test Suite: suite_functional_vlan
     Test Overview: Test that interface can not be added to VLAN without bridge entity
     Test Procedure:
