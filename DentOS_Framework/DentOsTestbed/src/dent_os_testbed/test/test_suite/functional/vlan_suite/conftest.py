@@ -1,6 +1,6 @@
 import pytest
 from dent_os_testbed.lib.ip.ip_link import IpLink
-from dent_os_testbed.utils.test_utils.tgen_utils import tgen_utils_get_dent_devices_with_tgen
+from dent_os_testbed.utils.test_utils.tb_utils import tb_get_all_devices
 
 
 @pytest.fixture(scope="session")
@@ -11,9 +11,11 @@ async def configure_vlan_setup(testbed):
         2.Create links and set state to `up`.
         3.Set bridge as master to links.
     """
-    tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
-    device = dent_devices[0]
-    ports = tgen_dev.links_dict[device][1]
+
+    dent_devices = await tb_get_all_devices(testbed)
+    device = dent_devices[0].host_name
+    ports = dent_devices.links_dict[device][1]
+
     device.applog.info("Create bridge entity")
     out = await IpLink.add(input_data=[{device: [{"device": "br0", "type": "bridge", "vlan_filtering": 1}]}])
     assert out[0][device]["rc"] == 0, f"Verify bridge entity created.\n {out}"
