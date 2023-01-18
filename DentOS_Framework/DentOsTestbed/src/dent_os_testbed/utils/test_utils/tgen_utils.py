@@ -457,7 +457,7 @@ async def tgen_utils_get_traffic_stats(device, stats_type="Port Statistics"):
                     row["Tx Port"],
                     row["Rx Port"],
                     row["Traffic Item"],
-                    row["Source/Dest Value Pair"] if "Source/Dest Value Pair" in row.Columns else "",
+                    row["Source/Dest Value Pair"],
                     row["Tx Frames"],
                     row["Rx Frames"],
                     row["Loss %"],

@@ -50,11 +50,11 @@ async def test_ipv4_en_dis_fwd(testbed):
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [{"device": port, "operstate": "up"}
                                                for port in ports]}])
-    assert out[0][dent]["rc"] == 0
+    assert out[0][dent]["rc"] == 0, "Failed to set port state UP"
 
     # 3. Enable IPv4 forwarding
     rc, out = await dent_dev.run_cmd(f"sysctl -n net.ipv4.ip_forward=1")
-    assert rc == 0
+    assert rc == 0, "Failed to enable ip forwarding"
 
     # 4. Configure IP addrs
     address_map = (
@@ -65,16 +65,11 @@ async def test_ipv4_en_dis_fwd(testbed):
         (ports[3], tg_ports[3], "4.4.4.1", "4.4.4.2", 24),
     )
 
-    out = await IpAddress.flush(input_data=[{dent: [
-        {"dev": port} for port, _, ip, _, plen in address_map
-    ]}])
-    assert out[0][dent]["rc"] == 0
-
     out = await IpAddress.add(input_data=[{dent: [
         {"dev": port, "prefix": f"{ip}/{plen}"}
         for port, _, ip, _, plen in address_map
     ]}])
-    assert out[0][dent]["rc"] == 0
+    assert out[0][dent]["rc"] == 0, "Failed to add IP addr to port"
 
     dev_groups = tgen_utils_dev_groups_from_config(
         {"ixp": port, "ip": ip, "gw": gw, "plen": plen}
@@ -101,33 +96,39 @@ async def test_ipv4_en_dis_fwd(testbed):
             "bi_directional": True,
         },
     }
-    await tgen_utils_setup_streams(tgen_dev, None, streams)
 
-    await tgen_utils_start_traffic(tgen_dev)
-    await asyncio.sleep(traffic_duration)
-    await tgen_utils_stop_traffic(tgen_dev)
+    try:
+        await tgen_utils_setup_streams(tgen_dev, None, streams)
 
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
-    for row in stats.Rows:
-        assert tgen_utils_get_loss(row) == 0.000
+        await tgen_utils_start_traffic(tgen_dev)
+        await asyncio.sleep(traffic_duration)
+        await tgen_utils_stop_traffic(tgen_dev)
 
-    # 6. Disable IPv4 forwarding
-    rc, out = await dent_dev.run_cmd(f"sysctl -n net.ipv4.ip_forward=0")
-    assert rc == 0
+        stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+        for row in stats.Rows:
+            loss = tgen_utils_get_loss(row)
+            assert loss == 0, f"Expected loss: 0%, actual: {loss}%"
 
-    # 7. Flush neighbor (ARP) table
-    out = await IpNeighbor.flush(input_data=[{dent: [
-        {"device": port} for port in ports
-    ]}])
-    assert out[0][dent]["rc"] == 0
+        # 6. Disable IPv4 forwarding
+        rc, out = await dent_dev.run_cmd(f"sysctl -n net.ipv4.ip_forward=0")
+        assert rc == 0, "Failed to disable ip forwarding"
 
-    # 8. Transmit traffic with ip fwd disabled, verify traffic not routed because neighbors were not resolved|
-    await tgen_utils_start_traffic(tgen_dev)
-    await asyncio.sleep(traffic_duration)
-    await tgen_utils_stop_traffic(tgen_dev)
+        # 7. Flush neighbor (ARP) table
+        out = await IpNeighbor.flush(input_data=[{dent: [
+            {"device": port} for port in ports
+        ]}])
+        assert out[0][dent]["rc"] == 0, "Failed to flush arp table"
 
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
-    for row in stats.Rows:
-        assert tgen_utils_get_loss(row) == 100.000
+        # 8. Transmit traffic with ip fwd disabled
+        await tgen_utils_start_traffic(tgen_dev)
+        await asyncio.sleep(traffic_duration)
+        await tgen_utils_stop_traffic(tgen_dev)
 
-    await tgen_utils_stop_protocols(tgen_dev)
+        # Verify traffic not routed because neighbors were not resolved
+        stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+        for row in stats.Rows:
+            loss = tgen_utils_get_loss(row)
+            assert loss == 100, f"Expected loss: 100%, actual: {loss}%"
+
+    finally:
+        await tgen_utils_stop_protocols(tgen_dev)

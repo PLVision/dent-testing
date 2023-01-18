@@ -6,10 +6,10 @@ from dent_os_testbed.lib.ip.ip_address import IpAddress
 
 from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_dent_devices_with_tgen,
-    tgen_utils_setup_streams,
-    tgen_utils_stop_protocols,
-    tgen_utils_dev_groups_from_config,
     tgen_utils_traffic_generator_connect,
+    tgen_utils_dev_groups_from_config,
+    tgen_utils_stop_protocols,
+    tgen_utils_setup_streams,
 )
 from dent_os_testbed.utils.test_utils.tb_utils import (
     tb_ping_device,
@@ -49,16 +49,11 @@ async def test_ipv4_addr(testbed):
         (ports[3], tg_ports[3], "4.4.4.1", "4.4.4.2", 24),
     )
 
-    out = await IpAddress.flush(input_data=[{dent: [
-        {"dev": port} for port, _, ip, _, plen in address_map
-    ]}])
-    assert out[0][dent]["rc"] == 0
-
     out = await IpAddress.add(input_data=[{dent: [
         {"dev": port, "prefix": f"{ip}/{plen}"}
         for port, _, ip, _, plen in address_map
     ]}])
-    assert out[0][dent]["rc"] == 0
+    assert out[0][dent]["rc"] == 0, "Failed to add IP addr to port"
 
     dev_groups = tgen_utils_dev_groups_from_config(
         {"ixp": port, "ip": ip, "gw": gw, "plen": plen}
@@ -66,17 +61,20 @@ async def test_ipv4_addr(testbed):
     )
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 
-    # 3. Configure ports up
-    out = await IpLink.set(input_data=[{dent: [{"device": port, "operstate": "up"}
-                                               for port in ports]}])
-    assert out[0][dent]["rc"] == 0
+    try:
+        # 3. Configure ports up
+        out = await IpLink.set(input_data=[{dent: [
+            {"device": port, "operstate": "up"}
+            for port, _, _, _, _ in address_map
+        ]}])
+        assert out[0][dent]["rc"] == 0, "Failed to set port state UP"
 
-    # 4. Generate ping on the ip interfaces and verify reception
-    await tgen_utils_setup_streams(tgen_dev, None, streams={"dummy": {"type": "raw"}})
+        # 4. Generate ping on the ip interfaces and verify reception
+        await tgen_utils_setup_streams(tgen_dev, None, streams={"dummy": {"type": "raw"}})
 
-    out = await asyncio.gather(*[tb_ping_device(dent_dev, addr, pkt_loss_treshold=0, dump=True)
-                                 for _, _, _, addr, _ in address_map])
-    for rc in out:
-        assert rc == 0
-
-    await tgen_utils_stop_protocols(tgen_dev)
+        out = await asyncio.gather(*[tb_ping_device(dent_dev, addr, pkt_loss_treshold=0, dump=True)
+                                     for _, _, _, addr, _ in address_map])
+        for rc in out:
+            assert rc == 0, "Some pings did not have a reply"
+    finally:
+        await tgen_utils_stop_protocols(tgen_dev)

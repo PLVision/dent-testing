@@ -16,7 +16,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_loss,
 )
 
-pytestmark = pytest.mark.suite_functional
+pytestmark = pytest.mark.suite_functional_ipv4
 
 
 async def _run_test(tgen_dev, dent_dev, address_map, expected_loss):
@@ -29,23 +29,18 @@ async def _run_test(tgen_dev, dent_dev, address_map, expected_loss):
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [{"device": port, "operstate": "up"}
                                                for port in ports]}])
-    assert out[0][dent]["rc"] == 0
+    assert out[0][dent]["rc"] == 0, "Failed to set port state UP"
 
     # 3. Enable IPv4 forwarding
     rc, out = await dent_dev.run_cmd(f"sysctl -n net.ipv4.ip_forward=1")
-    assert rc == 0
+    assert rc == 0, "Failed to enable ip forwarding"
 
     # 4. Configure IP addrs
-    out = await IpAddress.flush(input_data=[{dent: [
-        {"dev": port} for port in ports
-    ]}])
-    assert out[0][dent]["rc"] == 0
-
     out = await IpAddress.add(input_data=[{dent: [
         {"dev": port, "prefix": f"{ip}/{plen}"}
         for port, _, ip, _, plen in address_map
     ]}])
-    assert out[0][dent]["rc"] == 0
+    assert out[0][dent]["rc"] == 0, "Failed to add IP addr to port"
 
     dev_groups = tgen_utils_dev_groups_from_config(
         {"ixp": port, "ip": ip, "gw": gw, "plen": plen}
@@ -63,17 +58,21 @@ async def _run_test(tgen_dev, dent_dev, address_map, expected_loss):
             "rate": "1000",  # pps
         },
     }
-    await tgen_utils_setup_streams(tgen_dev, None, streams)
 
-    await tgen_utils_start_traffic(tgen_dev)
-    await asyncio.sleep(traffic_duration)
-    await tgen_utils_stop_traffic(tgen_dev)
+    try:
+        await tgen_utils_setup_streams(tgen_dev, None, streams)
 
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
-    for row in stats.Rows:
-        assert tgen_utils_get_loss(row) == expected_loss
+        await tgen_utils_start_traffic(tgen_dev)
+        await asyncio.sleep(traffic_duration)
+        await tgen_utils_stop_traffic(tgen_dev)
 
-    await tgen_utils_stop_protocols(tgen_dev)
+        stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+        for row in stats.Rows:
+            loss = tgen_utils_get_loss(row)
+            assert loss == expected_loss, f"Expected loss: {expected_loss}%, actual: {loss}%"
+
+    finally:
+        await tgen_utils_stop_protocols(tgen_dev)
 
 
 @pytest.mark.asyncio
@@ -167,6 +166,29 @@ async def test_ipv4_class_c_dis(testbed):
     )
 
     await _run_test(tgen_dev, dent_dev, address_map, 0)
+
+
+@pytest.mark.asyncio
+async def test_ipv4_class_d_dis(testbed):
+    """
+    Test Name: test_ipv4_class_d_dis
+    Test Suite: suite_functional_ipv4
+    Test Overview: Test class_D ip
+    Test Procedure:
+    1. Configure IP addr and verify that it failed
+    """
+    tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
+    if not tgen_dev or not dent_devices:
+        print("The testbed does not have enough dent with tgen connections")
+        return
+    dent_dev = dent_devices[0]
+    dent = dent_dev.host_name
+
+    # 1. Configure IP addr and verify that it failed
+    out = await IpAddress.add(input_data=[{dent: [
+        {"dev": tgen_dev.links_dict[dent][1][0], "prefix": "224.0.0.1/8"}
+    ]}])
+    assert out[0][dent]["rc"] != 0, "Configuring 224.0.0.1/8 should fail"
 
 
 @pytest.mark.asyncio
