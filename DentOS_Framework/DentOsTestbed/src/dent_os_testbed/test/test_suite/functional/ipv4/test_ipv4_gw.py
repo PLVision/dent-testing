@@ -212,3 +212,46 @@ async def test_ipv4_default_gw(testbed):
             {"dev": el[0]} for el in address_map
         ]}])
         assert out[0][dent]["rc"] == 0, "Failed to clear ip addr"
+
+
+@pytest.mark.asyncio
+async def test_ipv4_not_connected_gw(testbed):
+    """
+    Test Name: test_ipv4_not_connected_gw
+    Test Suite: suite_functional_ipv4
+    Test Overview: Test that default gw, that is not connected, cannot be configured
+    Test Procedure:
+    1. Configure IP addrs
+    2. Configure default gw that is not connected
+    3. Verify it is unconfigurable
+    """
+    tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
+    if not tgen_dev or not dent_devices:
+        print("The testbed does not have enough dent with tgen connections")
+        return
+    dent_dev = dent_devices[0]
+    dent = dent_dev.host_name
+    ports = tgen_dev.links_dict[dent][1]
+    gw = "5.5.5.5"
+
+    for idx, port in enumerate(ports):
+        # 1. Configure IP addrs
+        ip = ".".join(map(str, [idx + 1] * 4))
+        out = await IpAddress.add(input_data=[{dent: [
+            {"dev": port, "prefix": f"{ip}/24"}
+        ]}])
+        assert out[0][dent]["rc"] == 0, "Failed to set ip addr"
+
+        # 2. Configure default gw that is not connected
+        out = await IpRoute.add(input_data=[{dent: [
+            {"dev": port, "type": "default", "via": gw}
+        ]}])
+
+        # 3. Verify it is unconfigurable
+        assert out[0][dent]["rc"] != 0, f"Adding {gw} as default gw to {ip} should fail"
+
+    # Cleanup
+    out = await IpAddress.flush(input_data=[{dent: [
+        {"dev": port} for port in ports
+    ]}])
+    assert out[0][dent]["rc"] == 0, "Failed to clear ip addr"
