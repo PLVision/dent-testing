@@ -7,7 +7,7 @@ class LinuxIpLinkImpl(LinuxIpLink):
     def format_add(self, command, *argv, **kwarg):
 
         """
-        ip link add [ link DEVICE ] [ name ] NAME  [ txqueuelen PACKETS ] [ address LLADDR ]
+        ip link add [ link DEVICE ] [ name ] NAME [ ageing_time AGEING_TIME ] [ txqueuelen PACKETS ] [ address LLADDR ]
                     [ broadcast LLADDR ] [ mtu MTU ] [ index IDX ] [ numtxqueues QUEUE_COUNT ]
                     [ numrxqueues QUEUE_COUNT ] type TYPE [ ARGS ]
         TYPE := [ bridge | bond ] can | dummy | hsr | ifb | ipoib | macvlan | macvtap | vcan |
@@ -19,6 +19,8 @@ class LinuxIpLinkImpl(LinuxIpLink):
         # custom code here
         if "device" in params:
             cmd += "{} ".format((params["device"]))
+        if "link" in params:
+            cmd += "link {} ".format((params["link"]))
         if "name" in params:
             cmd += "name {} ".format((params["name"]))
         if "txqueuelen" in params:
@@ -37,8 +39,12 @@ class LinuxIpLinkImpl(LinuxIpLink):
             cmd += "numrxqueues {} ".format((params["numrxqueues"]))
         if "type" in params:
             cmd += "type {} ".format((params["type"]))
+        if "ageing_time" in params:
+            cmd += "ageing_time {} ".format((params["ageing_time"]))
         if "vlan_filtering" in params:
             cmd += "vlan_filtering {} ".format((params["vlan_filtering"]))
+        if "vlan_default_pvid" in params:
+            cmd += "vlan_default_pvid {} ".format((params["vlan_default_pvid"]))
         return cmd
 
     def format_delete(self, command, *argv, **kwarg):
@@ -77,6 +83,8 @@ class LinuxIpLinkImpl(LinuxIpLink):
             cmd += "{} ".format((params["device"]))
         if "group" in params:
             cmd += "group {} ".format((params["group"]))
+        if "ageing_time" in params:
+            cmd += "ageing_time {} ".format((params["ageing_time"]))
         if "operstate" in params:
             cmd += "{} ".format((params["operstate"]))
         if "arp" in params:
