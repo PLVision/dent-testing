@@ -6,7 +6,6 @@ from dent_os_testbed.lib.bridge.bridge_link import BridgeLink
 from dent_os_testbed.lib.ip.ip_link import IpLink
 
 from dent_os_testbed.utils.test_utils.tgen_utils import (
-    tgen_utils_connect_to_tgen,
     tgen_utils_get_dent_devices_with_tgen,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
@@ -15,8 +14,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_stop_traffic,
     tgen_utils_get_loss,
     tgen_utils_dev_groups_from_config,
-    tgen_utils_traffic_generator_connect,
-    tgen_utils_get_swp_info,
+    tgen_utils_traffic_generator_connect
 )
 
 pytestmark = pytest.mark.suite_functional_bridging
@@ -270,6 +268,6 @@ async def test_bridging_ageing_under_continue(testbed):
 
     test_data_in = ["aa:bb:cc:dd:ee:11","aa:bb:cc:dd:ee:12","aa:bb:cc:dd:ee:13","aa:bb:cc:dd:ee:14"]
     for addr in test_data_in :
-        assert addr in test_data_in, f"Verify that entries still exist due to continues traffic.\n{out}"
+        assert addr in test_data_in, f"Verify that entries exist due to continues traffic.\n{out}"
 
     await tgen_utils_stop_protocols(tgen_dev)
