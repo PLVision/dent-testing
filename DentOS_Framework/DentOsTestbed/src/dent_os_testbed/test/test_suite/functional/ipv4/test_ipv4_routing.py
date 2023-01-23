@@ -24,6 +24,16 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 
 pytestmark = pytest.mark.suite_functional_ipv4
 
+# Creates 10_000 route entries
+fill_route_table_cmd = """
+for x in `seq 40`
+do
+    for y in `seq 250`
+    do
+        ip ro add dev {} 1.1.$x.$y
+    done
+done"""
+
 
 def get_random_ip():
     ip = [random.randint(11, 126), random.randint(1, 254), random.randint(1, 254), random.randint(1, 253)]
@@ -586,3 +596,47 @@ async def test_ipv4_nexthop_static_route(testbed):
         out = await IpAddress.flush(input_data=[{dent: [
             {"dev": port} for port in ports
         ]}])
+
+
+@pytest.mark.asyncio
+async def test_ipv4_route_table_fill(testbed):
+    """
+    Test Name: test_ipv4_route_table_fill
+    Test Suite: suite_functional_ipv4
+    Test Overview: Test filling up the routing table
+    Test Procedure:
+    1. Init interfaces
+    2. Configure port
+    3. Fill up route table
+    4. Verify amount of route entries with matching mask
+    5. Configure port down in order to clear routing table
+    """
+    # 1. Init interfaces
+    tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
+    if not tgen_dev or not dent_devices:
+        print("The testbed does not have enough dent with tgen connections")
+        return
+    dent_dev = dent_devices[0]
+    dent = dent_dev.host_name
+    port = tgen_dev.links_dict[dent][1][0]
+    expected_route_entries = 8000
+
+    # 2. Configure port up
+    out = await IpLink.set(input_data=[{dent: [{"device": port, "operstate": "up"}]}])
+    assert out[0][dent]["rc"] == 0, "Failed to set port state UP"
+
+    try:
+        # 3. Fill up route table
+        rc, out = await dent_dev.run_cmd(fill_route_table_cmd.format(port))
+        assert rc == 0, "Failed to fill routing table"
+
+        # 4. Verify amount of route entries with matching mask
+        rc, out = await dent_dev.run_cmd("ip route | grep rt_offload | wc -l")
+        assert rc == 0, "Failed to get number of offloaded route entries"
+        err_msg = f"Device should support {expected_route_entries} offloaded routing entries"
+        assert int(out) > expected_route_entries, err_msg
+
+    finally:
+        # 5. Configure port down in order to clear routing table
+        out = await IpLink.set(input_data=[{dent: [{"device": port, "operstate": "down"}]}])
+        assert out[0][dent]["rc"] == 0, "Failed to set port state DOWN"
