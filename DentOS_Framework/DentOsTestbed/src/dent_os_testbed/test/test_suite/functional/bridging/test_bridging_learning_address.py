@@ -30,8 +30,8 @@ async def test_bridging_learning_address(testbed):
     Test Procedure:
     1.  Init bridge entity br0.
     2.  Set ports swp1, swp2, swp3, swp4 master br0.
-    3.  Set entities swp1, swp2, swp3, swp4 UP state.
-    4.  Set bridge br0 admin state UP.
+    3.  Set bridge br0 admin state UP.
+    4.  Set entities swp1, swp2, swp3, swp4 UP state.
     5.  Set ports swp1, swp2, swp3, swp4 learning ON.
     6.  Set ports swp1, swp2, swp3, swp4 flood OFF.
     7.  Send traffic to swp1, swp2, swp3, swp4 with source macs 
@@ -57,9 +57,14 @@ async def test_bridging_learning_address(testbed):
 
     out = await IpLink.set(
         input_data=[{device_host_name:  [
-            {"device": port, "master": "br0", "operstate": "up"} for port in ports]},
-            {"device": bridge, "operstate": "up"}])
-    err_msg = f"Verify that bridge, bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
+            {"device": bridge, "operstate": "up"}]}])
+    err_msg = f"Verify that bridge set to 'UP' state.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
+    
+    out = await IpLink.set(
+        input_data=[{device_host_name:  [
+            {"device": port, "master": "br0", "operstate": "up"} for port in ports]}])
+    err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await BridgeLink.set(
@@ -83,13 +88,14 @@ async def test_bridging_learning_address(testbed):
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
     
-    test_data_in = ["aa:bb:cc:dd:ee:11", "aa:bb:cc:dd:ee:12",
+    expected_mac = ["aa:bb:cc:dd:ee:11", "aa:bb:cc:dd:ee:12",
                     "aa:bb:cc:dd:ee:13", "aa:bb:cc:dd:ee:14"]
+
     streams = {
         f"bridge_{dst + 1}": {
             "ip_source": dev_groups[tg_ports[src]][0]["name"],
             "ip_destination": dev_groups[tg_ports[dst]][0]["name"],
-            "srcMac": test_data_in[dst],
+            "srcMac": expected_mac[dst],
             "dstMac": "ff:ff:ff:ff:ff:ff",
             "type": "raw",
             "protocol": "802.1Q",
@@ -103,9 +109,9 @@ async def test_bridging_learning_address(testbed):
     await tgen_utils_stop_traffic(tgen_dev)
 
     # check the traffic stats
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        assert tgen_utils_get_loss(row) != 100.000, f'Failed>Loss percent: {row["Loss %"]}'
+        assert float(row["Loss %"]) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
 
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
                                parse_output=True)
@@ -114,19 +120,8 @@ async def test_bridging_learning_address(testbed):
     data = []
     for dev in devices:
         data.append(dev.get("mac", None))
-    for addr in test_data_in:
+    for addr in expected_mac:
         err_msg = f"Verify that source macs have been learned.\n{out}"
         assert addr in data, err_msg
-
-    #verify that address have been forwarded
-    for row in stats.Rows:    
-        if row ["Traffic Item"] == "bridge_1" and row ["Rx Port"] == tg_ports[0]:
-                assert tgen_utils_get_loss == 0.000, f"Verify that traffic from swp4 to swp1 forwarded.\n{out}"
-        if row ["Traffic Item"] == "bridge_2" and row ["Rx Port"] == tg_ports[1]:
-                assert tgen_utils_get_loss == 0.000, f"Verify that traffic from swp3 to swp2 forwarded.\n{out}"
-        if row ["Traffic Item"] == "bridge_3" and row ["Rx Port"] == tg_ports[2]:
-                assert tgen_utils_get_loss == 0.000, f"Verify that traffic from swp2 to swp3 forwarded.\n{out}"
-        if row ["Traffic Item"] == "bridge_4" and row ["Rx Port"] == tg_ports[3]:
-                assert tgen_utils_get_loss == 0.000, f"Verify that traffic from swp1 to swp4 forwarded.\n{out}"
 
     await tgen_utils_stop_protocols(tgen_dev)
