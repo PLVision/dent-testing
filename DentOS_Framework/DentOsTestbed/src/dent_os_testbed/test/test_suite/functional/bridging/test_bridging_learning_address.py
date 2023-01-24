@@ -49,7 +49,7 @@ async def test_bridging_learning_address(testbed):
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
-    traffic_duration = 10
+    traffic_duration = 5
 
     out = await IpLink.add(
         input_data=[{device_host_name: [{"device": bridge, "type": "bridge"}]}])
@@ -69,7 +69,7 @@ async def test_bridging_learning_address(testbed):
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
     address_map = (
-        # swp port, tg port,     tg ip,      gw,         plen
+        #swp port, tg port,     tg ip,      gw,         plen
         (ports[0], tg_ports[0], "11.0.0.1", "11.0.0.4", 24),
         (ports[1], tg_ports[1], "11.0.0.2", "11.0.0.3", 24),
         (ports[2], tg_ports[2], "11.0.0.3", "11.0.0.2", 24),
@@ -82,12 +82,14 @@ async def test_bridging_learning_address(testbed):
     )
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
-
+    
+    test_data_in = ["aa:bb:cc:dd:ee:11", "aa:bb:cc:dd:ee:12",
+                    "aa:bb:cc:dd:ee:13", "aa:bb:cc:dd:ee:14"]
     streams = {
         f"bridge_{dst + 1}": {
             "ip_source": dev_groups[tg_ports[src]][0]["name"],
             "ip_destination": dev_groups[tg_ports[dst]][0]["name"],
-            "srcMac": f"aa:bb:cc:dd:ee:1{dst + 1}",
+            "srcMac": test_data_in[dst],
             "dstMac": "ff:ff:ff:ff:ff:ff",
             "type": "raw",
             "protocol": "802.1Q",
@@ -112,11 +114,19 @@ async def test_bridging_learning_address(testbed):
     data = []
     for dev in devices:
         data.append(dev.get("mac", None))
-
-    test_data_in = ["aa:bb:cc:dd:ee:11", "aa:bb:cc:dd:ee:12",
-                    "aa:bb:cc:dd:ee:13", "aa:bb:cc:dd:ee:14"]
     for addr in test_data_in:
         err_msg = f"Verify that source macs have been learned.\n{out}"
-        assert addr in test_data_in, err_msg
+        assert addr in data, err_msg
+
+    #verify that address have been forwarded
+    for row in stats.Rows:    
+        if row ["Traffic Item"] == "bridge_1" and row ["Rx Port"] == tg_ports[0]:
+                assert tgen_utils_get_loss == 0.000, f"Verify that traffic from swp4 to swp1 forwarded.\n{out}"
+        if row ["Traffic Item"] == "bridge_2" and row ["Rx Port"] == tg_ports[1]:
+                assert tgen_utils_get_loss == 0.000, f"Verify that traffic from swp3 to swp2 forwarded.\n{out}"
+        if row ["Traffic Item"] == "bridge_3" and row ["Rx Port"] == tg_ports[2]:
+                assert tgen_utils_get_loss == 0.000, f"Verify that traffic from swp2 to swp3 forwarded.\n{out}"
+        if row ["Traffic Item"] == "bridge_4" and row ["Rx Port"] == tg_ports[3]:
+                assert tgen_utils_get_loss == 0.000, f"Verify that traffic from swp1 to swp4 forwarded.\n{out}"
 
     await tgen_utils_stop_protocols(tgen_dev)
