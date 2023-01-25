@@ -6,17 +6,14 @@ from dent_os_testbed.lib.bridge.bridge_link import BridgeLink
 from dent_os_testbed.lib.ip.ip_link import IpLink
 
 from dent_os_testbed.utils.test_utils.tgen_utils import (
-    tgen_utils_connect_to_tgen,
     tgen_utils_get_dent_devices_with_tgen,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
     tgen_utils_stop_protocols,
     tgen_utils_stop_traffic,
-    tgen_utils_get_loss,
     tgen_utils_dev_groups_from_config,
     tgen_utils_traffic_generator_connect,
-    tgen_utils_get_swp_info,
 )
 
 pytestmark = pytest.mark.suite_functional_bridging
@@ -32,8 +29,8 @@ async def test_bridging_fdb_flash_on_down(testbed):
     Test Procedure:
     1.  Init bridge entity br0.
     2.  Set ports swp1, swp2, swp3, swp4 master br0.
-    3.  Set entities swp1, swp2, swp3, swp4 UP state.
-    4.  Set bridge br0 admin state UP.
+    3.  Set bridge br0 admin state UP.
+    4.  Set entities swp1, swp2, swp3, swp4 UP state.
     5.  Set ports swp1, swp2, swp3, swp4 learning ON.
     6.  Set ports swp1, swp2, swp3, swp4 flood OFF.
     7.  Send traffic to swp1 with sourse mac aa:bb:cc:dd:ee:11.
@@ -45,28 +42,38 @@ async def test_bridging_fdb_flash_on_down(testbed):
     bridge = "br0"
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        print.error("The testbed does not have enough dent with tgen connections")
+        print.error(
+            "The testbed does not have enough dent with tgen connections")
         return
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
-    traffic_duration = 10
+    traffic_duration = 5
 
     out = await IpLink.add(
-        input_data=[{device_host_name: [{"device": bridge, "type": "bridge"}]}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that bridge created.\n{out}"
+        input_data=[{device_host_name:  [
+            {"device": bridge, "type": "bridge"}]}])
+    err_msg = f"Verify that bridge created.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name:  [
-            {"device": port, "master": "br0", "operstate": "up"} for port in ports]},
-            {"device": bridge, "operstate": "up"}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that bridge and bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"          
-    
+            {"device": bridge, "operstate": "up"}]}])
+    err_msg = f"Verify that bridge set to 'UP' state.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
+
+    out = await IpLink.set(
+        input_data=[{device_host_name:  [
+            {"device": port, "master": "br0", "operstate": "up"} for port in ports]}])
+    err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
+
     out = await BridgeLink.set(
-        input_data=[{device_host_name: [
+        input_data=[{device_host_name:  [
             {"device": port, "learning": True, "flood": False} for port in ports]}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
+    err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     address_map = (
         #swp port, tg port,     tg ip,      gw          plen
@@ -91,40 +98,41 @@ async def test_bridging_fdb_flash_on_down(testbed):
             "protocol": "802.1Q",
         }
     }
-    
+
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
 
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)
     await tgen_utils_stop_traffic(tgen_dev)
-    
+
     # check the traffic stats
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        assert tgen_utils_get_loss(row) != 100.000, f'Failed>Loss percent: {row["Loss %"]}'
+        assert float(row["Loss %"]) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
 
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
-                         parse_output=True)
+                               parse_output=True)
 
     devices = out[0][device_host_name]["parsed_output"]
-    data_in = []
-    for dev in devices: 
-         data_in.append(dev.get("mac", None))
-    print(data_in)     
-    assert "aa:bb:cc:dd:ee:11" in data_in, f"Verify that entry exist in mac table.\n{out}"
+    expected_mac = []
+    for dev in devices:
+        expected_mac.append(dev.get("mac", None))
+        err_msg = f"Verify that entry exist in mac table.\n{out}"
+    assert "aa:bb:cc:dd:ee:11" in expected_mac, err_msg
 
     out = await IpLink.set(
-        input_data=[{device_host_name: [{"device": ports[1], "operstate": "down"}]}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that swp2 entity set to 'DOWN' state.\n{out}"
+        input_data=[{device_host_name:  [
+            {"device": ports[1], "operstate": "down"}]}])
+    err_msg = f"Verify that swp2 entity set to 'DOWN' state.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
-                         parse_output=True)
+                               parse_output=True)
 
     devices = out[0][device_host_name]["parsed_output"]
-    data_out = []
-    for dev in devices: 
-         data_out.append(dev.get("mac", None))
-    print(data_out)     
-    assert "aa:bb:cc:dd:ee:11" not in data_out, f"Verify that entry does not exist in mac table.\n{out}"
-    
+    unexpected_mac = []
+    for dev in devices:
+        unexpected_mac.append(dev.get("mac", None))
+    assert "aa:bb:cc:dd:ee:11" not in unexpected_mac, f"Verify that entry does not exist in mac table.\n{out}"
+
     await tgen_utils_stop_protocols(tgen_dev)
