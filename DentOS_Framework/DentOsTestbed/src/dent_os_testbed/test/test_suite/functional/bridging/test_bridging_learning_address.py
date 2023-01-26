@@ -64,7 +64,7 @@ async def test_bridging_learning_address(testbed):
     
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {"device": port, "master": "br0", "operstate": "up"} for port in ports]}])
+            {"device": port, "master": bridge, "operstate": "up"} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
@@ -114,10 +114,9 @@ async def test_bridging_learning_address(testbed):
     for row in stats.Rows:
         assert float(row["Tx Frames"]) > 0.000, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
 
-    out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
+    out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
                                parse_output=True)
-    err_msg = f"Failed to get fdb entry.\n{out}"
-    assert out[0][device_host_name]["rc"] == 0, err_msg
+    assert out[0][device_host_name]["rc"] == 0, f"Failed to get fdb entry.\n"
 
     fdb_entries = out[0][device_host_name]["parsed_output"]
     learned_macs = [en["mac"] for en in fdb_entries if "mac" in en]
