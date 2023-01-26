@@ -12,7 +12,6 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_start_traffic,
     tgen_utils_stop_protocols,
     tgen_utils_stop_traffic,
-    tgen_utils_get_loss,
     tgen_utils_dev_groups_from_config,
     tgen_utils_traffic_generator_connect
 )
@@ -54,28 +53,43 @@ async def test_bridging_ageing_refresh(testbed):
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
-    traffic_duration = 10
+    traffic_duration = 5
+    ageing_time = 40
 
     out = await IpLink.add(
-    input_data=[{device_host_name: [{"device": bridge, "type": "bridge"}]}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that bridge created.\n{out}"
+        input_data=[{device_host_name: [
+            {"device": bridge, "type": "bridge"}]}])
+    err_msg = f"Verify that bridge created.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await IpLink.set(
-        input_data=[{device_host_name:  [
-            {"device": bridge, "ageing_time": 40},
-            {"device": port, "master": "br0", "operstate": "up"} for port in ports]},
-            {"device": bridge, "operstate": "up"}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that ageing time set to '40', bridge and bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"        
-    
+        input_data=[{device_host_name: [
+            {"device": bridge, "operstate": "up"}]}])
+    err_msg = f"Verify that bridge set to 'UP' state.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
+
+    out = await IpLink.set(
+        input_data=[{device_host_name: [
+            {"device": bridge, "ageing_time": ageing_time, "type": "bridge"}]}])
+    err_msg = f"Verify that bridge set to 'UP' state and ageing time set to '40'.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
+
+    out = await IpLink.set(
+        input_data=[{device_host_name: [
+            {"device": port, "master": "br0", "operstate": "up"} for port in ports]}])
+    err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
+
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
             {"device": port, "learning": True, "flood": False} for port in ports]}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
+    err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     address_map = (
-        #swp port, tg port,     tg ip,      gw          plen
-        (ports[0], tg_ports[0], "11.0.0.1", "11.0.0.2", 24),
-        (ports[1], tg_ports[1], "11.0.0.2", "11.0.0.1", 24)
+        #swp port, tg port,     tg ip,      gw        plen
+        (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
+        (ports[1], tg_ports[1], "2.2.2.2", "2.2.2.1", 24)
     )
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -95,7 +109,7 @@ async def test_bridging_ageing_refresh(testbed):
             "protocol": "802.1Q",
         }
     }
-    
+
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
 
     await tgen_utils_start_traffic(tgen_dev)
@@ -103,9 +117,9 @@ async def test_bridging_ageing_refresh(testbed):
     await tgen_utils_stop_traffic(tgen_dev)
 
     # check the traffic stats
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        assert tgen_utils_get_loss(row) != 100.000, f'Failed>Loss percent: {row["Loss %"]}'
+        assert float(row["Loss %"]) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
 
     await asyncio.sleep(50)
 
@@ -115,33 +129,33 @@ async def test_bridging_ageing_refresh(testbed):
     await asyncio.sleep(20)
 
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
-                         parse_output=True)
+                               parse_output=True)
 
-    devices = out[0][device_host_name]["parsed_output"]
-    data_in = []
-    for dev in devices: 
-         data_in.append(dev.get("mac", None))
-    print(data_in)     
-    assert "aa:bb:cc:dd:ee:11" in data_in, f"Verify that entry exist.\n{out}"
+    fdb_entries = out[0][device_host_name]["parsed_output"]
+    expected_mac = []
+    for en in fdb_entries:
+        expected_mac.append(en.get("mac", None))
+    err_msg = f"Verify that entry exist.\n"
+    assert "aa:bb:cc:dd:ee:11" in expected_mac, err_msg
 
     await asyncio.sleep(50)
 
     await tgen_utils_stop_traffic(tgen_dev)
 
-    # check the traffic stats
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+   # check the traffic stats
+    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        assert tgen_utils_get_loss(row) != 100.000, f'Failed>Loss percent: {row["Loss %"]}'
+        assert float(row["Loss %"]) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
 
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
-                         parse_output=True)
+                               parse_output=True)
 
-    devices = out[0][device_host_name]["parsed_output"]
-    data_out = []
-    for dev in devices: 
-         data_out.append(dev.get("mac", None))
-    print(data_out)     
-    assert "aa:bb:cc:dd:ee:11" not in data_out, f"Verify that entry doesn't exist due to expired ageing time for that entry.\n{out}"
+    fdb_entries = out[0][device_host_name]["parsed_output"]
+    unexpected_mac = []
+    for en in fdb_entries:
+        unexpected_mac.append(en.get("mac", None))
+    err_msg = f"Verify that entry doesn't exist due to expired ageing time for that entry.\n"
+    assert "aa:bb:cc:dd:ee:11" not in unexpected_mac, err_msg
 
     await tgen_utils_stop_protocols(tgen_dev)
 
@@ -170,36 +184,52 @@ async def test_bridging_ageing_under_continue(testbed):
     bridge = "br0"
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        print.error("The testbed does not have enough dent with tgen connections")
+        print.error(
+            "The testbed does not have enough dent with tgen connections")
         return
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
-    traffic_duration = 10
+    traffic_duration = 5
+    ageing_time = 10
 
     out = await IpLink.add(
-        input_data=[{device_host_name: [{"device": bridge, "type": "bridge"}]}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that bridge created.\n{out}"
+        input_data=[{device_host_name: [
+            {"device": bridge, "type": "bridge"}]}])
+    err_msg = f"Verify that bridge created.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await IpLink.set(
-        input_data=[{device_host_name:  [
-            {"device": bridge, "ageing_time": 10},
-            {"device": port, "master": "br0", "operstate": "up"} for port in ports]},
-            {"device": bridge, "operstate": "up"}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that ageing time set to '10', bridge and bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
-    
+        input_data=[{device_host_name: [
+            {"device": bridge, "operstate": "up"}]}])
+    err_msg = f"Verify that bridge set to 'UP' state.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
+
+    out = await IpLink.set(
+        input_data=[{device_host_name: [
+            {"device": bridge, "ageing_time": ageing_time*100, "type": "bridge"}]}])
+    err_msg = f"Verify that bridge set to 'UP' state and ageing time set to '40'.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
+
+    out = await IpLink.set(
+        input_data=[{device_host_name: [
+            {"device": port, "master": "br0", "operstate": "up"} for port in ports]}])
+    err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
+
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
             {"device": port, "learning": True, "flood": False} for port in ports]}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
-    
+    err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
+
     address_map = (
-        #swp port, tg port,     tg ip,      gw,         plen
-        (ports[0], tg_ports[0], "11.0.0.1", "11.0.0.4", 24),
-        (ports[1], tg_ports[1], "11.0.0.2", "11.0.0.3", 24),
-        (ports[2], tg_ports[2], "11.0.0.3", "11.0.0.2", 24),
-        (ports[3], tg_ports[3], "11.0.0.4", "11.0.0.1", 24),
+        #swp port, tg port,     tg ip,     gw,        plen
+        (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
+        (ports[1], tg_ports[1], "2.2.2.2", "2.2.2.1", 24),
+        (ports[2], tg_ports[2], "3.3.3.2", "3.3.3.1", 24),
+        (ports[3], tg_ports[3], "4.4.4.2", "4.4.4.1", 24),
     )
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -208,66 +238,42 @@ async def test_bridging_ageing_under_continue(testbed):
     )
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
-    streams = {
-        "bridge_1": {
-            "ip_source": dev_groups[tg_ports[3]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[0]][0]["name"],
-            "srcMac": "aa:bb:cc:dd:ee:11",
-            "dstMac": "ff:ff:ff:ff:ff:ff",
-            "type": "raw",
-            "protocol": "802.1Q",
-        },
-        "bridge_2": {
-            "ip_source": dev_groups[tg_ports[2]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[1]][0]["name"],
-            "srcMac": "aa:bb:cc:dd:ee:12",
-            "dstMac": "ff:ff:ff:ff:ff:ff",
-            "type": "raw",
-            "protocol": "802.1Q",
-        },
-        "bridge_3": {
-            "ip_source": dev_groups[tg_ports[1]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[2]][0]["name"],
-            "srcMac": "aa:bb:cc:dd:ee:13",
-            "dstMac": "ff:ff:ff:ff:ff:ff",
-            "type": "raw",
-            "protocol": "802.1Q",
-        },
-        "bridge_4": {
-            "ip_source": dev_groups[tg_ports[0]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[3]][0]["name"],
-            "srcMac": "aa:bb:cc:dd:ee:14",
-            "dstMac": "ff:ff:ff:ff:ff:ff",
-            "type": "raw",
-            "protocol": "802.1Q",
-        }
-    }
     
+    expected_mac = ["aa:bb:cc:dd:ee:11", "aa:bb:cc:dd:ee:12",
+                    "aa:bb:cc:dd:ee:13", "aa:bb:cc:dd:ee:14"]
+
+    streams = {
+        f"bridge_{dst + 1}": {
+            "ip_source": dev_groups[tg_ports[src]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[dst]][0]["name"],
+            "srcMac": expected_mac[src],
+            "dstMac": expected_mac[dst],
+            "type": "raw",
+            "protocol": "802.1Q",
+        } for src, dst in ((3, 0), (2, 1), (1, 2), (0, 3))
+    }
+
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
 
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)
-    
+
     await asyncio.sleep(10)
-    
-    await tgen_utils_stop_traffic(tgen_dev)
-    
+
     # check the traffic stats
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        assert tgen_utils_get_loss(row) != 100.000, f'Failed>Loss percent: {row["Loss %"]}'
-    
+        assert float(row["Tx Frames"]) > 0.000, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
+
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
-                         parse_output=True)
+                               parse_output=True)
 
     devices = out[0][device_host_name]["parsed_output"]
-    data = []
-    for dev in devices: 
-         data.append(dev.get("mac", None))
-    print(data)     
-
-    test_data_in = ["aa:bb:cc:dd:ee:11","aa:bb:cc:dd:ee:12","aa:bb:cc:dd:ee:13","aa:bb:cc:dd:ee:14"]
-    for addr in test_data_in :
-        assert addr in test_data_in, f"Verify that entries exist due to continues traffic.\n{out}"
+    fdb_entries = []
+    for en in devices:
+        fdb_entries.append(en.get("mac", None))
+    for addr in expected_mac:
+        err_msg = f"Verify that entries exist due to continues traffic.\n{out}"
+        assert addr in fdb_entries, err_msg
 
     await tgen_utils_stop_protocols(tgen_dev)

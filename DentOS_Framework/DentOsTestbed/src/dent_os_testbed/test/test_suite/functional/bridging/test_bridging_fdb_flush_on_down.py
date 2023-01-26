@@ -20,9 +20,9 @@ pytestmark = pytest.mark.suite_functional_bridging
 
 
 @pytest.mark.asyncio
-async def test_bridging_fdb_flash_on_down(testbed):
+async def test_bridging_fdb_flush_on_down(testbed):
     """
-    Test Name: test_bridging_fdb_flash_on_down
+    Test Name: test_bridging_fdb_flush_on_down
     Test Suite: suite_functional_bridging
     Test Overview: Verify that fdb enries are removed when port goes to the down state.
     Test Author: Kostiantyn Stavruk
@@ -113,10 +113,10 @@ async def test_bridging_fdb_flash_on_down(testbed):
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
                                parse_output=True)
 
-    devices = out[0][device_host_name]["parsed_output"]
+    fdb_entries = out[0][device_host_name]["parsed_output"]
     expected_mac = []
-    for dev in devices:
-        expected_mac.append(dev.get("mac", None))
+    for en in fdb_entries:
+        expected_mac.append(en.get("mac", None))
         err_msg = f"Verify that entry exist in mac table.\n{out}"
     assert "aa:bb:cc:dd:ee:11" in expected_mac, err_msg
 
@@ -129,10 +129,11 @@ async def test_bridging_fdb_flash_on_down(testbed):
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
                                parse_output=True)
 
-    devices = out[0][device_host_name]["parsed_output"]
+    fdb_entries = out[0][device_host_name]["parsed_output"]
     unexpected_mac = []
-    for dev in devices:
-        unexpected_mac.append(dev.get("mac", None))
-    assert "aa:bb:cc:dd:ee:11" not in unexpected_mac, f"Verify that entry does not exist in mac table.\n{out}"
+    for en in fdb_entries:
+        unexpected_mac.append(en.get("mac", None))
+    err_msg = f"Verify that entry does not exist in mac table.\n{out}"
+    assert "aa:bb:cc:dd:ee:11" not in unexpected_mac, err_msg
 
     await tgen_utils_stop_protocols(tgen_dev)
