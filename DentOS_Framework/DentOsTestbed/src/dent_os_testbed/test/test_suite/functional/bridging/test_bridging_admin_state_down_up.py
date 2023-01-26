@@ -103,15 +103,15 @@ async def test_bridging_admin_state_down_up(testbed):
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
     
-    expected_mac = ["aa:bb:cc:dd:ee:11", "aa:bb:cc:dd:ee:12",
-                    "aa:bb:cc:dd:ee:13", "aa:bb:cc:dd:ee:14"]
+    list_macs = ["aa:bb:cc:dd:ee:11", "aa:bb:cc:dd:ee:12",
+                 "aa:bb:cc:dd:ee:13", "aa:bb:cc:dd:ee:14"]
 
     streams = {
         f"bridge_{dst + 1}": {
             "ip_source": dev_groups[tg_ports[src]][0]["name"],
             "ip_destination": dev_groups[tg_ports[dst]][0]["name"],
-            "srcMac": expected_mac[src],
-            "dstMac": expected_mac[dst],
+            "srcMac": list_macs[src],
+            "dstMac": list_macs[dst],
             "type": "raw",
             "protocol": "802.1Q",
         } for src, dst in ((3, 0), (2, 1), (1, 2), (0, 3))
@@ -137,14 +137,14 @@ async def test_bridging_admin_state_down_up(testbed):
     
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
                                parse_output=True)
+    err_msg = f"Failed to get fdb entry.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     fdb_entries = out[0][device_host_name]["parsed_output"]
-    unexpected_mac = []
-    for en in fdb_entries:
-        unexpected_mac.append(en.get("mac", None))
-    for addr in expected_mac:
-        err_msg = f"Verify that source macs have not been learned.\n{out}"
-        assert addr not in unexpected_mac, err_msg
+    unlearned_macs = [en["mac"] for en in fdb_entries if "mac" in en]
+    for mac in list_macs:
+        err_msg = f"Verify that source macs have not been learned.\n"
+        assert mac not in unlearned_macs, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name:  [
@@ -156,20 +156,20 @@ async def test_bridging_admin_state_down_up(testbed):
     await asyncio.sleep(traffic_duration)
     await tgen_utils_stop_traffic(tgen_dev)
 
-    # traffic stats
+    # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         assert float(row["Tx Frames"]) > 0.000, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
     
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
                                parse_output=True)
+    err_msg = f"Failed to get fdb entry.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     fdb_entries = out[0][device_host_name]["parsed_output"]
-    expected_mac = []
-    for en in fdb_entries:
-        expected_mac.append(en.get("mac", None))
-    for addr in expected_mac:
-        err_msg = f"Verify that source macs have been learned.\n{out}"
-        assert addr in expected_mac, err_msg
+    learned_macs = [en["mac"] for en in fdb_entries if "mac" in en]
+    for mac in list_macs:
+        err_msg = f"Verify that source macs have been learned.\n"
+        assert mac in learned_macs, err_msg
 
     await tgen_utils_stop_protocols(tgen_dev)
