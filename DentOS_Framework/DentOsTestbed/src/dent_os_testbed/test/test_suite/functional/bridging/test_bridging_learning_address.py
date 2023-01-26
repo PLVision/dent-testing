@@ -116,11 +116,13 @@ async def test_bridging_learning_address(testbed):
 
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
                                parse_output=True)
+    err_msg = f"Failed to get fdb entry.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     fdb_entries = out[0][device_host_name]["parsed_output"]
     learned_macs = [en["mac"] for en in fdb_entries if "mac" in en]
     for mac in list_macs:
-        err_msg = f"Verify that source macs have been learned.\n{out}"
+        err_msg = f"Verify that source macs have been learned.\n"
         assert mac in learned_macs, err_msg
 
     await tgen_utils_stop_protocols(tgen_dev)
