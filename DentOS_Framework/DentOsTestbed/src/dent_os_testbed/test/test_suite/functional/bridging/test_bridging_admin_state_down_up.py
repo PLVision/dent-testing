@@ -78,7 +78,7 @@ async def test_bridging_admin_state_down_up(testbed):
     
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {"device": port, "master": "br0", "operstate": "up"} for port in ports]}])
+            {"device": port, "master": bridge, "operstate": "up"} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
@@ -133,12 +133,11 @@ async def test_bridging_admin_state_down_up(testbed):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         assert float(row["Loss %"]) == 100.000, f'Failed>Loss percent: {row["Loss %"]}'
-        assert float(row["Tx Frames"]) > 0.000, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
+        assert int(row["Tx Frames"]) > 0, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
     
-    out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
+    out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
                                parse_output=True)
-    err_msg = f"Failed to get fdb entry.\n{out}"
-    assert out[0][device_host_name]["rc"] == 0, err_msg
+    assert out[0][device_host_name]["rc"] == 0, "Failed to get fdb entry.\n"
 
     fdb_entries = out[0][device_host_name]["parsed_output"]
     unlearned_macs = [en["mac"] for en in fdb_entries if "mac" in en]
@@ -159,12 +158,11 @@ async def test_bridging_admin_state_down_up(testbed):
     # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        assert float(row["Tx Frames"]) > 0.000, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
+        assert int(row["Tx Frames"]) > 0, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
     
-    out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
+    out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
                                parse_output=True)
-    err_msg = f"Failed to get fdb entry.\n{out}"
-    assert out[0][device_host_name]["rc"] == 0, err_msg
+    assert out[0][device_host_name]["rc"] == 0, "Failed to get fdb entry.\n"
 
     fdb_entries = out[0][device_host_name]["parsed_output"]
     learned_macs = [en["mac"] for en in fdb_entries if "mac" in en]

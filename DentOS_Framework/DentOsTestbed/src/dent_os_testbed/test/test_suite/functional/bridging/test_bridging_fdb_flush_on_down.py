@@ -65,7 +65,7 @@ async def test_bridging_fdb_flush_on_down(testbed):
 
     out = await IpLink.set(
         input_data=[{device_host_name:  [
-            {"device": port, "master": "br0", "operstate": "up"} for port in ports]}])
+            {"device": port, "master": bridge, "operstate": "up"} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
@@ -110,15 +110,14 @@ async def test_bridging_fdb_flush_on_down(testbed):
     for row in stats.Rows:
         assert float(row["Loss %"]) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
 
-    out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
+    out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
                                parse_output=True)
+    assert out[0][device_host_name]["rc"] == 0, "Failed to get fdb entry.\n"
 
     fdb_entries = out[0][device_host_name]["parsed_output"]
-    expected_mac = []
-    for en in fdb_entries:
-        expected_mac.append(en.get("mac", None))
-        err_msg = f"Verify that entry exist in mac table.\n{out}"
-    assert "aa:bb:cc:dd:ee:11" in expected_mac, err_msg
+    learned_macs = [en["mac"] for en in fdb_entries if "mac" in en]
+    err_msg = f"Verify that entry exist in mac table.\n"
+    assert "aa:bb:cc:dd:ee:11" in learned_macs, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name:  [
@@ -126,14 +125,13 @@ async def test_bridging_fdb_flush_on_down(testbed):
     err_msg = f"Verify that swp2 entity set to 'DOWN' state.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
-    out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
+    out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
                                parse_output=True)
+    assert out[0][device_host_name]["rc"] == 0, "Failed to get fdb entry.\n"
 
     fdb_entries = out[0][device_host_name]["parsed_output"]
-    unexpected_mac = []
-    for en in fdb_entries:
-        unexpected_mac.append(en.get("mac", None))
-    err_msg = f"Verify that entry does not exist in mac table.\n{out}"
-    assert "aa:bb:cc:dd:ee:11" not in unexpected_mac, err_msg
+    unlearned_macs = [en["mac"] for en in fdb_entries if "mac" in en]
+    err_msg = f"Verify that entry does not exist in mac table.\n"
+    assert "aa:bb:cc:dd:ee:11" not in unlearned_macs, err_msg
 
     await tgen_utils_stop_protocols(tgen_dev)
