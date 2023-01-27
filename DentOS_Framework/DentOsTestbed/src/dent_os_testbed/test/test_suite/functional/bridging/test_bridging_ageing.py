@@ -28,10 +28,10 @@ async def test_bridging_ageing_refresh(testbed):
     Test Author: Kostiantyn Stavruk
     Test Procedure:
     1.  Init bridge entity br0.
-    2.  Set br0 ageing time to 40 seconds [default is 300 seconds].
-    3.  Set ports swp1, swp2, swp3, swp4 master br0.
-    4.  Set entities swp1, swp2, swp3, swp4 UP state.
-    5.  Set bridge br0 admin state UP.
+    2.  Set bridge br0 admin state UP.
+    3.  Set br0 ageing time to 40 seconds [default is 300 seconds].
+    4.  Set ports swp1, swp2, swp3, swp4 master br0.
+    5.  Set entities swp1, swp2, swp3, swp4 UP state.
     6.  Set ports swp1, swp2, swp3, swp4 learning ON.
     7.  Set ports swp1, swp2, swp3, swp4 flood OFF.
     8.  Send traffic to swp1 with sourse mac aa:bb:cc:dd:ee:11.
@@ -56,11 +56,11 @@ async def test_bridging_ageing_refresh(testbed):
     traffic_duration = 5
     ageing_time = 40
 
-    # out = await IpLink.add(
-    #     input_data=[{device_host_name: [
-    #         {"device": bridge, "type": "bridge"}]}])
-    # err_msg = f"Verify that bridge created.\n{out}"
-    # assert out[0][device_host_name]["rc"] == 0, err_msg
+    out = await IpLink.add(
+        input_data=[{device_host_name: [
+            {"device": bridge, "type": "bridge"}]}])
+    err_msg = f"Verify that bridge created.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
@@ -127,7 +127,7 @@ async def test_bridging_ageing_refresh(testbed):
 
     await asyncio.sleep(ageing_time/2)
 
-    out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
+    out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
                                parse_output=True)
     assert out[0][device_host_name]["rc"] == 0, "Failed to get fdb entry.\n"
 
@@ -145,7 +145,7 @@ async def test_bridging_ageing_refresh(testbed):
     for row in stats.Rows:
         assert float(row["Loss %"]) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
 
-    out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
+    out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
                                parse_output=True)
     assert out[0][device_host_name]["rc"] == 0, "Failed to get fdb entry.\n"
 
@@ -168,13 +168,14 @@ async def test_bridging_ageing_under_continue(testbed):
     1.  Init bridge entity br0.
     2.  Set br0 ageing time to 10 seconds [default is 300 seconds].
     3.  Set ports swp1, swp2, swp3, swp4 master br0.
-    4.  Set entities swp1, swp2, swp3, swp4 UP state.
-    5.  Set bridge br0 admin state UP.
+    4.  Set bridge br0 admin state UP.
+    5.  Set entities swp1, swp2, swp3, swp4 UP state.
     6.  Set ports swp1, swp2, swp3, swp4 learning ON.
     7.  Set ports swp1, swp2, swp3, swp4 flood OFF.
     8.  Continues traffic sending to swp1, swp2, swp3, swp4 with sourse macs 
-        aa:bb:cc:dd:ee:11 aa:bb:cc:dd:ee:12 aa:bb:cc:dd:ee:13 aa:bb:cc:dd:ee:14 accordingly.
-    9.  Delaying for 10 seconds.
+        aa:bb:cc:dd:ee:11 aa:bb:cc:dd:ee:12 
+        aa:bb:cc:dd:ee:13 aa:bb:cc:dd:ee:14 accordingly.
+    9.  Delaying for ageing_time seconds.
     10. Verify that entries exist due to continues traffic.
     """
 
@@ -188,7 +189,6 @@ async def test_bridging_ageing_under_continue(testbed):
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
-    traffic_duration = 5
     ageing_time = 10
 
     out = await IpLink.add(
@@ -260,7 +260,7 @@ async def test_bridging_ageing_under_continue(testbed):
     for row in stats.Rows:
         assert float(row["Tx Frames"]) > 0.000, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
 
-    out = await BridgeFdb.show(input_data=[{device_host_name: [{"cmd_options": "-j"}]}],
+    out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
                                parse_output=True)
     assert out[0][device_host_name]["rc"] == 0, "Failed to get fdb entry.\n"
 
@@ -270,4 +270,4 @@ async def test_bridging_ageing_under_continue(testbed):
         err_msg = f"Verify that entries exist due to continues traffic.\n"
         assert mac in learned_macs, err_msg
 
-    await tgen_utils_stop_protocols(tgen_dev)
+    #await tgen_utils_stop_protocols(tgen_dev)
