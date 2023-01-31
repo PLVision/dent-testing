@@ -298,6 +298,8 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                     ipv4_stack = config_element.Stack.read(
                         ethernet_stack.AppendProtocol(ipv4_template)
                     )
+                config_element.Crc = IxnetworkIxiaClientImpl.bad_crc[pkt_data.get("bad_crc", False)]
+            
                 # update the Mac address
                 if "dstMac" in pkt_data:
                     dst_mac = ethernet_stack.Field.find(

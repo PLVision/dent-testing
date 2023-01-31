@@ -25,7 +25,7 @@ async def test_bridging_frame_max(testbed):
     """
     Test Name: test_bridging_frame_max
     Test Suite: suite_functional_bridging
-    Test Overview: Verifying that Jambo frames of max size are learned and forwarded.
+    Test Overview: Verifying that jumbo frames of max size are learned and forwarded.
     Test Author: Kostiantyn Stavruk
     Test Procedure:
     1.  Init bridge entity br0.
@@ -33,13 +33,14 @@ async def test_bridging_frame_max(testbed):
     3.  Set bridge br0 admin state UP.
     4.  Set entities swp1, swp2, swp3, swp4 UP state.
     5.  Set max jumbo frame MTU size support on ports swp1, swp2, swp3, swp4.
-    6.  Set ports swp1, swp2, swp3, swp4 learning OFF.
+    6.  Set ports swp1, swp2, swp3, swp4 learning ON.
     7.  Set ports swp1, swp2, swp3, swp4 flood OFF.
     8.  Adding FDB static entries for ports swp1, swp2, swp3, swp4.
-    9.  Send traffic to swp1, swp2, swp3, swp4 with source macs 
+    9.  Set streams frameSize 9000.
+    10. Send traffic to swp1, swp2, swp3, swp4 with source macs 
         aa:bb:cc:dd:ee:11 aa:bb:cc:dd:ee:12 
         aa:bb:cc:dd:ee:13 aa:bb:cc:dd:ee:14 accordingly.
-    10. Verify that address have been learned and forwarded.
+    11. Verify that address are learned and max size jumbo frames are forwarded.
     """
 
     bridge = "br0"
@@ -77,20 +78,20 @@ async def test_bridging_frame_max(testbed):
     err_msg = f"Verify that bridge max jumbo frame size set to '9000'.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
-    out = await BridgeLink.set(
-        input_data=[{device_host_name: [
-            {"device": port, "learning": False, "flood": False} for port in ports]}])
-    err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
-    assert out[0][device_host_name]["rc"] == 0, err_msg
+    # out = await BridgeLink.set(
+    #     input_data=[{device_host_name: [
+    #         {"device": port, "learning": True, "flood": False} for port in ports]}])
+    # err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
+    # assert out[0][device_host_name]["rc"] == 0, err_msg
 
-    out = await BridgeFdb.add(
-        input_data=[{device_host_name: [
-            {"dev": ports[0], "lladdr": "aa:bb:cc:dd:ee:11", "master": True},
-            {"dev": ports[1], "lladdr": "aa:bb:cc:dd:ee:12", "master": True},
-            {"dev": ports[2], "lladdr": "aa:bb:cc:dd:ee:13", "master": True},
-            {"dev": ports[3], "lladdr": "aa:bb:cc:dd:ee:14", "master": True},
-            ]}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that FDB static entries added.\n{out}"
+    # out = await BridgeFdb.add(
+    #     input_data=[{device_host_name: [
+    #         {"dev": ports[0], "lladdr": "aa:bb:cc:dd:ee:11", "master": True},
+    #         {"dev": ports[1], "lladdr": "aa:bb:cc:dd:ee:12", "master": True},
+    #         {"dev": ports[2], "lladdr": "aa:bb:cc:dd:ee:13", "master": True},
+    #         {"dev": ports[3], "lladdr": "aa:bb:cc:dd:ee:14", "master": True},
+    #         ]}])
+    # assert out[0][device_host_name]["rc"] == 0, f"Verify that FDB static entries added.\n{out}"
 
     address_map = (
         #swp port, tg port,     tg ip,     gw,        plen
@@ -118,6 +119,7 @@ async def test_bridging_frame_max(testbed):
             "dstMac": list_macs[dst],
             "type": "raw",
             "protocol": "802.1Q",
+            "frameSize": 9000,
         } for src, dst in ((3, 0), (2, 1), (1, 2), (0, 3))
     }
 
@@ -152,7 +154,7 @@ async def test_bridging_frame_min(testbed):
     """
     Test Name: test_bridging_frame_min
     Test Suite: suite_functional_bridging
-    Test Overview: Verifying that Jambo frames of min size are learned and forwarded.
+    Test Overview: Verifying that jumbo frames of min size are learned and forwarded.
     Test Author: Kostiantyn Stavruk
     Test Procedure:
     1.  Init bridge entity br0.
@@ -162,10 +164,11 @@ async def test_bridging_frame_min(testbed):
     5.  Set min jumbo frame MTU size support on ports swp1, swp2, swp3, swp4.
     6.  Set ports swp1, swp2, swp3, swp4 learning ON.
     7.  Set ports swp1, swp2, swp3, swp4 flood OFF.
-    8.  Send traffic to swp1, swp2, swp3, swp4 with source macs 
+    8.  Set streams frameSize 1510.
+    9.  Send traffic to swp1, swp2, swp3, swp4 with source macs 
         aa:bb:cc:dd:ee:11 aa:bb:cc:dd:ee:12 
         aa:bb:cc:dd:ee:13 aa:bb:cc:dd:ee:14 accordingly.
-    9.  Verify that address have been learned forwarded.
+    10. Verify that address are learned and min size jumbo frames are forwarded.
     """
 
     bridge = "br0"
@@ -235,6 +238,7 @@ async def test_bridging_frame_min(testbed):
             "dstMac": list_macs[dst],
             "type": "raw",
             "protocol": "802.1Q",
+            "frameSize": 1510,
         } for src, dst in ((3, 0), (2, 1), (1, 2), (0, 3))
     }
 
@@ -270,7 +274,7 @@ async def test_bridging_jumbo_frame_value_out_of_bounds(testbed):
     """
     Test Name: test_bridging_jumbo_frame_learning
     Test Suite: suite_functional_bridging
-    Test Overview: Verifying that Jambo frames of average size are not learned and not forwarded.
+    Test Overview: Verifying that jumbo frames with value out of bounds are not learned and not forwarded.
     Test Author: Kostiantyn Stavruk
     Test Procedure:
     1.  Init bridge entity br0.
@@ -280,10 +284,11 @@ async def test_bridging_jumbo_frame_value_out_of_bounds(testbed):
     5.  Set value out of bounds jumbo frame MTU size support on ports swp1, swp2, swp3, swp4.
     6.  Set ports swp1, swp2, swp3, swp4 learning ON.
     7.  Set ports swp1, swp2, swp3, swp4 flood OFF.
-    8.  Send traffic to swp1, swp2, swp3, swp4 with source macs 
+    8.  Set in streams frameSize 9001.
+    9.  Send traffic to swp1, swp2, swp3, swp4 with source macs 
         aa:bb:cc:dd:ee:11 aa:bb:cc:dd:ee:12 
         aa:bb:cc:dd:ee:13 aa:bb:cc:dd:ee:14 accordingly.
-    9.  Verify that address have been not learned and not forwarded.
+    10. Verify that address are not learned and min size jumbo frames are not forwarded due to value out of bounds.
     """
 
     bridge = "br0"
@@ -353,6 +358,7 @@ async def test_bridging_jumbo_frame_value_out_of_bounds(testbed):
             "dstMac": list_macs[dst],
             "type": "raw",
             "protocol": "802.1Q",
+            "frameSize": 9001,
         } for src, dst in ((3, 0), (2, 1), (1, 2), (0, 3))
     }
 

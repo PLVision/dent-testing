@@ -12,35 +12,37 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_start_traffic,
     tgen_utils_stop_protocols,
     tgen_utils_stop_traffic,
+    tgen_utils_get_loss,
     tgen_utils_dev_groups_from_config,
     tgen_utils_traffic_generator_connect,
 )
 
 pytestmark = pytest.mark.suite_functional_bridging
 
+
 @pytest.mark.asyncio
-async def test_bridging_wrong_fcs(testbed):
+async def test_bridging_static_entries(testbed):
     """
-    Test Name: test_bridging_wrong_fcs
+    Test Name: test_bridging_static_entries
     Test Suite: suite_functional_bridging
-    Test Overview: Verify that packet drop due to wrong frame check sequence.
+    Test Overview: Verify static bridge entries.
     Test Author: Kostiantyn Stavruk
     Test Procedure:
     1.  Init bridge entity br0.
     2.  Set ports swp1, swp2, swp3, swp4 master br0.
     3.  Set bridge br0 admin state UP.
     4.  Set entities swp1, swp2, swp3, swp4 UP state.
-    5.  Set ports swp1, swp2, swp3, swp4 learning ON.
+    5.  Set ports swp1, swp2, swp3, swp4 learning OFF.
     6.  Set ports swp1, swp2, swp3, swp4 flood OFF.
-    7.  Set in streams bad_crc True.
-    8.  Send traffic for bridge to learn address.
-    9.  Verify that address haven't been learned due to wrong frame check sequence in packet.
+    7.  Adding FDB static entries for ports swp1, swp2, swp3, swp4.
+    8.  Send traffic with matching destination macs.
+    9.  Verify that address have been learned and forwarded.
     """
-    
+
     bridge = "br0"
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        print.error("The testbed does not have enough dent with tgen connections")
+        print("The testbed does not have enough dent with tgen connections")
         return
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
@@ -48,29 +50,38 @@ async def test_bridging_wrong_fcs(testbed):
     ports = tgen_dev.links_dict[device_host_name][1]
     traffic_duration = 5
 
-    # out = await IpLink.add(
-    #     input_data=[{device_host_name: [
-    #         {"device": bridge, "type": "bridge"}]}])
-    # err_msg = f"Verify that bridge created.\n{out}"
-    # assert out[0][device_host_name]["rc"] == 0, err_msg
+    out = await IpLink.add(
+        input_data=[{device_host_name: [
+            {"device": bridge, "type": "bridge"}]}])
+    err_msg = f"Verify that bridge created.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
             {"device": bridge, "operstate": "up"}]}])
     err_msg = f"Verify that bridge set to 'UP' state.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
-    
+
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {"device": port, "master": "br0", "operstate": "up"} for port in ports]}])
-    err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
+            {"device": port, "master": bridge, "operstate": "up"} for port in ports]}])
+    err_msg = f"Verify that bridge, bridge entities set to 'UP' state.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {"device": port, "learning": True, "flood": False} for port in ports]}])
+            {"device": port, "learning": False, "flood": False} for port in ports]}])
     err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
+
+    out = await BridgeFdb.add(
+        input_data=[{device_host_name: [
+            {"dev": ports[0], "lladdr": "aa:bb:cc:dd:ee:11", "master": True},
+            {"dev": ports[1], "lladdr": "aa:bb:cc:dd:ee:12", "master": True},
+            {"dev": ports[2], "lladdr": "aa:bb:cc:dd:ee:13", "master": True},
+            {"dev": ports[3], "lladdr": "aa:bb:cc:dd:ee:14", "master": True},
+            ]}])
+    assert out[0][device_host_name]["rc"] == 0, f"Verify that FDB static entries added.\n{out}"
 
     address_map = (
         #swp port, tg port,     tg ip,     gw,        plen
@@ -98,7 +109,6 @@ async def test_bridging_wrong_fcs(testbed):
             "dstMac": list_macs[dst],
             "type": "raw",
             "protocol": "802.1Q",
-            "bad_crc": True,
         } for src, dst in ((3, 0), (2, 1), (1, 2), (0, 3))
     }
 
@@ -111,15 +121,18 @@ async def test_bridging_wrong_fcs(testbed):
     # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        assert float(row["Tx Frames"]) > 0.000, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
-
+        assert float(row["Loss %"]) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
+        assert tgen_utils_get_loss(row) == 0.000, \
+        f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} forwarded.\n{out}"
+    
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
-                               parse_output=True)
+                         parse_output=True)
+    assert out[0][device_host_name]["rc"] == 0, "Failed to get fdb entry.\n"
 
     fdb_entries = out[0][device_host_name]["parsed_output"]
     learned_macs = [en["mac"] for en in fdb_entries if "mac" in en]
     for mac in list_macs:
-        err_msg = f"Verify that source macs have not been learned due to wrong frame check sequence.\n"
-        assert mac not in learned_macs, err_msg
+        err_msg = f"Verify that source macs have been learned.\n"
+        assert mac in learned_macs, err_msg
 
     await tgen_utils_stop_protocols(tgen_dev)
