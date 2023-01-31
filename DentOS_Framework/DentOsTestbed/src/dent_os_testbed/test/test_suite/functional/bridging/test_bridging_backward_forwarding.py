@@ -23,7 +23,6 @@ pytestmark = [
     pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
 ]
 
-@pytest.mark.asyncio
 async def test_bridging_backward_forwarding(testbed):
     """
     Test Name: test_bridging_backward_forwarding

@@ -24,8 +24,6 @@ pytestmark = [
     pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
 ]
 
-
-@pytest.mark.asyncio
 async def test_bridging_remove_restore_from_vlan(testbed):
     """
     Test Name: test_bridging_remove_restore_from_vlan
