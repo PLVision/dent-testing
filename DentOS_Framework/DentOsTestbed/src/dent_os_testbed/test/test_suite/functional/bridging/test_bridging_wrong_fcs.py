@@ -48,11 +48,11 @@ async def test_bridging_wrong_fcs(testbed):
     ports = tgen_dev.links_dict[device_host_name][1]
     traffic_duration = 5
 
-    # out = await IpLink.add(
-    #     input_data=[{device_host_name: [
-    #         {"device": bridge, "type": "bridge"}]}])
-    # err_msg = f"Verify that bridge created.\n{out}"
-    # assert out[0][device_host_name]["rc"] == 0, err_msg
+    out = await IpLink.add(
+        input_data=[{device_host_name: [
+            {"device": bridge, "type": "bridge"}]}])
+    err_msg = f"Verify that bridge created.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [

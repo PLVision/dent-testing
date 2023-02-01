@@ -78,20 +78,20 @@ async def test_bridging_frame_max(testbed):
     err_msg = f"Verify that bridge max jumbo frame size set to '9000'.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
-    # out = await BridgeLink.set(
-    #     input_data=[{device_host_name: [
-    #         {"device": port, "learning": True, "flood": False} for port in ports]}])
-    # err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
-    # assert out[0][device_host_name]["rc"] == 0, err_msg
+    out = await BridgeLink.set(
+        input_data=[{device_host_name: [
+            {"device": port, "learning": True, "flood": False} for port in ports]}])
+    err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
-    # out = await BridgeFdb.add(
-    #     input_data=[{device_host_name: [
-    #         {"dev": ports[0], "lladdr": "aa:bb:cc:dd:ee:11", "master": True},
-    #         {"dev": ports[1], "lladdr": "aa:bb:cc:dd:ee:12", "master": True},
-    #         {"dev": ports[2], "lladdr": "aa:bb:cc:dd:ee:13", "master": True},
-    #         {"dev": ports[3], "lladdr": "aa:bb:cc:dd:ee:14", "master": True},
-    #         ]}])
-    # assert out[0][device_host_name]["rc"] == 0, f"Verify that FDB static entries added.\n{out}"
+    out = await BridgeFdb.add(
+        input_data=[{device_host_name: [
+            {"dev": ports[0], "lladdr": "aa:bb:cc:dd:ee:11", "master": True},
+            {"dev": ports[1], "lladdr": "aa:bb:cc:dd:ee:12", "master": True},
+            {"dev": ports[2], "lladdr": "aa:bb:cc:dd:ee:13", "master": True},
+            {"dev": ports[3], "lladdr": "aa:bb:cc:dd:ee:14", "master": True},
+            ]}])
+    assert out[0][device_host_name]["rc"] == 0, f"Verify that FDB static entries added.\n{out}"
 
     address_map = (
         #swp port, tg port,     tg ip,     gw,        plen
@@ -272,7 +272,7 @@ async def test_bridging_frame_min(testbed):
 @pytest.mark.asyncio
 async def test_bridging_jumbo_frame_value_out_of_bounds(testbed):
     """
-    Test Name: test_bridging_jumbo_frame_learning
+    Test Name: test_bridging_jumbo_frame_value_out_of_bounds
     Test Suite: suite_functional_bridging
     Test Overview: Verifying that jumbo frames with value out of bounds are not learned and not forwarded.
     Test Author: Kostiantyn Stavruk

@@ -21,7 +21,7 @@ pytestmark = pytest.mark.suite_functional_bridging
 
 
 @pytest.mark.asyncio
-async def test_bridging_ageing_refresh_run(testbed):
+async def test_bridging_ageing_refresh(testbed):
     """
     Test Name: test_bridging_ageing_refresh
     Test Suite: suite_functional_bridging
@@ -53,11 +53,11 @@ async def test_bridging_ageing_refresh_run(testbed):
     traffic_duration = 5
     ageing_time = 40
 
-    # out = await IpLink.add(
-    #     input_data=[{device_host_name: [
-    #         {"device": bridge, "type": "bridge"}]}])
-    # err_msg = f"Verify that bridge created.\n{out}"
-    # assert out[0][device_host_name]["rc"] == 0, err_msg
+    out = await IpLink.add(
+        input_data=[{device_host_name: [
+            {"device": bridge, "type": "bridge"}]}])
+    err_msg = f"Verify that bridge created.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
