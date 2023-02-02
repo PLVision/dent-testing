@@ -14,27 +14,28 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_stop_traffic,
     tgen_utils_dev_groups_from_config,
     tgen_utils_traffic_generator_connect,
+    tgen_utils_get_loss
 )
 
 pytestmark = [pytest.mark.suite_functional_bridging, pytest.mark.asyncio]
 
-async def test_bridging_wrong_fcs(testbed):
+async def test_bridging_learning_illegal_address(testbed):
     """
-    Test Name: test_bridging_wrong_fcs
+    Test Name: test_bridging_learning_illegal_address
     Test Suite: suite_functional_bridging
-    Test Overview: Verify that packet drop due to wrong frame check sequence.
+    Test Overview: Verify that bridge is not learning illegal address.
     Test Author: Kostiantyn Stavruk
     Test Procedure:
     1.  Init bridge entity br0.
     2.  Set ports swp1, swp2, swp3, swp4 master br0.
-    3.  Set bridge br0 admin state UP.
-    4.  Set entities swp1, swp2, swp3, swp4 UP state.
+    3.  Set entities swp1, swp2, swp3, swp4 UP state.
+    4.  Set bridge br0 admin state UP.
     5.  Set ports swp1, swp2, swp3, swp4 learning ON.
     6.  Set ports swp1, swp2, swp3, swp4 flood OFF.
-    7.  Send traffic with bad_crc for bridge to learn address.
-    8.  Verify that address haven't been learned due to wrong frame check sequence in packet.
+    7.  Send traffic by TG with illegal address.
+    8.  Verify that illegal address haven't been learned.
     """
-    
+
     bridge = "br0"
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
@@ -60,7 +61,7 @@ async def test_bridging_wrong_fcs(testbed):
     
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {"device": port, "master": "br0", "operstate": "up"} for port in ports]}])
+            {"device": port, "master": bridge, "operstate": "up"} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
@@ -84,40 +85,66 @@ async def test_bridging_wrong_fcs(testbed):
     )
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
-    
-    list_macs = ["aa:bb:cc:dd:ee:11", "aa:bb:cc:dd:ee:12",
-                 "aa:bb:cc:dd:ee:13", "aa:bb:cc:dd:ee:14"]
 
     streams = {
-        f"bridge_{dst + 1}": {
-            "ip_source": dev_groups[tg_ports[src]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[dst]][0]["name"],
-            "srcMac": list_macs[src],
-            "dstMac": list_macs[dst],
+        "bridge_1": {
+            "ip_source": dev_groups[tg_ports[3]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[0]][0]["name"],
+            "srcMac": "01:00:00:00:00:00",
+            "dstMac": "00:00:00:00:00:00",
             "type": "raw",
             "protocol": "802.1Q",
-            "bad_crc": True,
-        } for src, dst in ((3, 0), (2, 1), (1, 2), (0, 3))
+        },
+        "bridge_2": {
+            "ip_source": dev_groups[tg_ports[2]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[1]][0]["name"],
+            "srcMac": "01:00:00:00:00:00",
+            "dstMac": "aa:aa:aa:aa:aa:aa",
+            "type": "raw",
+            "protocol": "802.1Q",
+        },
+        "bridge_3": {
+            "ip_source": dev_groups[tg_ports[1]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[2]][0]["name"],
+            "srcMac": "01:00:00:00:00:00",
+            "dstMac": "ff:ff:ff:ff:ff:ff",
+            "type": "raw",
+            "protocol": "802.1Q",
+        },
+        "bridge_4": {
+            "ip_source": dev_groups[tg_ports[0]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[3]][0]["name"],
+            "srcMac": "ff:ff:ff:ff:ff:ff",
+            "dstMac": "01:00:00:00:00:00",
+            "type": "raw",
+            "protocol": "802.1Q",
+        }
     }
 
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
-
+    
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)
     await tgen_utils_stop_traffic(tgen_dev)
 
-    # check the traffic stats
+   # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        assert float(row["Tx Frames"]) > 0.000, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
-
+        loss = tgen_utils_get_loss(row)
+        assert loss == 100, f"Expected loss: 100%, actual: {loss}%"
+        assert int(row["Tx Frames"]) > 0, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
+    
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
                                parse_output=True)
+    assert out[0][device_host_name]["rc"] == 0, f"Failed to get fdb entry.\n"
+
+    illegal_address = ["00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff",
+                       "01:00:00:00:00:00", "aa:aa:aa:aa:aa:aa"]
 
     fdb_entries = out[0][device_host_name]["parsed_output"]
     learned_macs = [en["mac"] for en in fdb_entries if "mac" in en]
-    for mac in list_macs:
-        err_msg = f"Verify that source macs have not been learned due to wrong frame check sequence.\n"
+    for mac in illegal_address:
+        err_msg = f"Verify that source macs have not been learned due to illegal address.\n"
         assert mac not in learned_macs, err_msg
-
+    
     await tgen_utils_stop_protocols(tgen_dev)

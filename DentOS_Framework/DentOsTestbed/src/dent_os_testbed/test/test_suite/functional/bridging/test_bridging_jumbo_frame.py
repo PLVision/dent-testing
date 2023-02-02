@@ -17,10 +17,8 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_traffic_generator_connect
 )
 
-pytestmark = pytest.mark.suite_functional_bridging
+pytestmark = [pytest.mark.suite_functional_bridging, pytest.mark.asyncio]
 
-
-@pytest.mark.asyncio
 async def test_bridging_frame_max(testbed):
     """
     Test Name: test_bridging_frame_max
@@ -149,7 +147,6 @@ async def test_bridging_frame_max(testbed):
     await tgen_utils_stop_protocols(tgen_dev)
 
 
-@pytest.mark.asyncio
 async def test_bridging_frame_min(testbed):
     """
     Test Name: test_bridging_frame_min
@@ -269,7 +266,6 @@ async def test_bridging_frame_min(testbed):
     await tgen_utils_stop_protocols(tgen_dev)
 
 
-@pytest.mark.asyncio
 async def test_bridging_jumbo_frame_value_out_of_bounds(testbed):
     """
     Test Name: test_bridging_jumbo_frame_value_out_of_bounds

@@ -18,7 +18,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_loss
 )
 
-pytestmark = pytest.mark.suite_functional_bridging
+pytestmark = [pytest.mark.suite_functional_bridging, pytest.mark.asyncio]
 
 async def get_port_stats(device_host_name, ports):
     stats = {}
@@ -30,7 +30,6 @@ async def get_port_stats(device_host_name, ports):
         stats[port] = out[0][device_host_name]["parsed_output"]
     return stats
 
-@pytest.mark.asyncio
 async def test_bridging_packets_undersize(testbed):
     """
     Test Name: test_bridging_packets_undersize
@@ -44,7 +43,7 @@ async def test_bridging_packets_undersize(testbed):
     4.  Set bridge br0 admin state UP.
     5.  Set ports swp1, swp2, swp3, swp4 learning ON.
     6.  Set ports swp1, swp2, swp3, swp4 flood OFF.
-    7.  Set streams frameSize 40.
+    7.  Set streams frameSize 48.
     8.  Send traffic for bridge to learn address.
     9.  Verify that address haven't been learned due to undersized packet.
     """
@@ -111,7 +110,7 @@ async def test_bridging_packets_undersize(testbed):
             "type": "raw",
             "protocol": "802.1Q",
             "rate": 1000,
-            "frameSize": 40,
+            "frameSize": 48,
         } for src, dst in ((3, 0), (2, 1), (1, 2), (0, 3))
     }
 
@@ -150,7 +149,6 @@ async def test_bridging_packets_undersize(testbed):
     await tgen_utils_stop_protocols(tgen_dev)
 
 
-@pytest.mark.asyncio
 async def test_bridging_packets_oversize(testbed):
     """
     Test Name: test_bridging_packets_oversize

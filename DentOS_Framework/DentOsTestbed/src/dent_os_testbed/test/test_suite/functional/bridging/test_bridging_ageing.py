@@ -17,10 +17,8 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_loss
 )
 
-pytestmark = pytest.mark.suite_functional_bridging
+pytestmark = [pytest.mark.suite_functional_bridging, pytest.mark.asyncio]
 
-
-@pytest.mark.asyncio
 async def test_bridging_ageing_refresh(testbed):
     """
     Test Name: test_bridging_ageing_refresh
@@ -169,7 +167,6 @@ async def test_bridging_ageing_refresh(testbed):
     await tgen_utils_stop_protocols(tgen_dev)
 
 
-@pytest.mark.asyncio
 async def test_bridging_ageing_under_continue(testbed):
     """
     Test Name: test_bridging_ageing_under_continue

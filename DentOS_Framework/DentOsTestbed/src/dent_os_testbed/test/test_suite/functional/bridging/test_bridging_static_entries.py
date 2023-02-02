@@ -17,10 +17,8 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_traffic_generator_connect,
 )
 
-pytestmark = pytest.mark.suite_functional_bridging
+pytestmark = [pytest.mark.suite_functional_bridging, pytest.mark.asyncio]
 
-
-@pytest.mark.asyncio
 async def test_bridging_static_entries(testbed):
     """
     Test Name: test_bridging_static_entries
