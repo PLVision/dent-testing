@@ -18,7 +18,11 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_loss
 )
 
-pytestmark = [pytest.mark.suite_functional_bridging, pytest.mark.asyncio]
+pytestmark = [
+    pytest.mark.suite_functional_bridging, 
+    pytest.mark.asyncio,
+    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
+]
 
 async def get_port_stats(device_host_name, ports):
     stats = {}
@@ -30,7 +34,8 @@ async def get_port_stats(device_host_name, ports):
         stats[port] = out[0][device_host_name]["parsed_output"]
     return stats
 
-async def test_bridging_packets_undersize(testbed):
+
+async def test_bridging_packets_undersize_new(testbed):
     """
     Test Name: test_bridging_packets_undersize
     Test Suite: suite_functional_bridging
@@ -124,8 +129,8 @@ async def test_bridging_packets_undersize(testbed):
 
     new_stats = await get_port_stats(device_host_name, (port for port, *_ in address_map))
 
-   # check the traffic stats
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+    # check the traffic stats
+    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         loss = tgen_utils_get_loss(row)
         assert loss != 100, f"Expected loss: 0%, actual: {loss}%"
@@ -244,7 +249,7 @@ async def test_bridging_packets_oversize(testbed):
     new_stats = await get_port_stats(device_host_name, (port for port, *_ in address_map))
 
     # check the traffic stats
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         loss = tgen_utils_get_loss(row)
         assert loss == 100, f"Expected loss: 100%, actual: {loss}%"

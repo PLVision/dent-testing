@@ -17,7 +17,11 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_loss
 )
 
-pytestmark = [pytest.mark.suite_functional_bridging, pytest.mark.asyncio]
+pytestmark = [
+    pytest.mark.suite_functional_bridging, 
+    pytest.mark.asyncio,
+    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
+]
 
 async def test_bridging_ageing_refresh(testbed):
     """
@@ -34,7 +38,7 @@ async def test_bridging_ageing_refresh(testbed):
     6.  Set ports swp1, swp2, swp3, swp4 learning ON.
     7.  Send traffic to swp1 with sourse mac aa:bb:cc:dd:ee:11.
     8.  Wait for 0.5-0.75 AT, and check that entry exists.
-    9.  Send traffic again, and check there is no flooding.
+    9.  Send traffic again, and check there is forwarding.
     10. Wait for 0.9 AT and verify that entry still exist.
     11. Wait 2 AT - entry should be deleted.
     """
@@ -171,7 +175,7 @@ async def test_bridging_ageing_under_continue(testbed):
     """
     Test Name: test_bridging_ageing_under_continue
     Test Suite: suite_functional_bridging
-    Test Overview: Verify that bridge learning entries appear with continues traffic after ageing time expired.
+    Test Overview: Verify that bridge learning entries appear with continuous traffic after ageing time expired.
     Test Author: Kostiantyn Stavruk
     Test Procedure:
     1.  Init bridge entity br0.
@@ -181,11 +185,11 @@ async def test_bridging_ageing_under_continue(testbed):
     5.  Set entities swp1, swp2, swp3, swp4 UP state.
     6.  Set ports swp1, swp2, swp3, swp4 learning ON.
     7.  Set ports swp1, swp2, swp3, swp4 flood OFF.
-    8.  Continues traffic sending to swp1, swp2, swp3, swp4 with sourse macs 
+    8.  Send continuous traffic to swp1, swp2, swp3, swp4 with sourse macs 
         aa:bb:cc:dd:ee:11 aa:bb:cc:dd:ee:12 
         aa:bb:cc:dd:ee:13 aa:bb:cc:dd:ee:14 accordingly.
     9.  Delaying 3 AT.
-    10. Verify that entries exist due to continues traffic.
+    10. Verify that entries exist due to continuous traffic.
     """
 
     bridge = "br0"

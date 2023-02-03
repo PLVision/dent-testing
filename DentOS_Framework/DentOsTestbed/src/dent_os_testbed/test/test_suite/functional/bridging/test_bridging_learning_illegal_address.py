@@ -17,7 +17,11 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_loss
 )
 
-pytestmark = [pytest.mark.suite_functional_bridging, pytest.mark.asyncio]
+pytestmark = [
+    pytest.mark.suite_functional_bridging, 
+    pytest.mark.asyncio,
+    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
+]
 
 async def test_bridging_learning_illegal_address(testbed):
     """
@@ -87,7 +91,7 @@ async def test_bridging_learning_illegal_address(testbed):
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 
     streams = {
-        "bridge_1": {
+        "all_zeros": {
             "ip_source": dev_groups[tg_ports[3]][0]["name"],
             "ip_destination": dev_groups[tg_ports[0]][0]["name"],
             "srcMac": "01:00:00:00:00:00",
@@ -95,7 +99,7 @@ async def test_bridging_learning_illegal_address(testbed):
             "type": "raw",
             "protocol": "802.1Q",
         },
-        "bridge_2": {
+        "multicast": {
             "ip_source": dev_groups[tg_ports[2]][0]["name"],
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcMac": "01:00:00:00:00:00",
@@ -103,7 +107,7 @@ async def test_bridging_learning_illegal_address(testbed):
             "type": "raw",
             "protocol": "802.1Q",
         },
-        "bridge_3": {
+        "broadcast": {
             "ip_source": dev_groups[tg_ports[1]][0]["name"],
             "ip_destination": dev_groups[tg_ports[2]][0]["name"],
             "srcMac": "01:00:00:00:00:00",
@@ -111,7 +115,7 @@ async def test_bridging_learning_illegal_address(testbed):
             "type": "raw",
             "protocol": "802.1Q",
         },
-        "bridge_4": {
+        "invalid mac": {
             "ip_source": dev_groups[tg_ports[0]][0]["name"],
             "ip_destination": dev_groups[tg_ports[3]][0]["name"],
             "srcMac": "ff:ff:ff:ff:ff:ff",
@@ -127,7 +131,7 @@ async def test_bridging_learning_illegal_address(testbed):
     await asyncio.sleep(traffic_duration)
     await tgen_utils_stop_traffic(tgen_dev)
 
-   # check the traffic stats
+    # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         loss = tgen_utils_get_loss(row)

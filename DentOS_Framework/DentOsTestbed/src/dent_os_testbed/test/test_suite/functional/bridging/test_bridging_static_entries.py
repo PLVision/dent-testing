@@ -17,9 +17,13 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_traffic_generator_connect,
 )
 
-pytestmark = [pytest.mark.suite_functional_bridging, pytest.mark.asyncio]
+pytestmark = [
+    pytest.mark.suite_functional_bridging, 
+    pytest.mark.asyncio,
+    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
+]
 
-async def test_bridging_static_entries(testbed):
+async def test_bridging_static_entries_run(testbed):
     """
     Test Name: test_bridging_static_entries
     Test Suite: suite_functional_bridging
@@ -74,10 +78,10 @@ async def test_bridging_static_entries(testbed):
 
     out = await BridgeFdb.add(
         input_data=[{device_host_name: [
-            {"dev": ports[0], "lladdr": "aa:bb:cc:dd:ee:11", "master": True},
-            {"dev": ports[1], "lladdr": "aa:bb:cc:dd:ee:12", "master": True},
-            {"dev": ports[2], "lladdr": "aa:bb:cc:dd:ee:13", "master": True},
-            {"dev": ports[3], "lladdr": "aa:bb:cc:dd:ee:14", "master": True},
+            {"device": ports[0], "lladdr": "aa:bb:cc:dd:ee:11", "master": True, "static": True},
+            {"device": ports[1], "lladdr": "aa:bb:cc:dd:ee:12", "master": True, "static": True},
+            {"device": ports[2], "lladdr": "aa:bb:cc:dd:ee:13", "master": True, "static": True},
+            {"device": ports[3], "lladdr": "aa:bb:cc:dd:ee:14", "master": True, "static": True},
             ]}])
     assert out[0][device_host_name]["rc"] == 0, f"Verify that FDB static entries added.\n{out}"
 

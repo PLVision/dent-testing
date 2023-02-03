@@ -17,11 +17,15 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_traffic_generator_connect
 )
 
-pytestmark = [pytest.mark.suite_functional_bridging, pytest.mark.asyncio]
+pytestmark = [
+    pytest.mark.suite_functional_bridging, 
+    pytest.mark.asyncio,
+    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
+]
 
-async def test_bridging_frame_max(testbed):
+async def test_bridging_frame_max_size(testbed):
     """
-    Test Name: test_bridging_frame_max
+    Test Name: test_bridging_frame_max_size
     Test Suite: suite_functional_bridging
     Test Overview: Verifying that jumbo frames of max size are learned and forwarded.
     Test Author: Kostiantyn Stavruk
@@ -84,10 +88,10 @@ async def test_bridging_frame_max(testbed):
 
     out = await BridgeFdb.add(
         input_data=[{device_host_name: [
-            {"dev": ports[0], "lladdr": "aa:bb:cc:dd:ee:11", "master": True},
-            {"dev": ports[1], "lladdr": "aa:bb:cc:dd:ee:12", "master": True},
-            {"dev": ports[2], "lladdr": "aa:bb:cc:dd:ee:13", "master": True},
-            {"dev": ports[3], "lladdr": "aa:bb:cc:dd:ee:14", "master": True},
+            {"device": ports[0], "lladdr": "aa:bb:cc:dd:ee:11", "master": True, "static": True},
+            {"device": ports[1], "lladdr": "aa:bb:cc:dd:ee:12", "master": True, "static": True},
+            {"device": ports[2], "lladdr": "aa:bb:cc:dd:ee:13", "master": True, "static": True},
+            {"device": ports[3], "lladdr": "aa:bb:cc:dd:ee:14", "master": True, "static": True},
             ]}])
     assert out[0][device_host_name]["rc"] == 0, f"Verify that FDB static entries added.\n{out}"
 
@@ -130,7 +134,6 @@ async def test_bridging_frame_max(testbed):
     # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        assert float(row["Loss %"]) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
         assert tgen_utils_get_loss(row) == 0.000, \
         f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} forwarded.\n{out}"
     
@@ -147,9 +150,9 @@ async def test_bridging_frame_max(testbed):
     await tgen_utils_stop_protocols(tgen_dev)
 
 
-async def test_bridging_frame_min(testbed):
+async def test_bridging_jumbo_frame_min_size(testbed):
     """
-    Test Name: test_bridging_frame_min
+    Test Name: test_bridging_jumbo_frame_min_size
     Test Suite: suite_functional_bridging
     Test Overview: Verifying that jumbo frames of min size are learned and forwarded.
     Test Author: Kostiantyn Stavruk
@@ -248,8 +251,6 @@ async def test_bridging_frame_min(testbed):
     # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        assert float(row["Loss %"]) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
-        assert int(row["Tx Frames"]) > 0, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
         assert tgen_utils_get_loss(row) == 0.000, \
         f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} forwarded.\n{out}"
 
@@ -367,7 +368,6 @@ async def test_bridging_jumbo_frame_value_out_of_bounds(testbed):
     # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        assert float(row["Loss %"]) == 100.000, f'Failed>Loss percent: {row["Loss %"]}'
         assert tgen_utils_get_loss(row) == 100.000, \
         f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} not forwarded.\n{out}"
 

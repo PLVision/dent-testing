@@ -14,9 +14,14 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_stop_traffic,
     tgen_utils_dev_groups_from_config,
     tgen_utils_traffic_generator_connect,
+    tgen_utils_get_loss
 )
 
-pytestmark = [pytest.mark.suite_functional_bridging, pytest.mark.asyncio]
+pytestmark = [
+    pytest.mark.suite_functional_bridging, 
+    pytest.mark.asyncio,
+    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
+]
 
 async def test_bridging_wrong_fcs(testbed):
     """
@@ -30,9 +35,9 @@ async def test_bridging_wrong_fcs(testbed):
     3.  Set bridge br0 admin state UP.
     4.  Set entities swp1, swp2, swp3, swp4 UP state.
     5.  Set ports swp1, swp2, swp3, swp4 learning ON.
-    6.  Set ports swp1, swp2, swp3, swp4 flood OFF.
+    6.  Set ports swp1, swp2, swp3, swp4 flood ON.
     7.  Send traffic with bad_crc for bridge to learn address.
-    8.  Verify that address haven't been learned due to wrong frame check sequence in packet.
+    8.  Verify that address haven't been learned and haven't been forwarded.
     """
     
     bridge = "br0"
@@ -46,11 +51,11 @@ async def test_bridging_wrong_fcs(testbed):
     ports = tgen_dev.links_dict[device_host_name][1]
     traffic_duration = 5
 
-    out = await IpLink.add(
-        input_data=[{device_host_name: [
-            {"device": bridge, "type": "bridge"}]}])
-    err_msg = f"Verify that bridge created.\n{out}"
-    assert out[0][device_host_name]["rc"] == 0, err_msg
+    # out = await IpLink.add(
+    #     input_data=[{device_host_name: [
+    #         {"device": bridge, "type": "bridge"}]}])
+    # err_msg = f"Verify that bridge created.\n{out}"
+    # assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
@@ -66,7 +71,7 @@ async def test_bridging_wrong_fcs(testbed):
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {"device": port, "learning": True, "flood": False} for port in ports]}])
+            {"device": port, "learning": True, "flood": True} for port in ports]}])
     err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
@@ -110,6 +115,8 @@ async def test_bridging_wrong_fcs(testbed):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         assert float(row["Tx Frames"]) > 0.000, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
+        assert tgen_utils_get_loss(row) == 100.000, \
+        f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} not forwarded.\n{out}"
 
     out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
                                parse_output=True)

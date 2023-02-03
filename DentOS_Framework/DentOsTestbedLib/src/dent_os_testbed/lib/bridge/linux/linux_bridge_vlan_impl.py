@@ -1,3 +1,4 @@
+import json
 from dent_os_testbed.lib.bridge.linux.linux_bridge_vlan import LinuxBridgeVlan
 
 
