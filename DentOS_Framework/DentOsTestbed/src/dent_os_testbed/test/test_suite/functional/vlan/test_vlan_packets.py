@@ -68,10 +68,10 @@ async def test_vlan_tagged_packet_size(testbed):
         "protocol": "802.1Q",
         "ip_source": tx_ports,
         "ip_destination": rx_ports,
-        "src_mac": "02:00:00:00:00:01",
-        "dst_mac": "ff:ff:ff:ff:ff:ff",
+        "srcMac": "02:00:00:00:00:01",
+        "dstMac": "ff:ff:ff:ff:ff:ff",
         "frameSize": 512
-        }}
+    }}
 
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
 
@@ -82,10 +82,12 @@ async def test_vlan_tagged_packet_size(testbed):
 
     # 6. Verify that the tagged packet size is bigger in 4 bytes than untagged packet
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
-    frame_size = streams["Untagged traffic"].get("frameSize")
+    expected_packet_size = streams["Untagged traffic"].get("frameSize")
     for row in stats.Rows:
+        actual_packet_size = int(row["Rx Bytes"]) / int(row["Rx Frames"])
         if row["Rx Port"] == tg_ports[tagged_traffic_port]:
-            tagged_traffic_size = int(row["Rx Bytes"]) / int(row["Rx Frames"]) - frame_size
+            assert actual_packet_size == expected_packet_size + 4,\
+                f"Expected packet size to be {expected_packet_size + 4}, but actual size is {actual_packet_size}"
         else:
-            untagged_traffic_size = int(row["Rx Bytes"]) / int(row["Rx Frames"]) - frame_size
-    assert tagged_traffic_size - untagged_traffic_size == 4, f"Expected difference in 4 bytes"
+            assert actual_packet_size == expected_packet_size,\
+                f"Expected packet size to be {expected_packet_size}, but actual size is {actual_packet_size}"
