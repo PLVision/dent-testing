@@ -73,7 +73,6 @@ PYTEST_SUITES = {
 }
 
 PYTEST_SUITE_GROUPS = {
-    "suite_group_functional": ["suite_functional_bridging"],
     "suite_group_test": ["suite_test", "suite_feature_f1", "suite_feature_f2"],
     "suite_group_clean_config": ["suite_clean_config"],
     "suite_group_l3_tests": ["suite_iproute2", "suite_arp"],
@@ -104,5 +103,5 @@ PYTEST_SUITE_GROUPS = {
     "suite_group_connection": ["suite_connection"],
     "suite_group_platform": ["suite_poe", "suite_onlpdump", "suite_lldp"],
     "suite_group_cleanup": ["suite_cleanup"],
-    "suite_group_functional": ["suite_functional_ipv4"],
+    "suite_group_functional": ["suite_functional_ipv4", "suite_functional_bridging"],
 }
