@@ -12,9 +12,9 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_start_traffic,
     tgen_utils_stop_protocols,
     tgen_utils_stop_traffic,
-    tgen_utils_get_loss,
     tgen_utils_dev_groups_from_config,
     tgen_utils_traffic_generator_connect,
+    tgen_utils_get_loss
 )
 
 pytestmark = [
@@ -23,23 +23,21 @@ pytestmark = [
     pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
 ]
 
-async def test_bridging_traffic_from_nomaster(testbed):
+async def test_bridging_mac_table_size(testbed):
     """
-    Test Name: test_bridging_traffic_from_nomaster
+    Test Name: test_bridging_mac_table_size
     Test Suite: suite_functional_bridging
-    Test Overview: Verify that traffic is not being forward from nomaster to slave port and vice versa.
+    Test Overview: Verify amount of extern_learn offload entities in the mac table.
     Test Author: Kostiantyn Stavruk
     Test Procedure:
     1.  Init bridge entity br0.
     2.  Set ports swp1, swp2, swp3, swp4 master br0.
-    3.  Set entities swp1, swp2, swp3, swp4 UP state.
-    4.  Set bridge br0 admin state UP.
-    5.  Set ports swp1, swp2, swp3, swp4 learning OFF.
+    3.  Set bridge br0 admin state UP.
+    4.  Set entities swp1, swp2, swp3, swp4 UP state.
+    5.  Set ports swp1, swp2, swp3, swp4 learning ON.
     6.  Set ports swp1, swp2, swp3, swp4 flood OFF.
-    7.  Adding FDB static entries for ports swp1, swp2, swp3, swp4.
-    8.  Set port swp1 to nomaster.
-    9.  Send traffic by TG.
-    10. Verify that traffic is not being forward from nomaster to slave port.
+    7.  Send traffic for filling bridge address table.
+    8.  Verify amount of extern_learn offload entities.
     """
 
     bridge = "br0"
@@ -52,6 +50,7 @@ async def test_bridging_traffic_from_nomaster(testbed):
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
     traffic_duration = 5
+    count_ixia_ports = 4
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
@@ -66,27 +65,14 @@ async def test_bridging_traffic_from_nomaster(testbed):
     out = await IpLink.set(
         input_data=[{device_host_name: [
             {"device": port, "master": bridge, "operstate": "up"} for port in ports]}])
-    err_msg = f"Verify that bridge, bridge entities set to 'UP' state.\n{out}"
+    err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {"device": port, "learning": False, "flood": False} for port in ports]}])
-    err_msg = f"Verify that entities set to learning 'OFF' and flooding 'OFF' state.\n{out}"
+            {"device": port, "learning": True, "flood": True} for port in ports]}])
+    err_msg = f"Verify that entities set to learning 'ON' and flooding 'ON' state.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
-
-    out = await BridgeFdb.add(
-        input_data=[{device_host_name: [
-            {"device": ports[0], "lladdr": "aa:bb:cc:dd:ee:11", "master": True, "static": True},
-            {"device": ports[1], "lladdr": "aa:bb:cc:dd:ee:12", "master": True, "static": True},
-            {"device": ports[2], "lladdr": "aa:bb:cc:dd:ee:13", "master": True, "static": True},
-            {"device": ports[3], "lladdr": "aa:bb:cc:dd:ee:14", "master": True, "static": True},
-            ]}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that FDB static entries added.\n{out}"
-
-    out = await IpLink.set(
-        input_data=[{device_host_name: [{"device": ports[0], "nomaster": True}]}])
-    assert out[0][device_host_name]["rc"] == 0, f" Verify that swp1 entity set to 'nomaster'.\n{out}"
 
     address_map = (
         # swp port, tg port,     tg ip,     gw,        plen
@@ -123,20 +109,20 @@ async def test_bridging_traffic_from_nomaster(testbed):
     await asyncio.sleep(traffic_duration)
     await tgen_utils_stop_traffic(tgen_dev)
 
-    # check the traffic stats
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+    #check the traffic stats
+    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        if row["Traffic Item"] == "bridge_1" and row["Rx Port"] == tg_ports[0]:
-            assert tgen_utils_get_loss(row) == 100.000, \
-                f"Verify that traffic from swp4 to swp1 not forwarded.\n"
-        if row["Traffic Item"] == "bridge_2" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp3 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "bridge_3" and row["Rx Port"] == tg_ports[2]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp2 to swp3 forwarded.\n"
-        if row["Traffic Item"] == "bridge_4" and row["Rx Port"] == tg_ports[3]:
-            assert tgen_utils_get_loss(row) == 100.000, \
-                f"Verify that traffic from swp1 to swp4 not forwarded.\n"
-        
+        loss = tgen_utils_get_loss(row)
+        assert loss == 0, f"Expected loss: 0%, actual: {loss}%"
+
+    out = await BridgeFdb.show(input_data=[
+        {device_host_name: [{"options_grep": "br br0   |  grep 'extern_learn.*offload'  |  wc -l"}]}],
+                               parse_output=True)
+    assert out[0][device_host_name]["rc"] == 0, f"Failed to grep 'extern_learn.*offload'.\n"
+
+    fdb_entries = out[0][device_host_name]["parsed_output"]
+    amount = int(fdb_entries) - count_ixia_ports
+    err_msg = f"Expected count of extern_learn offload entities: 4, Actual count: {amount}"
+    assert amount == 4, err_msg
+    
     await tgen_utils_stop_protocols(tgen_dev)

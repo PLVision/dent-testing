@@ -56,7 +56,10 @@ class LinuxBridgeFdbImpl(LinuxBridgeFdb):
         bridge fdb [ show ] [ dev DEV ] [ br BRDEV ] [ brport DEV ] [ vlan VID ] [ state STATE ]
         """
         params = kwarg["params"]
-        cmd = "bridge {} fdb {} ".format(params.get("options", ""), command)
+        if "options" in params:
+            cmd = "bridge {} fdb {} ".format(params.get("options", ""), command)
+        if "options_grep" in params:
+            cmd = "bridge fdb show {} ".format(params.get("options_grep", ""), command)
         ############# Implement me ################
 
         return cmd
