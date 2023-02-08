@@ -1,7 +1,6 @@
 import pytest
 import asyncio
 
-from dent_os_testbed.lib.bridge.bridge_fdb import BridgeFdb
 from dent_os_testbed.lib.bridge.bridge_link import BridgeLink
 from dent_os_testbed.lib.ip.ip_link import IpLink
 
@@ -10,7 +9,6 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
-    tgen_utils_stop_protocols,
     tgen_utils_stop_traffic,
     tgen_utils_dev_groups_from_config,
     tgen_utils_traffic_generator_connect,
@@ -41,7 +39,7 @@ async def test_bridging_mac_table_size(testbed):
     """
 
     bridge = "br0"
-    tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
+    tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
         print("The testbed does not have enough dent with tgen connections")
         return
@@ -49,8 +47,9 @@ async def test_bridging_mac_table_size(testbed):
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
-    traffic_duration = 5
-    count_ixia_ports = 4
+    traffic_duration = 10
+    ixia_vhost_mac_count = 2
+    pps_value = 4000
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
@@ -70,16 +69,14 @@ async def test_bridging_mac_table_size(testbed):
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {"device": port, "learning": True, "flood": True} for port in ports]}])
-    err_msg = f"Verify that entities set to learning 'ON' and flooding 'ON' state.\n{out}"
+            {"device": port, "learning": True, "flood": False} for port in ports]}])
+    err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
     address_map = (
         # swp port, tg port,     tg ip,     gw,        plen
         (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
-        (ports[1], tg_ports[1], "2.2.2.2", "2.2.2.1", 24),
-        (ports[2], tg_ports[2], "3.3.3.2", "3.3.3.1", 24),
-        (ports[3], tg_ports[3], "4.4.4.2", "4.4.4.1", 24),
+        (ports[1], tg_ports[1], "1.1.1.3", "1.1.1.1", 24),
     )
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -89,18 +86,19 @@ async def test_bridging_mac_table_size(testbed):
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 
-    list_macs = ["aa:bb:cc:dd:ee:11", "aa:bb:cc:dd:ee:12",
-                 "aa:bb:cc:dd:ee:13", "aa:bb:cc:dd:ee:14"]
-
     streams = {
-        f"bridge_{dst + 1}": {
-            "ip_source": dev_groups[tg_ports[src]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[dst]][0]["name"],
-            "srcMac": list_macs[src],
-            "dstMac": list_macs[dst],
+        "streamA": {
+            "ip_source": dev_groups[tg_ports[0]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[1]][0]["name"],
+            "srcMac": {"type": "increment",
+                   "start": "00:00:00:00:00:35",
+                   "step": "00:00:00:00:10:00",
+                   "count": pps_value},
+            "dstMac": "aa:bb:cc:dd:ee:11",
             "type": "raw",
             "protocol": "802.1Q",
-        } for src, dst in ((3, 0), (2, 1), (1, 2), (0, 3))
+            "rate": "1000",
+        }
     }
 
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
@@ -115,14 +113,9 @@ async def test_bridging_mac_table_size(testbed):
         loss = tgen_utils_get_loss(row)
         assert loss == 0, f"Expected loss: 0%, actual: {loss}%"
 
-    out = await BridgeFdb.show(input_data=[
-        {device_host_name: [{"options_grep": "br br0   |  grep 'extern_learn.*offload'  |  wc -l"}]}],
-                               parse_output=True)
-    assert out[0][device_host_name]["rc"] == 0, f"Failed to grep 'extern_learn.*offload'.\n"
+    rc, out = await dent_dev.run_cmd("bridge fdb show br br0   |  grep 'extern_learn.*offload'  |  wc -l")
+    assert rc == 0, f"Failed to grep 'extern_learn.*offload'.\n"
 
-    fdb_entries = out[0][device_host_name]["parsed_output"]
-    amount = int(fdb_entries) - count_ixia_ports
-    err_msg = f"Expected count of extern_learn offload entities: 4, Actual count: {amount}"
-    assert amount == 4, err_msg
-    
-    await tgen_utils_stop_protocols(tgen_dev)
+    amount = int(out) - ixia_vhost_mac_count
+    err_msg = f"Expected count of extern_learn offload entities: 4000, Actual count: {amount}"
+    assert amount  == pps_value, err_msg

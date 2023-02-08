@@ -11,7 +11,6 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
-    tgen_utils_stop_protocols,
     tgen_utils_stop_traffic,
     tgen_utils_dev_groups_from_config,
     tgen_utils_traffic_generator_connect,
@@ -47,7 +46,7 @@ async def test_bridging_remove_restore_from_vlan(testbed):
     """
 
     bridge = "br0"
-    tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
+    tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 3)
     if not tgen_dev or not dent_devices:
         print.error(
             "The testbed does not have enough dent with tgen connections")
@@ -111,9 +110,8 @@ async def test_bridging_remove_restore_from_vlan(testbed):
     address_map = (
         # swp port, tg port,     tg ip,     gw,        plen
         (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
-        (ports[1], tg_ports[1], "2.2.2.2", "2.2.2.1", 24),
-        (ports[2], tg_ports[2], "3.3.3.2", "3.3.3.1", 24),
-        (ports[3], tg_ports[3], "4.4.4.2", "4.4.4.1", 24),
+        (ports[1], tg_ports[1], "1.1.1.3", "1.1.1.1", 24),
+        (ports[2], tg_ports[2], "1.1.1.4", "1.1.1.1", 24),
     )
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -150,5 +148,3 @@ async def test_bridging_remove_restore_from_vlan(testbed):
         if row["Traffic Item"] == "bridge_1" and row["Rx Port"] == tg_ports[1]:
             assert tgen_utils_get_loss(row) == 100.000, \
                 f"Verify that traffic from swp3 to swp2 not forwarded.\n"
-
-    await tgen_utils_stop_protocols(tgen_dev)

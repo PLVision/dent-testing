@@ -10,7 +10,6 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
-    tgen_utils_stop_protocols,
     tgen_utils_stop_traffic,
     tgen_utils_get_loss,
     tgen_utils_dev_groups_from_config,
@@ -91,9 +90,9 @@ async def test_bridging_traffic_from_nomaster(testbed):
     address_map = (
         # swp port, tg port,     tg ip,     gw,        plen
         (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
-        (ports[1], tg_ports[1], "2.2.2.2", "2.2.2.1", 24),
-        (ports[2], tg_ports[2], "3.3.3.2", "3.3.3.1", 24),
-        (ports[3], tg_ports[3], "4.4.4.2", "4.4.4.1", 24),
+        (ports[1], tg_ports[1], "1.1.1.3", "1.1.1.1", 24),
+        (ports[2], tg_ports[2], "1.1.1.4", "1.1.1.1", 24),
+        (ports[3], tg_ports[3], "1.1.1.5", "1.1.1.1", 24),
     )
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -138,5 +137,3 @@ async def test_bridging_traffic_from_nomaster(testbed):
         if row["Traffic Item"] == "bridge_4" and row["Rx Port"] == tg_ports[3]:
             assert tgen_utils_get_loss(row) == 100.000, \
                 f"Verify that traffic from swp1 to swp4 not forwarded.\n"
-        
-    await tgen_utils_stop_protocols(tgen_dev)

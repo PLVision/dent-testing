@@ -58,8 +58,6 @@ class LinuxBridgeFdbImpl(LinuxBridgeFdb):
         params = kwarg["params"]
         if "options" in params:
             cmd = "bridge {} fdb {} ".format(params.get("options", ""), command)
-        if "options_grep" in params:
-            cmd = "bridge fdb show {} ".format(params.get("options_grep", ""), command)
         ############# Implement me ################
 
         return cmd
