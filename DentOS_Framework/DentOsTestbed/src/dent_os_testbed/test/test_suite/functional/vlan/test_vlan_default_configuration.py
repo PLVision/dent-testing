@@ -19,7 +19,7 @@ port_map = ({"port": 0, "settings": [{"vlan": 1, "untagged": True, "pvid": True}
 @pytest.mark.suite_functional_vlan
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
-@pytest.mark.parametrize("traffic_type", ["broadcast", "multicast", "unicast"])
+@pytest.mark.parametrize("traffic_type", ["broadcast", "multicast", "unicast", "unknown_unicast"])
 async def test_vlan_default_configuration_with_(testbed, traffic_type):
     """
     Test Name: VLAN default configuration
@@ -113,6 +113,26 @@ async def test_vlan_default_configuration_with_(testbed, traffic_type):
             "ip_destination": rx_ports,
             "src_mac": src_mac,
             "dst_mac": "01:80:C2:00:00:00"
+        }})
+    elif traffic_type == "unknown_unicast":
+        streams = {f"{tg_ports[0]} -> with VLAN: {vlan}": {
+            "type": "raw",
+            "protocol": "802.1Q",
+            "ip_source": tx_ports,
+            "ip_destination": rx_ports,
+            "srcMac": src_mac,
+            "dstMac": "02:00:00:00:00:02",
+            "vlanID": vlan
+        } for vlan in packet_vids if vlan != "X"}
+
+        # Untagged stream
+        streams.update({"Untagged stream": {
+            "type": "raw",
+            "protocol": "802.1Q",
+            "ip_source": tx_ports,
+            "ip_destination": rx_ports,
+            "srcMac": src_mac,
+            "dstMac": "02:00:00:00:00:02",
         }})
     else:
         dst_mac = "02:00:00:00:00:04"
