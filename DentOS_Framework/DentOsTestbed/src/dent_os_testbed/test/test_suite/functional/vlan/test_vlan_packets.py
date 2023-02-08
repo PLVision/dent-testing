@@ -22,12 +22,12 @@ async def test_vlan_tagged_packet_size(testbed):
     """
     Test Name:VLAN tagged packet size
     Test Suite: suite_functional_vlan
-    Test Overview: Test packet with VLAN tag on untagged port is bigger by 4 bytes
+    Test Overview: Test packet with VLAN tag on tagged port is bigger by 4 bytes
     Test Procedure:
     1. Initiate test params.
     2. Set links to vlans.
     3. Map receiving and non receiving dut_ports.
-        Port 1 ->  tx_port
+        Port 1 -> tx_port
         Ports 2, 3, 4 -> rx_ports
     4. Setup packet stream(s) for the broadcast packet:
     5. Send traffic to rx_ports
@@ -82,12 +82,12 @@ async def test_vlan_tagged_packet_size(testbed):
 
     # 6. Verify that the tagged packet size is bigger in 4 bytes than untagged packet
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
-    expected_packet_size = streams["Untagged traffic"].get("frameSize")
+    tx_frame_size = streams["Untagged traffic"].get("frameSize")
     for row in stats.Rows:
-        actual_packet_size = int(row["Rx Bytes"]) / int(row["Rx Frames"])
+        rx_frame_size = int(row["Rx Bytes"]) / int(row["Rx Frames"])
         if row["Rx Port"] == tg_ports[tagged_traffic_port]:
-            assert actual_packet_size == expected_packet_size + 4,\
-                f"Expected packet size to be {expected_packet_size + 4}, but actual size is {actual_packet_size}"
+            assert rx_frame_size == tx_frame_size + 4,\
+                f"Expected packet size to be {tx_frame_size + 4}, but actual size is {rx_frame_size}"
         else:
-            assert actual_packet_size == expected_packet_size,\
-                f"Expected packet size to be {expected_packet_size}, but actual size is {actual_packet_size}"
+            assert rx_frame_size == tx_frame_size,\
+                f"Expected packet size to be {tx_frame_size }, but actual size is {rx_frame_size}"
