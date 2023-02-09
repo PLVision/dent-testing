@@ -23,9 +23,9 @@ port_map = ({"port": 0, "settings": [{"vlan": 4094, "untagged": True, "pvid": Tr
 
 async def test_vlan_changing_default_pvid(testbed):
     """
-    Test Name: Broadcast with VLAN default configuration
+    Test Name: Changing default VLAN pvid
     Test Suite: suite_functional_vlan
-    Test Overview: Test broadcast packet forwarding with VLAN default configuration
+    Test Overview: Test broadcast packet forwarding with non-default pvid
     Test Procedure:
     1. Initiate test params.
     2. Set links to vlans.
