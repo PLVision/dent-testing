@@ -10,15 +10,16 @@ from dent_os_testbed.utils.test_utils.br_utils import (configure_bridge_setup, c
                                                        get_traffic_port_vlan_mapping)
 
 
+pytestmark = [pytest.mark.suite_functional_vlan,
+              pytest.mark.asyncio,
+              pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")]
+
 port_map = ({"port": 0, "settings": [{"vlan": 1, "untagged": False, "pvid": False}]},
             {"port": 1, "settings": [{"vlan": 1, "untagged": False, "pvid": False}]},
             {"port": 2, "settings": [{"vlan": 1, "untagged": False, "pvid": False}]},
             {"port": 3, "settings": [{"vlan": 2, "untagged": False, "pvid": False}]})
 
 
-@pytest.mark.suite_functional_vlan
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
 async def test_vlan_basic_functionality(testbed):
     """
     Test Name: VLAN basic functionality
