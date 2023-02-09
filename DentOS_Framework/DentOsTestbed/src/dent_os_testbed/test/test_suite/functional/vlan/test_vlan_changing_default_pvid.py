@@ -10,7 +10,7 @@ from dent_os_testbed.utils.test_utils.br_utils import (get_traffic_port_vlan_map
                                                        configure_bridge_setup, configure_vlan_setup)
 
 
-pytestmark = [pytest.mark.suite_functional_ipv4,
+pytestmark = [pytest.mark.suite_functional_vlan,
               pytest.mark.asyncio,
               pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")]
 
