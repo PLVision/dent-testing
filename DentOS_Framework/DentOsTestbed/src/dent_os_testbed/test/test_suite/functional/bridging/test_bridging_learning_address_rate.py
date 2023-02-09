@@ -34,9 +34,9 @@ async def test_bridging_learning_address_rate(testbed):
     4.  Set bridge br0 admin state UP.
     5.  Set ports swp1, swp2, swp3, swp4 learning ON.
     6.  Set ports swp1, swp2, swp3, swp4 flood ON.
-    7.  Send traffic to swp1 to learn source increment address 
+    7.  Send traffic to swp1 to learn source increment address
         00:00:00:00:00:35 with step '00:00:00:00:10:00' and count 1000.
-    8.  Send traffic to swp2 with destination increment address 
+    8.  Send traffic to swp2 with destination increment address
         00:00:00:00:00:35 with step '00:00:00:00:10:00' and count 1000.
     9.  Verify that there was not flooding to swp3.
     """
@@ -70,12 +70,12 @@ async def test_bridging_learning_address_rate(testbed):
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {"device": port, "learning": True, "True": True} for port in ports]}])
+            {"device": port, "learning": True, "flood": True} for port in ports]}])
     err_msg = f"Verify that entities set to learning 'ON' and flooding 'ON' state.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
     address_map = (
-        #swp port, tg port,     tg ip,     gw,        plen
+        # swp port, tg port,    tg ip,     gw,        plen
         (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
         (ports[1], tg_ports[1], "1.1.1.3", "1.1.1.1", 24),
         (ports[2], tg_ports[2], "1.1.1.4", "1.1.1.1", 24),
@@ -118,7 +118,7 @@ async def test_bridging_learning_address_rate(testbed):
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)
     await tgen_utils_stop_traffic(tgen_dev)
-    
+
     # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
     for row in stats.Rows:
