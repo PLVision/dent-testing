@@ -9,6 +9,9 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (tgen_utils_get_dent_dev
 from dent_os_testbed.utils.test_utils.br_utils import (configure_bridge_setup, configure_vlan_setup,
                                                        get_traffic_port_vlan_mapping)
 
+pytestmark = [pytest.mark.suite_functional_vlan,
+              pytest.mark.asyncio,
+              pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")]
 
 packet_vids = ["X", 0, 1, 22, 23, 24]  # VLAN tag number contained in the transmitted packet
 port_map = ({"port": 0, "settings": [{"vlan": 22, "untagged": False, "pvid": False},
@@ -28,9 +31,6 @@ port_map = ({"port": 0, "settings": [{"vlan": 22, "untagged": False, "pvid": Fal
                                      {"vlan": 24, "untagged": False, "pvid": True}]})
 
 
-@pytest.mark.suite_functional_vlan
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
 @pytest.mark.parametrize("traffic_type", ["broadcast", "multicast", "unicast"])
 async def test_vlan_tagged_ports_with_(testbed, traffic_type):
     """
