@@ -19,7 +19,7 @@ port_map = ({"port": 0, "settings": [{"vlan": 1, "untagged": False, "pvid": Fals
 @pytest.mark.suite_functional_vlan
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
-async def test_vlan_t(testbed):
+async def test_vlan_basic_functionality(testbed):
     """
     Test Name: VLAN basic functionality
     Test Suite: suite_functional_vlan
