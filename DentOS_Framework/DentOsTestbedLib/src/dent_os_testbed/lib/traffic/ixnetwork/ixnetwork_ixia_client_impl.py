@@ -70,7 +70,7 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
             if not caddr:
                 return 0, "No Address to connect!"
             gw = TestPlatform(ip_address=caddr, rest_port=cport)
-            gw.Authenticate(device.username, device.password)
+            gw.Authenticate("admin", "admin")
             # session = gw.Sessions.find()[0]
             # device.applog.info(session)
             # if session.Id == -1:
