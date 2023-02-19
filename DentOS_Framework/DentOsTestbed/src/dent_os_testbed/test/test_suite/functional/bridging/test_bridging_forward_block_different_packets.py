@@ -5,12 +5,12 @@ from dent_os_testbed.lib.ip.ip_link import IpLink
 
 from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_dent_devices_with_tgen,
+    tgen_utils_traffic_generator_connect,
+    tgen_utils_dev_groups_from_config,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
     tgen_utils_stop_traffic,
-    tgen_utils_dev_groups_from_config,
-    tgen_utils_traffic_generator_connect,
     tgen_utils_get_loss,
 )
 
@@ -24,7 +24,7 @@ async def test_bridging_forward_block_different_packets(testbed):
     """
     Test Name: test_bridging_forward_block_different_packets
     Test Suite: suite_functional_bridging
-    Test Overview: Verify that bridge forwarding/drop of different IPv4/6 packet types.
+    Test Overview: Verify that bridge forwarding/drop of different IPv4 packet types.
     Test Author: Kostiantyn Stavruk
     Test Procedure:
     1. Init bridge entity br0.
@@ -38,13 +38,14 @@ async def test_bridging_forward_block_different_packets(testbed):
     bridge = "br0"
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        print.error("The testbed does not have enough dent with tgen connections")
+        print("The testbed does not have enough dent with tgen connections")
         return
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
     traffic_duration = 10
+    srcMac = "00:00:AA:00:00:01"
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
@@ -81,7 +82,7 @@ async def test_bridging_forward_block_different_packets(testbed):
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
-            "srcMac": "aa:bb:cc:dd:ee:12",
+            "srcMac": srcMac,
             "dstMac": "FF:FF:FF:FF:FF:FF",
             "frameSize": 96,
             "protocol": "ip",
@@ -93,7 +94,7 @@ async def test_bridging_forward_block_different_packets(testbed):
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
             "srcMac": {"type": "increment",
-                   "start": "00:00:00:00:00:35",
+                   "start": srcMac,
                    "step": "00:00:00:00:10:00",
                    "count": 32},
             "dstMac": "01:00:5E:00:00:45",
@@ -106,7 +107,7 @@ async def test_bridging_forward_block_different_packets(testbed):
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
-            "srcMac": "aa:bb:cc:dd:ee:13",
+            "srcMac": srcMac,
             "dstMac": "01:00:5E:00:00:01",
             "frameSize": 96,
             "protocol": "ip",
@@ -117,7 +118,7 @@ async def test_bridging_forward_block_different_packets(testbed):
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
-            "srcMac": "aa:bb:cc:dd:ee:14",
+            "srcMac": srcMac,
             "dstMac": "01:00:5E:00:00:02",
             "frameSize": 96,
             "protocol": "ip",
@@ -129,7 +130,7 @@ async def test_bridging_forward_block_different_packets(testbed):
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
             "srcMac": {"type": "increment",
-                   "start": "00:00:00:00:00:36",
+                   "start": srcMac,
                    "step": "00:00:00:00:10:00",
                    "count": 2},
             "dstMac": "01:00:5E:00:00:05",
@@ -142,7 +143,7 @@ async def test_bridging_forward_block_different_packets(testbed):
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
-            "srcMac": "aa:bb:cc:dd:ee:15",
+            "srcMac": srcMac,
             "dstMac": "01:00:5E:00:00:09",
             "frameSize": 96,
             "protocol": "ip",
@@ -153,7 +154,7 @@ async def test_bridging_forward_block_different_packets(testbed):
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
-            "srcMac": "aa:bb:cc:dd:ee:16",
+            "srcMac": srcMac,
             "dstMac": "01:00:5E:00:00:0A",
             "frameSize": 96,
             "protocol": "ip",
@@ -164,7 +165,7 @@ async def test_bridging_forward_block_different_packets(testbed):
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
-            "srcMac": "aa:bb:cc:dd:ee:17",
+            "srcMac": srcMac,
             "dstMac": "01:00:5E:00:00:0C",
             "ipproto": "udp",
             "srcPort": 68,
@@ -178,9 +179,9 @@ async def test_bridging_forward_block_different_packets(testbed):
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
-            "srcMac": "aa:bb:cc:dd:ee:18",
+            "srcMac": srcMac,
             "dstMac": "01:00:5E:00:00:12",
-            #"packet.ipv4.protocol": 112,
+            # "packet.ipv4.protocol": 112,
             "frameSize": 96,
             "protocol": "ip",
             "type" :"raw"
@@ -190,7 +191,7 @@ async def test_bridging_forward_block_different_packets(testbed):
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
-            "srcMac": "aa:bb:cc:dd:ee:19",
+            "srcMac": srcMac,
             "dstMac": "01:00:5E:00:00:16",
             "frameSize": 96,
             "protocol": "ip",

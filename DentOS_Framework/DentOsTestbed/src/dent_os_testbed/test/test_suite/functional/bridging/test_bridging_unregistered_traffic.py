@@ -34,18 +34,18 @@ async def test_bridging_unregistered_traffic(testbed):
     4.  Set bridge br0 admin state UP.
     5.  Send increment traffic from TG.
     6.  Verify that traffic flooded to all ports that are members in br0.
-    8.  Disable multicast flooding on the ports.
-    9.  Send increment traffic from TG.
-    10. Verify that traffic was not flooded/forwarded to any of the disabled ports.
-    11. Enable back multicast flooding on the ports.
-    12. Send increment traffic from TG.
-    15. Verify that traffic flooded to all ports that are members in br0.
+    7.  Disable multicast flooding on the ports.
+    8.  Send increment traffic from TG.
+    9.  Verify that traffic was not flooded/forwarded to any of the disabled ports.
+    10. Enable back multicast flooding on the ports.
+    11. Send increment traffic from TG.
+    12. Verify that traffic flooded to all ports that are members in br0.
     """
 
     bridge = "br0"
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        print.error("The testbed does not have enough dent with tgen connections")
+        print("The testbed does not have enough dent with tgen connections")
         return
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
