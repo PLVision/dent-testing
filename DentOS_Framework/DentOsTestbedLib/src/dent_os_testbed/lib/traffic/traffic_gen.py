@@ -477,4 +477,3 @@ class TrafficGen(TestLibObject):
         
         """
         return await TrafficGen._run_command("clear_traffic", *argv, **kwarg)
-        
