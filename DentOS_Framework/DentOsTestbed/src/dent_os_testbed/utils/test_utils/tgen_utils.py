@@ -407,7 +407,7 @@ async def tgen_utils_setup_streams(device, config_file_name, streams, force_upda
                 input_data=[{device.host_name: [{"name": s, "pkt_data": streams[s]}]}]
             )
             device.applog.info(out)
-            assert out[0][device.host_name]["rc"] == 0, "Setting tgen traffic failed.\n{out}"
+            assert out[0][device.host_name]["rc"] == 0, f"Setting tgen traffic failed.\n{out}"
         device.applog.info(f"Saving Tgen config file {config_file_name}")
         out = await TrafficGen.save_config(
             input_data=[{device.host_name: [{"config_file_name": config_file_name}]}]
@@ -486,6 +486,11 @@ async def tgen_utils_clear_traffic_stats(device):
     device.applog.info(out)
     # assert out[0][device.host_name]["rc"] == 0
 
+async def tgen_utils_clear_traffic_items(device):
+    device.applog.info("Clearing Traffic Items")
+    out = await TrafficGen.clear_traffic(input_data=[{device.host_name: [{}]}])
+    device.applog.info(out)
+    # assert out[0][device.host_name]["rc"] == 0
 
 async def tgen_utils_stop_protocols(device):
     device.applog.info("Stopping Protocols")
