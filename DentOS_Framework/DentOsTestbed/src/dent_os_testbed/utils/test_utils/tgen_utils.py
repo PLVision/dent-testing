@@ -486,6 +486,11 @@ async def tgen_utils_clear_traffic_stats(device):
     device.applog.info(out)
     # assert out[0][device.host_name]["rc"] == 0
 
+async def tgen_utils_clear_traffic_items(device):
+    device.applog.info("Clearing Traffic Items")
+    out = await TrafficGen.clear_traffic(input_data=[{device.host_name: [{}]}])
+    device.applog.info(out)
+    # assert out[0][device.host_name]["rc"] == 0
 
 async def tgen_utils_stop_protocols(device):
     device.applog.info("Stopping Protocols")
