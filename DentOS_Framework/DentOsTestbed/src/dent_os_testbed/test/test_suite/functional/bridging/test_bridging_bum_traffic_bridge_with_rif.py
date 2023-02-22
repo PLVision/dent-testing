@@ -24,7 +24,7 @@ from dent_os_testbed.utils.test_utils.tb_utils import (
 pytestmark = [
     pytest.mark.suite_functional_bridging,
     pytest.mark.asyncio,
-    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
+    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen", "cleanup_ip_addrs")
 ]
 
 async def test_bridging_bum_traffic_bridge_with_rif(testbed):
@@ -79,8 +79,8 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
             {"dev": bridge, "prefix": "100.1.1.253/24"}]}])
     assert out[0][device_host_name]["rc"] == 0, f"Failed to add IP address to bridge.\n{out}"
 
-    out = await IpLink.show(input_data=[{device_host_name: [{"device": ports[0], "options": "-j"}]}],
-                               parse_output=True)
+    out = await IpLink.show(input_data=[{device_host_name: [{"device": ports[0], "cmd_options": "-j"}]}],
+                            parse_output=True)
     assert out[0][device_host_name]["rc"] == 0, f"Failed to display device attributes.\n{out}"
 
     dev_attributes = out[0][device_host_name]["parsed_output"]
@@ -115,6 +115,7 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
         #     "ip_source": dev_groups[tg_ports[0]][0]["name"],
         #     "ip_destination": dev_groups[tg_ports[1]][0]["name"],
         #     "root_id": "8000.34:ef:b6:ec:26:c3",
+        #     #"protocolVId": "00",
         #     "srcMac": srcMac,
         #     "dstMac": "01:80:C2:00:00:00",
         #     "frameSize": 96,
@@ -194,7 +195,7 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
             "dstMac": self_mac,
             "ipproto": "tcp",
             "srcPort": str(randrange(0xffff + 1)),
-            "dstPort": str(22),
+            "dstPort": "22",
             "frameSize": 96,
             "protocol": "ip",
             "type" :"raw"
@@ -208,7 +209,7 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
             "dstMac": self_mac,
             "ipproto": "tcp",
             "srcPort": str(randrange(0xffff + 1)),
-            "dstPort": str(23),
+            "dstPort": "23",
             "frameSize": 96,
             "protocol": "ip",
             "type" :"raw"
@@ -222,7 +223,7 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
             "dstMac": self_mac,
             "ipproto": "tcp",
             "srcPort": str(randrange(0xffff + 1)),
-            "dstPort": str(23),
+            "dstPort": "23",
             "frameSize": 96,
             "protocol": "ip",
             "type" :"raw"
@@ -248,8 +249,8 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
             "dstMac": "FF:FF:FF:FF:FF:FF",
             "frameSize": 346,
             "ipproto": "udp",
-            "srcPort": str(67),
-            "dstPort": str(68),
+            "srcPort": "67",
+            "dstPort": "68",
             "frameSize": 346,
             "protocol": "ip",
             "type" :"raw"
@@ -260,9 +261,9 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
             "srcMac": {"type": "increment",
-                   "start": srcMac,
-                   "step": "00:00:00:00:10:00",
-                   "count": 32},
+                       "start": srcMac,
+                       "step": "00:00:00:00:10:00",
+                       "count": 32},
             "dstMac": "01:00:5E:00:00:45",
             "frameSize": 96,
             "protocol": "ip",
@@ -296,9 +297,9 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
             "srcMac": {"type": "increment",
-                   "start": srcMac,
-                   "step": "00:00:00:00:10:00",
-                   "count": 2},
+                       "start": srcMac,
+                       "step": "00:00:00:00:10:00",
+                       "count": 2},
             "dstMac": "01:00:5E:00:00:05",
             "frameSize": 96,
             "protocol": "ip",
@@ -333,8 +334,8 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
             "srcMac": srcMac,
             "dstMac": "01:00:5E:00:00:0C",
             "ipproto": "udp",
-            "srcPort": str(68),
-            "dstPort": str(67),
+            "srcPort": "68",
+            "dstPort": "67",
             "frameSize": 96,
             "protocol": "ip",
             "type" :"raw"
@@ -368,8 +369,8 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
             "ipproto": "tcp",
-            "srcPort": str(179),
-            "dstPort": str(179),
+            "srcPort": "179",
+            "dstPort": "179",
             "srcMac": srcMac,
             "dstMac": self_mac,
             "frameSize": 96,
@@ -388,82 +389,42 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
 
     # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+    expected_loss = {
+        "Bridged_UnknownL2UC": 0,
+        # "STP_BPDU": 100,
+        "BridgedLLDP": 100,
+        # "LACPDU": 100,
+        "IPv4ToMe": 100,
+        "ARPRequestBC": 0,
+        "ARPReply": 100,
+        "IPv4_Broadcast": 0,
+        "IPV4_SSH": 100,
+        "IPV4_Telnet": 100,
+        "Default_IPv4": 100,
+        "IPv4_ICMPRequest": 100,
+        "IPv4_DCHP_BC": 0,
+        "IPv4_ReservedMC" :0,
+        "IPv4_AllSysInSubnet": 0,
+        "IPv4_AllRoutersInSubnet": 0,
+        "IPv4_OSPFIGP" : 0,
+        "IPv4_RIP2": 0,
+        "IPv4_EIGRP": 0,
+        "IPv4_DHCPServerRelay": 0,
+        "IPv4_VRRP": 0,
+        "IPv4_IGMP": 0,
+        "IPV4_BGP": 100,
+    }
     for row in stats.Rows:
-        if row["Traffic Item"] == "Bridged_UnknownL2UC" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        # if row["Traffic Item"] == "STP_BPDU" and row["Rx Port"] == tg_ports[1]:
-        #     assert tgen_utils_get_loss(row) == 100.000, \
-        #         f"Verify that traffic from swp1 to swp2 not forwarded.\n"
-        if row["Traffic Item"] == "BridgedLLDP" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 100.000, \
-                f"Verify that traffic from swp1 to swp2 not forwarded.\n"
-        # if row["Traffic Item"] == "LACPDU" and row["Rx Port"] == tg_ports[1]:
-        #     assert tgen_utils_get_loss(row) == 100.000, \
-        #         f"Verify that traffic from swp1 to swp2 not forwarded.\n"
-        if row["Traffic Item"] == "IPv4ToMe" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 100.000, \
-                f"Verify that traffic from swp1 to swp2 not forwarded.\n"
-        if row["Traffic Item"] == "ARPRequestBC" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "ARPReply" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 100.000, \
-                f"Verify that traffic from swp1 to swp2 not forwarded.\n"
-        if row["Traffic Item"] == "IPv4_Broadcast" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "IPV4_SSH" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 100.000, \
-                f"Verify that traffic from swp1 to swp2 not forwarded.\n"
-        if row["Traffic Item"] == "IPV4_Telnet" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 100.000, \
-                f"Verify that traffic from swp1 to swp2 not forwarded.\n"
-        if row["Traffic Item"] == "Default_IPv4" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 100.000, \
-                f"Verify that traffic from swp1 to swp2 not forwarded.\n"
-        if row["Traffic Item"] == "IPv4_ICMPRequest" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 100.000, \
-                f"Verify that traffic from swp1 to swp2 not forwarded.\n"
-        if row["Traffic Item"] == "IPv4_DCHP_BC" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "IPv4_ReservedMC" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "IPv4_AllSysInSubnet" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "IPv4_AllRoutersInSubnet" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "IPv4_OSPFIGP" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "IPv4_RIP2" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "IPv4_EIGRP" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "IPv4_DHCPServerRelay" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "IPv4_VRRP" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "IPv4_IGMP" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 0.000, \
-                f"Verify that traffic from swp1 to swp2 forwarded.\n"
-        if row["Traffic Item"] == "IPV4_BGP" and row["Rx Port"] == tg_ports[1]:
-            assert tgen_utils_get_loss(row) == 100.000, \
-                f"Verify that traffic from swp1 to swp2 not forwarded.\n"
+        assert tgen_utils_get_loss(row) == expected_loss[row["Traffic Item"]], \
+            f"Verify that traffic from swp1 to swp2 forwarded/not forwarded in accordance.\n"
 
     await tcpdump
-    print(("TCPDUMP: packets=%s" % tcpdump.result()))
+    print(f"TCPDUMP: packets={tcpdump.result()}")
     data = tcpdump.result()
 
     count_of_packets = re.findall(r"(\d+) packets (captured|received|dropped)", data)
-    assert int(count_of_packets[0][0]) > 0, f"Verify that packets captured.\n"
-    assert int(count_of_packets[1][0]) > 0, f"Verify that packets received by filter.\n"
-    assert int(count_of_packets[2][0]) == 0, f"Verify that packets dropped by kernel.\n"
+    for count, type in count_of_packets:
+        if type == "captured" or type == "received":
+            assert int(count) > 0, f"Verify that packets are captured and received.\n"
+        if type == "dropped":
+            assert int(count) == 0, f"Verify that packets are dropped by kernel.\n"

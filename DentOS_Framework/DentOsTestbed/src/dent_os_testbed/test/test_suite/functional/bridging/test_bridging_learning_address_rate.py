@@ -2,17 +2,18 @@ import pytest
 import asyncio
 
 from dent_os_testbed.lib.bridge.bridge_link import BridgeLink
+from dent_os_testbed.lib.bridge.bridge_fdb import BridgeFdb
 from dent_os_testbed.lib.ip.ip_link import IpLink
 
 from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_dent_devices_with_tgen,
+    tgen_utils_traffic_generator_connect,
+    tgen_utils_dev_groups_from_config,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
     tgen_utils_stop_traffic,
-    tgen_utils_dev_groups_from_config,
-    tgen_utils_traffic_generator_connect,
-    tgen_utils_get_loss
+    tgen_utils_get_loss,
 )
 
 pytestmark = [
@@ -33,12 +34,12 @@ async def test_bridging_learning_address_rate(testbed):
     3.  Set entities swp1, swp2, swp3, swp4 UP state.
     4.  Set bridge br0 admin state UP.
     5.  Set ports swp1, swp2, swp3, swp4 learning ON.
-    6.  Set ports swp1, swp2, swp3, swp4 flood ON.
+    6.  Set ports swp1, swp2, swp3, swp4 flood OFF.
     7.  Send traffic to swp1 to learn source increment address
         00:00:00:00:00:35 with step '00:00:00:00:10:00' and count 1000.
     8.  Send traffic to swp2 with destination increment address
         00:00:00:00:00:35 with step '00:00:00:00:10:00' and count 1000.
-    9.  Verify that there was not flooding to swp3.
+    9.  Verify that there was not flooding to swp3 and addresses have been learned.
     """
 
     bridge = "br0"
@@ -70,8 +71,8 @@ async def test_bridging_learning_address_rate(testbed):
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {"device": port, "learning": True, "flood": True} for port in ports]}])
-    err_msg = f"Verify that entities set to learning 'ON' and flooding 'ON' state.\n{out}"
+            {"device": port, "learning": True, "flood": False} for port in ports]}])
+    err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
     address_map = (
@@ -91,25 +92,25 @@ async def test_bridging_learning_address_rate(testbed):
     streams = {
         "streamA": {
             "ip_source": dev_groups[tg_ports[1]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[0]][0]["name"],
             "srcMac": {"type": "increment",
-                   "start": "00:00:00:00:00:35",
-                   "step": "00:00:00:00:10:00",
-                   "count": 1000},
+                       "start": "00:00:00:00:00:35",
+                       "step": "00:00:00:00:10:00",
+                       "count": 1000},
             "dstMac": "aa:bb:cc:dd:ee:11",
-            "type": "raw",
             "protocol": "802.1Q",
+            "rate": "1000",
+            "type": "raw",
         },
         "streamB": {
             "ip_source": dev_groups[tg_ports[2]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcMac": "aa:bb:cc:dd:ee:12",
             "dstMac": {"type": "increment",
-                   "start": "00:00:00:00:00:35",
-                   "step": "00:00:00:00:10:00",
-                   "count": 1000},
-            "type": "raw",
+                       "start": "00:00:00:00:00:35",
+                       "step": "00:00:00:00:10:00",
+                       "count": 1000},
             "protocol": "802.1Q",
+            "rate": "1000",
+            "type": "raw",
         }
     }
 
@@ -134,3 +135,15 @@ async def test_bridging_learning_address_rate(testbed):
         if row["Traffic Item"] == "streamB" and row["Rx Port"] == tg_ports[2]:
             assert tgen_utils_get_loss(row) == 100.000, \
                 f"Verify that traffic to swp3 not forwarded.\n"
+
+    out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
+                               parse_output=True)
+    assert out[0][device_host_name]["rc"] == 0, f"Failed to get fdb entry.\n"
+
+    fdb_entries = out[0][device_host_name]["parsed_output"]
+    learned_macs = [en["mac"] for en in fdb_entries if "mac" in en]
+    list_macs = {"00:00:00:04:00:35", "00:00:00:00:70:35",
+                 "00:00:00:05:60:35", "00:00:00:0c:f0:35"}
+    for mac in list_macs:
+        err_msg = f"Verify that source macs have been learned.\n"
+        assert mac in learned_macs, err_msg

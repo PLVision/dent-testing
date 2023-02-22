@@ -6,13 +6,13 @@ from dent_os_testbed.lib.ip.ip_link import IpLink
 
 from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_dent_devices_with_tgen,
+    tgen_utils_traffic_generator_connect,
+    tgen_utils_dev_groups_from_config,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
     tgen_utils_stop_traffic,
-    tgen_utils_dev_groups_from_config,
-    tgen_utils_traffic_generator_connect,
-    tgen_utils_get_loss
+    tgen_utils_get_loss,
 )
 
 pytestmark = [
@@ -90,9 +90,9 @@ async def test_bridging_unregistered_traffic(testbed):
             "ip_source": dev_groups[tg_ports[0]][0]["name"],
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcMac": {"type": "increment",
-                   "start": "00:00:00:00:00:35",
-                   "step": "00:00:00:00:10:00",
-                   "count": pps_value},
+                       "start": "00:00:00:00:00:35",
+                       "step": "00:00:00:00:10:00",
+                       "count": pps_value},
             "dstMac": "aa:bb:cc:dd:ee:11",
             "type": "raw",
             "protocol": "802.1Q",
@@ -102,9 +102,9 @@ async def test_bridging_unregistered_traffic(testbed):
             "ip_source": dev_groups[tg_ports[0]][0]["name"],
             "ip_destination": dev_groups[tg_ports[2]][0]["name"],
             "srcMac": {"type": "increment",
-                   "start": "00:00:00:00:00:35",
-                   "step": "00:00:00:00:10:00",
-                   "count": pps_value},
+                       "start": "00:00:00:00:00:35",
+                       "step": "00:00:00:00:10:00",
+                       "count": pps_value},
             "dstMac": "aa:bb:cc:dd:ee:12",
             "type": "raw",
             "protocol": "802.1Q",
@@ -114,9 +114,9 @@ async def test_bridging_unregistered_traffic(testbed):
             "ip_source": dev_groups[tg_ports[0]][0]["name"],
             "ip_destination": dev_groups[tg_ports[3]][0]["name"],
             "srcMac": {"type": "increment",
-                   "start": "00:00:00:00:00:35",
-                   "step": "00:00:00:00:10:00",
-                   "count": pps_value},
+                       "start": "00:00:00:00:00:35",
+                       "step": "00:00:00:00:10:00",
+                       "count": pps_value},
             "dstMac": "aa:bb:cc:dd:ee:13",
             "type": "raw",
             "protocol": "802.1Q",
@@ -134,7 +134,7 @@ async def test_bridging_unregistered_traffic(testbed):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         assert tgen_utils_get_loss(row) == 0.000, \
-        f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} forwarded.\n{out}"
+            f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} forwarded.\n{out}"
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
@@ -150,7 +150,7 @@ async def test_bridging_unregistered_traffic(testbed):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         assert tgen_utils_get_loss(row) == 100.000, \
-        f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} not forwarded.\n{out}"
+            f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} not forwarded.\n{out}"
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
@@ -166,4 +166,4 @@ async def test_bridging_unregistered_traffic(testbed):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         assert tgen_utils_get_loss(row) == 0.000, \
-        f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} forwarded.\n{out}"
+            f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} forwarded.\n{out}"

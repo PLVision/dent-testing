@@ -94,9 +94,9 @@ async def test_bridging_forward_block_different_packets(testbed):
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
             "srcMac": {"type": "increment",
-                   "start": srcMac,
-                   "step": "00:00:00:00:10:00",
-                   "count": 32},
+                       "start": srcMac,
+                       "step": "00:00:00:00:10:00",
+                       "count": 32},
             "dstMac": "01:00:5E:00:00:45",
             "frameSize": 96,
             "protocol": "ip",
@@ -130,9 +130,9 @@ async def test_bridging_forward_block_different_packets(testbed):
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
             "srcMac": {"type": "increment",
-                   "start": srcMac,
-                   "step": "00:00:00:00:10:00",
-                   "count": 2},
+                       "start": srcMac,
+                       "step": "00:00:00:00:10:00",
+                       "count": 2},
             "dstMac": "01:00:5E:00:00:05",
             "frameSize": 96,
             "protocol": "ip",
@@ -168,8 +168,8 @@ async def test_bridging_forward_block_different_packets(testbed):
             "srcMac": srcMac,
             "dstMac": "01:00:5E:00:00:0C",
             "ipproto": "udp",
-            "srcPort": 68,
-            "dstPort": 67,
+            "srcPort": "68",
+            "dstPort": "67",
             "frameSize": 96,
             "protocol": "ip",
             "type" :"raw"
@@ -209,4 +209,4 @@ async def test_bridging_forward_block_different_packets(testbed):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         assert tgen_utils_get_loss(row) == 0.000, \
-        f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} forwarded.\n{out}"
+            f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} forwarded.\n{out}"

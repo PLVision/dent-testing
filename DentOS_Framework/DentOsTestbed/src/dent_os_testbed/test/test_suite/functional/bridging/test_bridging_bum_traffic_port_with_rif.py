@@ -24,7 +24,7 @@ from dent_os_testbed.utils.test_utils.tb_utils import (
 pytestmark = [
     pytest.mark.suite_functional_bridging,
     pytest.mark.asyncio,
-    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
+    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen", "cleanup_ip_addrs")
 ]
 
 async def test_bridging_bum_traffic_port_with_rif(testbed):
@@ -65,9 +65,8 @@ async def test_bridging_bum_traffic_port_with_rif(testbed):
             {"device": port, "operstate": "up"} for port in ports]}])
     assert out[0][device_host_name]["rc"] == 0, f"Verify that entities set to 'UP' state.\n{out}"
 
-    out = await IpLink.show(
-        input_data=[{device_host_name: [
-        {"device": ports[0], "options": "-j"}]}], parse_output=True)
+    out = await IpLink.show(input_data=[{device_host_name: [{"device": ports[0], "cmd_options": "-j"}]}],
+                            parse_output=True)
     assert out[0][device_host_name]["rc"] == 0, f"Failed to display device attributes.\n{out}"
 
     dev_attributes = out[0][device_host_name]["parsed_output"]
@@ -182,7 +181,7 @@ async def test_bridging_bum_traffic_port_with_rif(testbed):
             "dstMac": self_mac,
             "ipproto": "tcp",
             "srcPort": str(randrange(0xffff + 1)),
-            "dstPort": str(22),
+            "dstPort": "22",
             "frameSize": 96,
             "protocol": "ip",
             "type" :"raw"
@@ -196,7 +195,7 @@ async def test_bridging_bum_traffic_port_with_rif(testbed):
             "dstMac": self_mac,
             "ipproto": "tcp",
             "srcPort": str(randrange(0xffff + 1)),
-            "dstPort": str(23),
+            "dstPort": "23",
             "frameSize": 96,
             "protocol": "ip",
             "type" :"raw"
@@ -210,7 +209,7 @@ async def test_bridging_bum_traffic_port_with_rif(testbed):
             "dstMac": self_mac,
             "ipproto": "tcp",
             "srcPort": str(randrange(0xffff + 1)),
-            "dstPort": str(23),
+            "dstPort": "23",
             "frameSize": 96,
             "protocol": "ip",
             "type" :"raw"
@@ -236,8 +235,8 @@ async def test_bridging_bum_traffic_port_with_rif(testbed):
             "dstMac": "FF:FF:FF:FF:FF:FF",
             "frameSize": 346,
             "ipproto": "udp",
-            "srcPort": str(67),
-            "dstPort": str(68),
+            "srcPort": "67",
+            "dstPort": "68",
             "frameSize": 346,
             "protocol": "ip",
             "type" :"raw"
@@ -248,9 +247,9 @@ async def test_bridging_bum_traffic_port_with_rif(testbed):
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
             "srcMac": {"type": "increment",
-                   "start": srcMac,
-                   "step": "00:00:00:00:10:00",
-                   "count": 32},
+                       "start": srcMac,
+                       "step": "00:00:00:00:10:00",
+                       "count": 32},
             "dstMac": "01:00:5E:00:00:45",
             "frameSize": 96,
             "protocol": "ip",
@@ -284,9 +283,9 @@ async def test_bridging_bum_traffic_port_with_rif(testbed):
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
             "srcMac": {"type": "increment",
-                   "start": srcMac,
-                   "step": "00:00:00:00:10:00",
-                   "count": 2},
+                       "start": srcMac,
+                       "step": "00:00:00:00:10:00",
+                       "count": 2},
             "dstMac": "01:00:5E:00:00:05",
             "frameSize": 96,
             "protocol": "ip",
@@ -321,8 +320,8 @@ async def test_bridging_bum_traffic_port_with_rif(testbed):
             "srcMac": srcMac,
             "dstMac": "01:00:5E:00:00:0C",
             "ipproto": "udp",
-            "srcPort": str(68),
-            "dstPort": str(67),
+            "srcPort": "68",
+            "dstPort": "67",
             "frameSize": 96,
             "protocol": "ip",
             "type" :"raw"
@@ -356,8 +355,8 @@ async def test_bridging_bum_traffic_port_with_rif(testbed):
             "srcIp": "1.1.1.2",
             "dstIp": "1.1.1.3",
             "ipproto": "tcp",
-            "srcPort": str(179),
-            "dstPort": str(179),
+            "srcPort": "179",
+            "dstPort": "179",
             "srcMac": srcMac,
             "dstMac": self_mac,
             "frameSize": 96,
@@ -374,24 +373,19 @@ async def test_bridging_bum_traffic_port_with_rif(testbed):
     await asyncio.sleep(traffic_duration)
     await tgen_utils_stop_traffic(tgen_dev)
 
-   # check the traffic stats
+    # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         assert tgen_utils_get_loss(row) == 100.000, \
-        f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} not forwarded.\n{out}"
+            f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} not forwarded.\n{out}"
 
     await tcpdump
-    print(("TCPDUMP: packets=%s" % tcpdump.result()))
+    print(f"TCPDUMP: packets={tcpdump.result()}")
     data = tcpdump.result()
 
     count_of_packets = re.findall(r"(\d+) packets (captured|received|dropped)", data)
-    assert int(count_of_packets[0][0]) > 0, f"Verify that packets captured.\n"
-    assert int(count_of_packets[1][0]) > 0, f"Verify that packets received by filter.\n"
-    assert int(count_of_packets[2][0]) == 0, f"Verify that packets dropped by kernel.\n"
-
-    out = await IpAddress.delete(
-        input_data=[{device_host_name: [
-        {"dev": ports[0], "prefix": "100.1.1.253/24"},
-        {"dev": ports[1], "prefix": "101.1.1.253/24"},
-    ]}])
-    assert out[0][device_host_name]["rc"] == 0, f"Failed to delete IP address from ports.\n"
+    for count, type in count_of_packets:
+        if type == "captured" or type == "received":
+            assert int(count) > 0, f"Verify that packets are captured and received.\n"
+        if type == "dropped":
+            assert int(count) == 0, f"Verify that packets are dropped by kernel.\n"
