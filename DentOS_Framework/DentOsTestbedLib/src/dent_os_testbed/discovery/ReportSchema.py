@@ -149,19 +149,6 @@ class TestbedInterfacesSchemaList(SchemaList):
     """
     """
     __item_klass__ = TestbedInterfacesSchemaDict
-class SysctlSchemaDict(SchemaDict):
-    """
-    Refer ./gen/model/dent/system/os/sysctl.yaml sysctl
-    """
-    __schema_slots__ = {
-        "variable":str,
-        "value":str,
-
-    }
-class SysctlSchemaList(SchemaList):
-    """
-    """
-    __item_klass__ = SysctlSchemaDict
 class DiskFreeSchemaDict(SchemaDict):
     """
     Refer ./gen/model/dent/system/os/disk.yaml disk_free
@@ -656,7 +643,6 @@ class OperatingSystemSchemaDict(SchemaDict):
         "processes":ProcessSchemaList,
         "services":ServiceSchemaList,
         "disk":DiskFreeSchemaList,
-        "sysctl":SysctlSchemaList,
 
     }
 class L3SchemaDict(SchemaDict):
@@ -875,3 +861,4 @@ class ReportSchema(Report):
         with io.open(path, "rt") as fd:
             data = json.load(fd)
         return ReportSchema(data)
+
