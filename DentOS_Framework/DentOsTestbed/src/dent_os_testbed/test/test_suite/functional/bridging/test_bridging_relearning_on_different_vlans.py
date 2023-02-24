@@ -10,6 +10,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_dent_devices_with_tgen,
     tgen_utils_traffic_generator_connect,
     tgen_utils_dev_groups_from_config,
+    tgen_utils_clear_traffic_items,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
@@ -101,7 +102,7 @@ async def test_bridging_relearning_on_different_vlans(testbed):
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 
-    streams = {
+    stream_1 = {
         "bridge_1": {
             "ip_source": dev_groups[tg_ports[2]][0]["name"],
             "ip_destination": dev_groups[tg_ports[0]][0]["name"],
@@ -110,25 +111,16 @@ async def test_bridging_relearning_on_different_vlans(testbed):
             "type": "raw",
             "protocol": "802.1Q",
             "vlanID": 2,
-        },
-        # "bridge_2": {
-        #     "ip_source": dev_groups[tg_ports[2]][0]["name"],
-        #     "ip_destination": dev_groups[tg_ports[1]][0]["name"],
-        #     "srcMac": "aa:bb:cc:dd:ee:12",
-        #     "dstMac": "aa:bb:cc:dd:ee:14",
-        #     "type": "raw",
-        #     "protocol": "802.1Q",
-        #     "vlanID": 3,
-        # },
+        }
     }
 
-    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
+    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=stream_1)
 
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)
     await tgen_utils_stop_traffic(tgen_dev)
 
-    #check the traffic stats
+    # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         loss = tgen_utils_get_loss(row)
@@ -143,13 +135,27 @@ async def test_bridging_relearning_on_different_vlans(testbed):
     err_msg = f"Verify that source macs have been learned.\n"
     assert streams["bridge_1"]["srcMac"] in learned_macs, err_msg
 
-    # TODO: 10 STEP - Delete traffic item bridge_1.
+    await tgen_utils_clear_traffic_items(tgen_dev)
+
+    streams = {
+        "bridge_2": {
+            "ip_source": dev_groups[tg_ports[2]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[1]][0]["name"],
+            "srcMac": "aa:bb:cc:dd:ee:12",
+            "dstMac": "aa:bb:cc:dd:ee:14",
+            "type": "raw",
+            "protocol": "802.1Q",
+            "vlanID": 3,
+        },
+    }
+
+    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
 
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)
     await tgen_utils_stop_traffic(tgen_dev)
 
-    #check the traffic stats
+    # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
         loss = tgen_utils_get_loss(row)

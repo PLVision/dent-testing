@@ -76,7 +76,7 @@ async def test_bridging_robustness_macs(testbed):
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
     address_map = (
-        #swp port, tg port,     tg ip,     gw,        plen
+        # swp port, tg port,    tg ip,     gw,        plen
         (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
         (ports[1], tg_ports[1], "1.1.1.3", "1.1.1.1", 24),
         (ports[2], tg_ports[2], "1.1.1.4", "1.1.1.1", 24),
@@ -141,21 +141,21 @@ async def test_bridging_robustness_macs(testbed):
         }
     }
 
-    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
+    for _ in range(8):
+        await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
 
-    await tgen_utils_start_traffic(tgen_dev)
-    await asyncio.sleep(traffic_duration)
-    await tgen_utils_stop_traffic(tgen_dev)
-    #8 it
+        await tgen_utils_start_traffic(tgen_dev)
+        await asyncio.sleep(traffic_duration)
+        await tgen_utils_stop_traffic(tgen_dev)
 
-    # check the traffic stats
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
-    for row in stats.Rows:
-        assert tgen_utils_get_loss(row) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
+        # check the traffic stats
+        stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+        for row in stats.Rows:
+            assert tgen_utils_get_loss(row) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
 
-    rc, out = await dent_dev.run_cmd("bridge fdb show br br0   |  grep 'extern_learn.*offload'  |  wc -l")
-    assert rc == 0, f"Failed to grep 'extern_learn.*offload'.\n"
+        rc, out = await dent_dev.run_cmd("bridge fdb show br br0   |  grep 'extern_learn.*offload'  |  wc -l")
+        assert rc == 0, f"Failed to grep 'extern_learn.*offload'.\n"
 
-    amount = int(out) - ixia_vhost_mac_count
-    err_msg = f"Expected count of extern_learn offload entities: 4000, Actual count: {amount}"
-    assert amount  == num, err_msg
+        amount = int(out) - ixia_vhost_mac_count
+        err_msg = f"Expected count of extern_learn offload entities: 4000, Actual count: {amount}"
+        assert amount  == num, err_msg

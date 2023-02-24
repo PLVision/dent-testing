@@ -9,6 +9,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_dent_devices_with_tgen,
     tgen_utils_traffic_generator_connect,
     tgen_utils_dev_groups_from_config,
+    tgen_utils_clear_traffic_items,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
@@ -40,7 +41,7 @@ async def test_bridging_full_fdb_traffic(testbed):
     8.  Verify amount.
     9.  Verify that address 00:00:00:00:00:35 and 00:00:00:08:f0:35
         have been learned for swp1 with traffic.
-    10.  Delete traffic item streamA.
+    10. Delete traffic item streamA.
     11. Send traffic to swp2 to learn source increment address
         00:00:00:00:00:35 with step '00:00:00:00:10:00' and count 4000.
     12. Verify amount.
@@ -83,7 +84,7 @@ async def test_bridging_full_fdb_traffic(testbed):
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
     address_map = (
-        #swp port, tg port,     tg ip,     gw,        plen
+        # swp port, tg port,    tg ip,     gw,        plen
         (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
         (ports[1], tg_ports[1], "1.1.1.3", "1.1.1.1", 24),
     )
@@ -95,7 +96,7 @@ async def test_bridging_full_fdb_traffic(testbed):
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 
-    streams = {
+    stream_1 = {
         "streamA": {
             "ip_source": dev_groups[tg_ports[0]][0]["name"],
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
@@ -107,22 +108,10 @@ async def test_bridging_full_fdb_traffic(testbed):
             "type": "raw",
             "protocol": "802.1Q",
             "rate": "1000",
-        },
-        # "streamB": {
-        #     "ip_source": dev_groups[tg_ports[1]][0]["name"],
-        #     "ip_destination": dev_groups[tg_ports[2]][0]["name"],
-        #     "srcMac": {"type": "increment",
-        #            "start": "00:00:00:00:00:35",
-        #            "step": "00:00:00:00:10:00",
-        #            "count": 4000},
-        #     "dstMac": "aa:bb:cc:dd:ee:12",
-        #     "type": "raw",
-        #     "protocol": "802.1Q",
-        #     "rate": "1000",
-        # }
+        }
     }
 
-    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
+    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=stream_1)
 
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)
@@ -151,31 +140,48 @@ async def test_bridging_full_fdb_traffic(testbed):
         err_msg = f"Expected MACs are not found in FDB, but found MACs:{out}\n"
         assert mac in learned_macs, err_msg
 
-    # TODO: 10 STEP - Delete traffic item streamA.
+    await tgen_utils_clear_traffic_items(tgen_dev)
 
-    # await tgen_utils_start_traffic(tgen_dev)
-    # await asyncio.sleep(traffic_duration)
-    # await tgen_utils_stop_traffic(tgen_dev)
+    stream_2 = {
+        "streamB": {
+            "ip_source": dev_groups[tg_ports[1]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[2]][0]["name"],
+            "srcMac": {"type": "increment",
+                   "start": "00:00:00:00:00:35",
+                   "step": "00:00:00:00:10:00",
+                   "count": 4000},
+            "dstMac": "aa:bb:cc:dd:ee:12",
+            "type": "raw",
+            "protocol": "802.1Q",
+            "rate": "1000",
+        }
+    }
 
-    # # check the traffic stats
-    # stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
-    # for row in stats.Rows:
-    #      assert tgen_utils_get_loss(row) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
+    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=stream_2)
 
-    # rc, out = await dent_dev.run_cmd("bridge fdb show br br0   |  grep 'extern_learn.*offload'  |  wc -l")
-    # assert rc == 0, f"Failed to grep 'extern_learn.*offload'.\n"
+    await tgen_utils_start_traffic(tgen_dev)
+    await asyncio.sleep(traffic_duration)
+    await tgen_utils_stop_traffic(tgen_dev)
 
-    # amount = int(out) - ixia_vhost_mac_count
-    # err_msg = f"Expected count of extern_learn offload entities: 4000, Actual count: {amount}"
-    # assert amount  == 4000, err_msg
+    # check the traffic stats
+    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+    for row in stats.Rows:
+         assert tgen_utils_get_loss(row) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
 
-    # out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
-    #                            parse_output=True)
-    # assert out[0][device_host_name]["rc"] == 0, "Failed to get fdb entry.\n"
+    rc, out = await dent_dev.run_cmd("bridge fdb show br br0   |  grep 'extern_learn.*offload'  |  wc -l")
+    assert rc == 0, f"Failed to grep 'extern_learn.*offload'.\n"
 
-    # fdb_entries = out[0][device_host_name]["parsed_output"]
-    # learned_macs = [en["mac"] for en in fdb_entries if "mac" in en]
-    # list_macs = ["00:00:00:00:00:35", "00:00:00:08:f0:35"]
-    # for mac in list_macs:
-    #     err_msg = f"Expected MACs are not found in FDB, but found MACs:{out}\n"
-    #     assert mac in learned_macs, err_msg
+    amount = int(out) - ixia_vhost_mac_count
+    err_msg = f"Expected count of extern_learn offload entities: 4000, Actual count: {amount}"
+    assert amount  == 4000, err_msg
+
+    out = await BridgeFdb.show(input_data=[{device_host_name: [{"options": "-j"}]}],
+                               parse_output=True)
+    assert out[0][device_host_name]["rc"] == 0, "Failed to get fdb entry.\n"
+
+    fdb_entries = out[0][device_host_name]["parsed_output"]
+    learned_macs = [en["mac"] for en in fdb_entries if "mac" in en]
+    list_macs = ["00:00:00:00:00:35", "00:00:00:08:f0:35"]
+    for mac in list_macs:
+        err_msg = f"Expected MACs are not found in FDB, but found MACs:{out}\n"
+        assert mac in learned_macs, err_msg
