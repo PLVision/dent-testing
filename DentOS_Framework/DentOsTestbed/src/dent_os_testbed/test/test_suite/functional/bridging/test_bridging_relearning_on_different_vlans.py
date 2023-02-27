@@ -102,7 +102,7 @@ async def test_bridging_relearning_on_different_vlans(testbed):
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 
-    stream_1 = {
+    streams = {
         "bridge_1": {
             "ip_source": dev_groups[tg_ports[2]][0]["name"],
             "ip_destination": dev_groups[tg_ports[0]][0]["name"],
@@ -114,7 +114,7 @@ async def test_bridging_relearning_on_different_vlans(testbed):
         }
     }
 
-    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=stream_1)
+    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
 
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)

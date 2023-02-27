@@ -35,17 +35,16 @@ async def test_bridging_full_fdb_traffic(testbed):
     3.  Set entities swp1, swp2, swp3, swp4 UP state.
     4.  Set bridge br0 admin state UP.
     5.  Set ports swp1, swp2, swp3, swp4 learning ON.
-    6.  Set ports swp1, swp2, swp3, swp4 flood OFF.
-    7.  Send traffic to swp1 to learn source increment address
+    6.  Send traffic to swp1 to learn source increment address
         00:00:00:00:00:35 with step '00:00:00:00:10:00' and count 4000.
-    8.  Verify amount.
-    9.  Verify that address 00:00:00:00:00:35 and 00:00:00:08:f0:35
+    7.  Verify amount.
+    8.  Verify that address 00:00:00:00:00:35 and 00:00:00:08:f0:35
         have been learned for swp1 with traffic.
-    10. Delete traffic item streamA.
-    11. Send traffic to swp2 to learn source increment address
+    9.  Delete traffic item streamA.
+    10. Send traffic to swp2 to learn source increment address
         00:00:00:00:00:35 with step '00:00:00:00:10:00' and count 4000.
-    12. Verify amount.
-    13. Verify that address 00:00:00:00:00:35 and 00:00:00:08:f0:35
+    11. Verify amount.
+    12. Verify that address 00:00:00:00:00:35 and 00:00:00:08:f0:35
         have been learned for swp2 with traffic.
     """
 
@@ -74,13 +73,13 @@ async def test_bridging_full_fdb_traffic(testbed):
     out = await IpLink.set(
         input_data=[{device_host_name: [
             {"device": port, "master": bridge, "operstate": "up"} for port in ports]}])
-    err_msg = f"Verify that bridge, bridge entities set to 'UP' state.\n{out}"
+    err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {"device": port, "learning": True, "flood": False} for port in ports]}])
-    err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
+            {"device": port, "learning": True} for port in ports]}])
+    err_msg = f"Verify that entities set to learning 'ON' state.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
     address_map = (
@@ -96,14 +95,14 @@ async def test_bridging_full_fdb_traffic(testbed):
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 
-    stream_1 = {
+    streams = {
         "streamA": {
             "ip_source": dev_groups[tg_ports[0]][0]["name"],
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcMac": {"type": "increment",
-                   "start": "00:00:00:00:00:35",
-                   "step": "00:00:00:00:10:00",
-                   "count": 4000},
+                       "start": "00:00:00:00:00:35",
+                       "step": "00:00:00:00:10:00",
+                       "count": 4000},
             "dstMac": "aa:bb:cc:dd:ee:11",
             "type": "raw",
             "protocol": "802.1Q",
@@ -111,16 +110,17 @@ async def test_bridging_full_fdb_traffic(testbed):
         }
     }
 
-    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=stream_1)
+    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
 
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)
     await tgen_utils_stop_traffic(tgen_dev)
 
     # check the traffic stats
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-        assert tgen_utils_get_loss(row) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
+        loss = tgen_utils_get_loss(row)
+        assert loss == 0, f"Expected loss: 0%, actual: {loss}%"
 
     rc, out = await dent_dev.run_cmd("bridge fdb show br br0   |  grep 'extern_learn.*offload'  |  wc -l")
     assert rc == 0, f"Failed to grep 'extern_learn.*offload'.\n"
@@ -142,14 +142,14 @@ async def test_bridging_full_fdb_traffic(testbed):
 
     await tgen_utils_clear_traffic_items(tgen_dev)
 
-    stream_2 = {
+    streams = {
         "streamB": {
-            "ip_source": dev_groups[tg_ports[1]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[2]][0]["name"],
+            "ip_source": dev_groups[tg_ports[0]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcMac": {"type": "increment",
-                   "start": "00:00:00:00:00:35",
-                   "step": "00:00:00:00:10:00",
-                   "count": 4000},
+                       "start": "00:00:00:00:00:35",
+                       "step": "00:00:00:00:10:00",
+                       "count": 4000},
             "dstMac": "aa:bb:cc:dd:ee:12",
             "type": "raw",
             "protocol": "802.1Q",
@@ -157,16 +157,16 @@ async def test_bridging_full_fdb_traffic(testbed):
         }
     }
 
-    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=stream_2)
+    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
 
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)
     await tgen_utils_stop_traffic(tgen_dev)
 
-    # check the traffic stats
-    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
+    stats = await tgen_utils_get_traffic_stats(tgen_dev, "Traffic Item Statistics")
     for row in stats.Rows:
-         assert tgen_utils_get_loss(row) == 0.000, f'Failed>Loss percent: {row["Loss %"]}'
+        loss = tgen_utils_get_loss(row)
+        assert loss == 0, f"Expected loss: 0%, actual: {loss}%"
 
     rc, out = await dent_dev.run_cmd("bridge fdb show br br0   |  grep 'extern_learn.*offload'  |  wc -l")
     assert rc == 0, f"Failed to grep 'extern_learn.*offload'.\n"
