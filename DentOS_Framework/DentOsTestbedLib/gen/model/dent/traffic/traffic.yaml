@@ -2,20 +2,20 @@
   description: |
     The modules is a collection of traffic generators.
   classes:
-   - name: traffic_generators
-     desc: |
+  - name: traffic_generators
+    desc: |
       - List of traffic generators
-     singleton: True
-     members:
-      - name: generator
-        cls: "dent:traffic:traffic_gen"
-        desc: |
-          Device idendentification
+    singleton: True
+    members:
+    - name: generator
+      cls: "dent:traffic:traffic_gen"
+      desc: |
+        Device idendentification
 
-   - name: traffic_gen
-     local: True
-     singleton: True
-     desc: |
+  - name: traffic_gen
+    local: True
+    singleton: True
+    desc: |
       - TrafficGen
           connect - client_addr, ports
           disconnect -
