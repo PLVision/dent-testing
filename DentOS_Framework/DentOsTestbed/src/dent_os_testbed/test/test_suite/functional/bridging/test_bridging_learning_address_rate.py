@@ -34,7 +34,7 @@ async def test_bridging_learning_address_rate(testbed):
     3.  Set entities swp1, swp2, swp3, swp4 UP state.
     4.  Set bridge br0 admin state UP.
     5.  Set ports swp1, swp2, swp3, swp4 learning ON.
-    6.  Set ports swp1, swp2, swp3, swp4 flood OFF.
+    6.  Set ports swp1, swp2, swp3, swp4 flood ON.
     7.  Send traffic to swp1 to learn source increment address
         00:00:00:00:00:35 with step '00:00:00:00:10:00' and count 1000.
     8.  Send traffic to swp2 with destination increment address
@@ -71,15 +71,15 @@ async def test_bridging_learning_address_rate(testbed):
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {"device": port, "learning": True, "flood": False} for port in ports]}])
-    err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
+            {"device": port, "learning": True, "flood": True} for port in ports]}])
+    err_msg = f"Verify that entities set to learning 'ON' and flooding 'ON' state.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
     address_map = (
         # swp port, tg port,    tg ip,     gw,        plen
         (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
         (ports[1], tg_ports[1], "1.1.1.3", "1.1.1.1", 24),
-        (ports[2], tg_ports[2], "1.1.1.4", "1.1.1.1", 24),
+        (ports[2], tg_ports[2], "1.1.1.4", "1.1.1.1", 24)
     )
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -91,7 +91,8 @@ async def test_bridging_learning_address_rate(testbed):
 
     streams = {
         "streamA": {
-            "ip_source": dev_groups[tg_ports[1]][0]["name"],
+            "ip_source": dev_groups[tg_ports[0]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcMac": {"type": "increment",
                        "start": "00:00:00:00:00:35",
                        "step": "00:00:00:00:10:00",
@@ -102,7 +103,8 @@ async def test_bridging_learning_address_rate(testbed):
             "type": "raw",
         },
         "streamB": {
-            "ip_source": dev_groups[tg_ports[2]][0]["name"],
+            "ip_source": dev_groups[tg_ports[1]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[0]][0]["name"],
             "srcMac": "aa:bb:cc:dd:ee:12",
             "dstMac": {"type": "increment",
                        "start": "00:00:00:00:00:35",
