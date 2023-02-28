@@ -465,6 +465,7 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
         elif command == "clear_traffic":
             device.applog.info("Clear Traffic")
             for traffic_item in IxnetworkIxiaClientImpl.tis:
+                device.applog.info(f"TIs to be removed: {traffic_item.Name}")
                 traffic_item.remove()
             IxnetworkIxiaClientImpl.tis.clear()
         return 0, ""

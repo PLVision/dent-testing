@@ -487,7 +487,7 @@ async def tgen_utils_clear_traffic_stats(device):
     # assert out[0][device.host_name]["rc"] == 0
 
 async def tgen_utils_clear_traffic_items(device):
-    device.applog.info("Clearing Traffic Items")
+    device.applog.info(f"TIs to be removed on device: {device.host_name}")
     out = await TrafficGen.clear_traffic(input_data=[{device.host_name: [{}]}])
     device.applog.info(out)
 
