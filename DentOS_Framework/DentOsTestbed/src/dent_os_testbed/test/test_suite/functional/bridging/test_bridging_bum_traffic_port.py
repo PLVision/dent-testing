@@ -293,6 +293,7 @@ async def test_bridging_bum_traffic_port_with_rif(testbed):
         },
         "IPv4_RIP2_Routers": {
             "ip_source": dev_groups[tg_ports[0]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcIp": "1.1.1.2",
             "dstIp": "224.0.0.9",
             "srcMac": srcMac,
@@ -343,9 +344,9 @@ async def test_bridging_bum_traffic_port_with_rif(testbed):
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcIp": "1.1.1.2",
             "dstIp": "224.0.0.22",
-            "frameSize": 96,
             "srcMac": srcMac,
             "dstMac": "01:00:5E:00:00:16",
+            "frameSize": 96,
             "protocol": "0x0800",
             "type" :"raw"
         },
@@ -651,6 +652,7 @@ async def test_bridging_bum_traffic_port_without_rif(testbed):
         },
         "IPv4_RIP2_Routers": {
             "ip_source": dev_groups[tg_ports[0]][0]["name"],
+            "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcIp": "1.1.1.2",
             "dstIp": "224.0.0.9",
             "srcMac": srcMac,
@@ -701,9 +703,9 @@ async def test_bridging_bum_traffic_port_without_rif(testbed):
             "ip_destination": dev_groups[tg_ports[1]][0]["name"],
             "srcIp": "1.1.1.2",
             "dstIp": "224.0.0.22",
-            "frameSize": 96,
             "srcMac": srcMac,
             "dstMac": "01:00:5E:00:00:16",
+            "frameSize": 96,
             "protocol": "0x0800",
             "type" :"raw"
         },
