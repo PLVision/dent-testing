@@ -27,9 +27,9 @@ async def tgen_utils_get_dent_devices_with_tgen(testbed, device_types, min_links
                 if len(links[0]) < min_links:
                     continue
                 if (
-                    dut not in testbed.devices_dict
-                    or testbed.devices_dict[dut].os != "dentos"
-                    or not await testbed.devices_dict[dut].is_connected()
+                        dut not in testbed.devices_dict
+                        or testbed.devices_dict[dut].os != "dentos"
+                        or not await testbed.devices_dict[dut].is_connected()
                 ):
                     continue
                 if device_types and not testbed.devices_dict[dut].type in device_types:
@@ -176,7 +176,7 @@ async def tgen_utils_connect_to_tgen(device, dent_dev):
 
 
 async def tgen_utils_create_devices_and_connect(
-    tgen_dev, dent_devices, devices_info, need_vlan=True
+        tgen_dev, dent_devices, devices_info, need_vlan=True
 ):
     """
     - create end devices on tgen on given list of vlans on each of the switches.
@@ -207,7 +207,7 @@ async def tgen_utils_create_devices_and_connect(
                 dev_gw = vlan_info["ip"]
                 dev_plen = vlan_info["plen"]
             for ixp, swp in zip(
-                tgen_dev.links_dict[dd.host_name][0], tgen_dev.links_dict[dd.host_name][1]
+                    tgen_dev.links_dict[dd.host_name][0], tgen_dev.links_dict[dd.host_name][1]
             ):
                 vname = device["name"]
                 if "vlan" not in device:
@@ -250,7 +250,7 @@ async def tgen_utils_create_bgp_devices_and_connect(tgen_dev, dent_devices, bgp_
         tgen_ports += tgen_dev.links_dict[dd.host_name][0]
         swp_ports += [f"{dd.host_name}:{p}" for p in tgen_dev.links_dict[dd.host_name][1]]
         for ixp, swp in zip(
-            tgen_dev.links_dict[dd.host_name][0], tgen_dev.links_dict[dd.host_name][1]
+                tgen_dev.links_dict[dd.host_name][0], tgen_dev.links_dict[dd.host_name][1]
         ):
             # if there is a vlan configured on this port then we need use that
             out = await BridgeVlan.show(
@@ -304,71 +304,71 @@ async def tgen_utils_create_bgp_devices_and_connect(tgen_dev, dent_devices, bgp_
             d1_as = bgp_summary["ipv4Unicast"]["as"]
             for cmd in [
                 (
-                    Bgp.configure,
-                    [
-                        {
-                            dd.host_name: [
-                                {
-                                    "asn": d1_as,
-                                    "neighbor": {"options": {"peer-group": ""}},
-                                    "group": "IXIA",
-                                }
-                            ]
-                        }
-                    ],
+                        Bgp.configure,
+                        [
+                            {
+                                dd.host_name: [
+                                    {
+                                        "asn": d1_as,
+                                        "neighbor": {"options": {"peer-group": ""}},
+                                        "group": "IXIA",
+                                    }
+                                ]
+                            }
+                        ],
                 ),
                 (
-                    Bgp.configure,
-                    [
-                        {
-                            dd.host_name: [
-                                {
-                                    "asn": d1_as,
-                                    "neighbor": {"options": {"remote-as": 200}},
-                                    "group": "IXIA",
-                                }
-                            ]
-                        }
-                    ],
+                        Bgp.configure,
+                        [
+                            {
+                                dd.host_name: [
+                                    {
+                                        "asn": d1_as,
+                                        "neighbor": {"options": {"remote-as": 200}},
+                                        "group": "IXIA",
+                                    }
+                                ]
+                            }
+                        ],
                 ),
                 (
-                    Bgp.configure,
-                    [
-                        {
-                            dd.host_name: [
-                                {
-                                    "asn": d1_as,
-                                    "neighbor": {"options": {"timers": "3 10"}},
-                                    "group": "IXIA",
-                                }
-                            ]
-                        }
-                    ],
+                        Bgp.configure,
+                        [
+                            {
+                                dd.host_name: [
+                                    {
+                                        "asn": d1_as,
+                                        "neighbor": {"options": {"timers": "3 10"}},
+                                        "group": "IXIA",
+                                    }
+                                ]
+                            }
+                        ],
                 ),
                 (
-                    Bgp.configure,
-                    [
-                        {
-                            dd.host_name: [
-                                {"asn": d1_as, "ip": dev_ip, "neighbor": {}, "group": "IXIA"}
-                            ]
-                        }
-                    ],
+                        Bgp.configure,
+                        [
+                            {
+                                dd.host_name: [
+                                    {"asn": d1_as, "ip": dev_ip, "neighbor": {}, "group": "IXIA"}
+                                ]
+                            }
+                        ],
                 ),
                 (
-                    Bgp.configure,
-                    [
-                        {
-                            dd.host_name: [
-                                {
-                                    "asn": d1_as,
-                                    "address-family": "ipv4 unicast",
-                                    "neighbor": {"options": {"soft-reconfiguration": "inbound"}},
-                                    "group": "IXIA",
-                                }
-                            ]
-                        }
-                    ],
+                        Bgp.configure,
+                        [
+                            {
+                                dd.host_name: [
+                                    {
+                                        "asn": d1_as,
+                                        "address-family": "ipv4 unicast",
+                                        "neighbor": {"options": {"soft-reconfiguration": "inbound"}},
+                                        "group": "IXIA",
+                                    }
+                                ]
+                            }
+                        ],
                 ),
             ]:
                 out = await cmd[0](input_data=cmd[1])
@@ -537,6 +537,7 @@ async def tgen_utils_get_egress_stats(device, stats_row, num_of_rows=None, do_lo
     stats = out[0][device.host_name]["result"]
     if not do_log:
         return stats
+
     def friendly_name(col, tracking):
         if "VLAN ID" in tracking:
             return "Vlan Id"
@@ -545,6 +546,7 @@ async def tgen_utils_get_egress_stats(device, stats_row, num_of_rows=None, do_lo
         if "DSCP" in tracking:
             return "DSCP"
         return col
+
     for idx, row in enumerate(stats.Rows):
         if idx == 0:
             egress_tracking_cols = [(col, row[col]) for col in row.Columns if "Egress Tracking" in col]
@@ -571,10 +573,12 @@ async def tgen_utils_clear_traffic_stats(device):
     device.applog.info(out)
     # assert out[0][device.host_name]["rc"] == 0
 
+
 async def tgen_utils_clear_traffic_items(device):
     device.applog.info(f"Removing Traffic Items from the device: {device.host_name}")
     out = await TrafficGen.clear_traffic(input_data=[{device.host_name: [{}]}])
     device.applog.info(out)
+
 
 async def tgen_utils_stop_protocols(device):
     device.applog.info("Stopping Protocols")
@@ -607,7 +611,6 @@ async def tgen_util_flap_bgp_peer(device, ixp, skip_down=False, skip_up=False):
 
 
 def tgen_util_convert_aws_logs_to_streams():
-
     # this is the code used to convert aws packet capture to tgen streams.
     top_dir = "./logs/"
     raw_streams = {}
@@ -743,3 +746,21 @@ async def tgen_utils_send_arp(device, config):
     if out[0][device.host_name]["rc"] != 0:
         device.applog.warning(f"Some arps did not reach their destination\n{out}")
     return out[0][device.host_name]["result"]
+
+
+async def tgen_utils_update_l1_config(device, ixia_ports, speed=None, autoneg=True):
+    """
+    Update ports L1 config
+    Args:
+        device (DeviceType): Ixia device
+        speed (int| None): Speed to be set on the port
+        autoneg (bool): Enable/disable autoneg on the port
+        ixia_ports (list): Ixia ports
+    """
+    device.applog.info("Changing port speed and autoneg")
+    out = await TrafficGen.update_l1_config(input_data=[{device.host_name: [
+        {"speed": speed,
+         "autoneg": autoneg,
+         "ixia_ports": ixia_ports}]}])
+    device.applog.info(out)
+    assert out[0][device.host_name]["result"] == "", f"Failed updating L1 config{out}"

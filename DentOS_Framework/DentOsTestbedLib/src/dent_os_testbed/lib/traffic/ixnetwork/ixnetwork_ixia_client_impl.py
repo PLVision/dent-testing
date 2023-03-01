@@ -581,6 +581,9 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
     def format_send_arp(self, command, *argv, **kwarg):
         return command
 
+    def format_update_l1_config(self, command, *argv, **kwarg):
+        return command
+
     @classmethod
     def __get_ip_iface(cls, port, port_ip=None):
         vport = cls.ixnet.Vport.find(Name=port)
@@ -663,3 +666,29 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
         return err, [{"success": msg["arg2"],
                       "port": msg["port"],
                       "src_ip": msg["src_ip"]} for msg in res]
+
+    def run_update_l1_config(self, device, command, *argv, **kwarg):
+        speeds_map = {"1000": "speed1000",
+                      "100": "speed100fd",
+                      "10000": "speed10g",
+                      "2500": "speed2.5g",
+                      "5000": "speed5g"}
+
+        if not IxnetworkIxiaClientImpl.ixnet:
+            return 0, "Ixia not connected"
+        if command == "update_l1_config":
+            vports = IxnetworkIxiaClientImpl.ixnet.Vport.find()
+            ports = kwarg['params'][0].get("ixia_ports", None)
+            speed = kwarg['params'][0].get("speed", None)
+            speed_to_ixia = None if speed is None else speeds_map[str(speed)]
+            autoneg = kwarg['params'][0].get("autoneg", True)
+            names = [vport.Name for vport in vports]
+            for port in ports:
+                if port in names:
+                    required_ixia_port = vports[names.index(port)]
+                    card = required_ixia_port.L1Config.NovusTenGigLan  # or <another_inserted_card>
+                    device.applog.info(f"Changing speed from {required_ixia_port.ActualSpeed} to {speed} \
+                                         on tgen_port {required_ixia_port.Name}")
+                    device.applog.info(f"Changing autoneg to {autoneg} on tgen_port {required_ixia_port.Name}")
+                    card.update(AutoNegotiate=autoneg, Speed=speed_to_ixia)
+            return 0, ""
