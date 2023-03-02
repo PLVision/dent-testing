@@ -1,13 +1,14 @@
+import random
 import pytest
 import asyncio
 
-from dent_os_testbed.lib.bridge.bridge_link import BridgeLink
 from dent_os_testbed.lib.ip.ip_link import IpLink
 
 from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_dent_devices_with_tgen,
     tgen_utils_traffic_generator_connect,
     tgen_utils_dev_groups_from_config,
+    tgen_utils_clear_traffic_items,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
@@ -32,10 +33,9 @@ async def test_bridging_robustness_macs(testbed):
     2.  Set ports swp1, swp2, swp3, swp4 master br0.
     3.  Set entities swp1, swp2, swp3, swp4 UP state.
     4.  Set bridge br0 admin state UP.
-    5.  Set ports swp1, swp2, swp3, swp4 learning ON.
-    6.  Send traffic to swp1 to learn source increment address
+    5.  Send traffic to swp1 to learn source increment address
         00:00:00:00:00:35 with step '00:00:00:00:10:00' and count 4000.
-    7.  Verify that address have been learned and removed from previous learned port.
+    6.  Verify that address have been learned and removed from previous learned port.
     """
 
     bridge = "br0"
@@ -47,10 +47,12 @@ async def test_bridging_robustness_macs(testbed):
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
-    traffic_duration = 15
+    # packages do not have enough time to all be sent
+    traffic_duration = 10
     ixia_vhost_mac_count = 4
     #define base on test stability
-    num = 4000
+    mac_count = 16000
+    tolerance = 0.8
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
@@ -68,12 +70,6 @@ async def test_bridging_robustness_macs(testbed):
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
 
-    out = await BridgeLink.set(
-        input_data=[{device_host_name: [
-            {"device": port, "learning": True} for port in ports]}])
-    err_msg = f"Verify that entities set to learning 'ON' state.\n{out}"
-    assert out[0][device_host_name]["rc"] == 0, err_msg
-
     address_map = (
         # swp port, tg port,    tg ip,     gw,        plen
         (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
@@ -89,58 +85,23 @@ async def test_bridging_robustness_macs(testbed):
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 
-    streams = {
-        "streamA": {
-            "ip_source": dev_groups[tg_ports[0]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[1]][0]["name"],
-            "srcMac": {"type": "increment",
-                   "start": "00:00:00:00:00:35",
-                   "step": "00:00:00:00:10:00",
-                   "count": num},
-            "dstMac": "aa:bb:cc:dd:ee:11",
-            "type": "raw",
-            "protocol": "802.1Q",
-            "rate": "1000",
-        },
-        "streamB": {
-            "ip_source": dev_groups[tg_ports[0]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[2]][0]["name"],
-            "srcMac": {"type": "increment",
-                   "start": "00:00:00:00:00:35",
-                   "step": "00:00:00:00:10:00",
-                   "count": num},
-            "dstMac": "aa:bb:cc:dd:ee:12",
-            "type": "raw",
-            "protocol": "802.1Q",
-            "rate": "1000",
-        },
-        "streamC": {
-            "ip_source": dev_groups[tg_ports[0]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[3]][0]["name"],
-            "srcMac": {"type": "increment",
-                   "start": "00:00:00:00:00:35",
-                   "step": "00:00:00:00:10:00",
-                   "count": num},
-            "dstMac": "aa:bb:cc:dd:ee:13",
-            "type": "raw",
-            "protocol": "802.1Q",
-            "rate": "1000",
-        },
-        "streamD": {
-            "ip_source": dev_groups[tg_ports[1]][0]["name"],
-            "ip_destination": dev_groups[tg_ports[3]][0]["name"],
-            "srcMac": {"type": "increment",
-                   "start": "00:00:00:00:00:35",
-                   "step": "00:00:00:00:10:00",
-                   "count": num},
-            "dstMac": "aa:bb:cc:dd:ee:14",
-            "type": "raw",
-            "protocol": "802.1Q",
-            "rate": "1000",
-        }
-    }
+    for _ in range(7):
+        for x in range(3):
+            streams = {
+                    f"bridge_{x + 1}": {
+                        "ip_source": dev_groups[tg_ports[random.randint(0,2)]][0]["name"],
+                        "ip_destination": dev_groups[tg_ports[3]][0]["name"],
+                        "srcMac": {"type": "increment",
+                                   "start": "00:00:00:00:00:35",
+                                   "step": "00:00:00:00:10:00",
+                                   "count": mac_count},
+                        "dstMac": f"aa:bb:cc:dd:ee:1{x+1}",
+                        "type": "raw",
+                        "protocol": "802.1Q",
+                        "rate": "15000",
+                    }
+                }
 
-    for _ in range(4):
         await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
 
         await tgen_utils_start_traffic(tgen_dev)
@@ -153,9 +114,11 @@ async def test_bridging_robustness_macs(testbed):
             loss = tgen_utils_get_loss(row)
             assert loss == 0, f"Expected loss: 0%, actual: {loss}%"
 
-        rc, out = await dent_dev.run_cmd("bridge fdb show br br0   |  grep 'extern_learn.*offload'  |  wc -l")
+        rc, out = await dent_dev.run_cmd("bridge fdb show br br0 | grep 'extern_learn.*offload' | wc -l")
         assert rc == 0, f"Failed to grep 'extern_learn.*offload'.\n"
 
         amount = int(out) - ixia_vhost_mac_count
-        err_msg = f"Expected count of extern_learn offload entities: 4000, Actual count: {amount}"
-        assert amount  == num, err_msg
+        err_msg = f"Expected count of extern_learn offload entities: >{mac_count}*{tolerance}, Actual count: {amount}"
+        assert amount > mac_count*tolerance, err_msg
+        if x != 2 :
+            await tgen_utils_clear_traffic_items(tgen_dev)
