@@ -65,14 +65,8 @@ async def common_bridge_and_igmp_setup(device_name, bridge, igmp_ver, dut_ports,
     if querier_interval:
         out = await IpLink.set(
             input_data=[{device_name: [
-                {"device": bridge, "type": "bridge", "mcast_querier": 1}]}])
-        err_msg = f"Verify that bridge set mcast_querier 1.\n{out}"
-        assert out[0][device_name]["rc"] == 0, err_msg
-
-        out = await IpLink.set(
-            input_data=[{device_name: [
-                {"device": bridge, "type": "bridge", "mcast_querier_interval": querier_interval * 100}]}])
-        err_msg = f"Verify that bridge set mcast_querier_interval to {querier_interval * 100}.\n{out}"
+                {"device": bridge, "type": "bridge", "mcast_querier": 1, "mcast_querier_interval": querier_interval * 100}]}])
+        err_msg = f"Verify that bridge set mcast_querier 1 and mcast_querier_interval to {querier_interval * 100}.\n{out}"
         assert out[0][device_name]["rc"] == 0, err_msg
 
     out = await IpLink.set(
@@ -108,8 +102,7 @@ async def test_igmp_snooping(testbed, igmp_ver, igmp_msg_ver):
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
         pytest.skip("The testbed does not have enough dent with tgen connections")
-    dent_dev = dent_devices[0]
-    dev_name = dent_dev.host_name
+    dev_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dev_name][0]
     dut_ports = tgen_dev.links_dict[dev_name][1]
 
@@ -182,8 +175,7 @@ async def test_igmp_snooping_modified_query(testbed):
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
         pytest.skip("The testbed does not have enough dent with tgen connections")
-    dent_dev = dent_devices[0]
-    dev_name = dent_dev.host_name
+    dev_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dev_name][0]
     dut_ports = tgen_dev.links_dict[dev_name][1]
 
@@ -246,8 +238,7 @@ async def test_igmp_snooping_diff_source_addrs(testbed):
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
         pytest.skip("The testbed does not have enough dent with tgen connections")
-    dent_dev = dent_devices[0]
-    dev_name = dent_dev.host_name
+    dev_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dev_name][0]
     dut_ports = tgen_dev.links_dict[dev_name][1]
 
