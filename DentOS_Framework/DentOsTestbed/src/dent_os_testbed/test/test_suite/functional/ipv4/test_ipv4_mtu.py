@@ -13,6 +13,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
     tgen_utils_stop_traffic,
+    tgen_utils_send_ping,
     tgen_utils_get_loss,
 )
 
@@ -126,17 +127,12 @@ async def test_ipv4_oversized_mtu(testbed):
         assert oversized == int(row["Tx Frames"])
 
 
-@pytest.mark.xfail(reason="Device does not support fragmentation")
 async def test_ipv4_fragmentation(testbed):
     """
     Test Name: test_ipv4_fragmentation
     Test Suite: suite_functional_ipv4
     Test Overview: Test IPv4 fragmentation
     Test Procedure:
-    1. Init interfaces
-    2. Configure ports up
-    3. Configure IP addrs
-    4. Generate Non-fragment/fragment traffic and verify reception
     """
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
@@ -147,14 +143,19 @@ async def test_ipv4_fragmentation(testbed):
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
     traffic_duration = 10
-    fragmented = 1522
-    non_fragmented = 1420
+    def ipv6(net, host): return f"{net:04x}::{host:04x}"
+    def ipv4(net, host): return f"{net}.0.0.{host}"
     address_map = (
-        # swp port, tg port,    swp ip,    tg ip,     plen
-        (ports[0], tg_ports[0], "1.1.1.1", "1.1.1.2", 24),
-        (ports[1], tg_ports[1], "2.2.2.1", "2.2.2.2", 24),
-        (ports[2], tg_ports[2], "3.3.3.1", "3.3.3.2", 24),
-        (ports[3], tg_ports[3], "4.4.4.1", "4.4.4.2", 24),
+        # swp port, tg port,    swp ip,     tg ip,      plen
+        (ports[0], tg_ports[0], ipv6(1, 1), ipv6(1, 2), 120),
+        (ports[1], tg_ports[1], ipv6(2, 1), ipv6(2, 2), 120),
+        (ports[2], tg_ports[2], ipv6(3, 1), ipv6(3, 2), 120),
+        (ports[3], tg_ports[3], ipv6(4, 1), ipv6(4, 2), 120),
+
+        (ports[0], tg_ports[0], ipv4(1, 1), ipv4(1, 2), 24),
+        (ports[1], tg_ports[1], ipv4(2, 1), ipv4(2, 2), 24),
+        (ports[2], tg_ports[2], ipv4(3, 1), ipv4(3, 2), 24),
+        (ports[3], tg_ports[3], ipv4(4, 1), ipv4(4, 2), 24),
     )
 
     # 2. Configure ports up
@@ -172,22 +173,22 @@ async def test_ipv4_fragmentation(testbed):
     assert out[0][dent]["rc"] == 0, "Failed to add IP addr to port"
 
     dev_groups = tgen_utils_dev_groups_from_config(
-        {"ixp": port, "ip": ip, "gw": gw, "plen": plen}
-        for _, port, gw, ip, plen in address_map
+        {"ixp": port, "ip": ip, "gw": gw, "plen": plen, "version": "ipv6" if plen > 32 else "ipv4", "vlan": 5}
+        for _, port, gw, ip, plen in address_map[2:6]
     )
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 
     streams = {
-        f"{tg1} <-> {tg2} | frame size {size}": {
-            "type": "ipv4",
+        f"{tg1} <-> {tg2}": {
+            "type": "ethernet",
+            "protocol": "ipv6",
             "ip_source": dev_groups[tg1][0]["name"],
             "ip_destination": dev_groups[tg2][0]["name"],
-            "protocol": "ip",
             "rate": "1000",  # pps
-            "frameSize": size,
             "bi_directional": True,
-        } for tg1, tg2, size in ((tg_ports[0], tg_ports[1], non_fragmented),
-                                 (tg_ports[2], tg_ports[3], fragmented))
+            "srcIp": ipv6(5, 5) if tg1 == tg_ports[0] else ipv4(5, 5),
+            "dstIp": ipv6(6, 5) if tg1 == tg_ports[0] else ipv4(6, 5),
+        } for tg1, tg2 in (tg_ports[:2], tg_ports[2:])
     }
 
     # 4. Generate Non-fragment/fragment traffic and verify reception
@@ -199,13 +200,21 @@ async def test_ipv4_fragmentation(testbed):
 
     # Verify packet discarded/fwd
     stats = await tgen_utils_get_traffic_stats(tgen_dev, "Flow Statistics")
-    for row in stats.Rows:
-        loss = tgen_utils_get_loss(row)
 
-        if str(non_fragmented) in row["Traffic Item"]:
-            assert loss == 0, f"Expected loss: 0%, actual: {loss}%"
-            assert row["Tx Frames"] == row["Rx Frames"], \
-                f"Expected Tx Frames {row['Tx Frames']} to equal Rx Frames {row['Rx Frames']}"
-        else:  # fragmented traffic
-            assert int(row["Rx Frames"]) == int(row["Tx Frames"]) * 2, \
-                f"Expected Rx Frames {row['Rx Frames']} to equal 2 * Tx Frames {2 * int(row['Tx Frames'])}"
+    await tgen_utils_send_ping(
+        tgen_dev,
+        ({"ixp": port, "src_ip": ip, "dst_ip": gw} for _, port, gw, ip, plen in address_map[2:6] ))
+    """
+    - Sends ping from TG ports to DUT
+    - Expects config to be a list of dicts:
+    [
+        {
+            "ixp": tgen port,
+            "src_ip": tgen port ip (optional),
+            "dst_ip": peer ip,
+        },
+        ...
+    ]
+    """
+    import pdb
+    pdb.set_trace()

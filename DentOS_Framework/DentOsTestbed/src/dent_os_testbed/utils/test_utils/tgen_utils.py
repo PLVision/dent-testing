@@ -102,6 +102,7 @@ def tgen_utils_dev_groups_from_config(config):
             "gw": peer ip,
             "plen": prefix length,
             "vlan": vlan id to be configured (optional),
+            "version": [ ipv4 | ipv6 ] (default is ipv4),
         },
         ...
     ]
@@ -117,6 +118,7 @@ def tgen_utils_dev_groups_from_config(config):
             "gw": el["gw"],
             "plen": el["plen"],
             "vlan": el.get("vlan", None),
+            "version": el.get("version", "ipv4"),
         })
     return dev_groups
 

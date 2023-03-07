@@ -74,7 +74,7 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
             # session = gw.Sessions.find()[0]
             # device.applog.info(session)
             # if session.Id == -1:
-            session = gw.Sessions.add()
+            session = gw.Sessions.add(Name="bojko's session")
             device.applog.info("Connected to Linux Gateway Session ID: %d" % session.Id)
             device.applog.info("Reserving test ports, and may take a minute...")
             IxnetworkIxiaClientImpl.session = session
@@ -88,6 +88,11 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
             IxnetworkIxiaClientImpl.tis = []
             crc = IxnetworkIxiaClientImpl.ixnet.Traffic.TrafficItem.ConfigElement._SDM_ENUM_MAP["crc"]
             IxnetworkIxiaClientImpl.bad_crc = {True: crc[0], False: crc[1]}
+            IxnetworkIxiaClientImpl.proto_template = {
+                proto_type: IxnetworkIxiaClientImpl.ixnet.Traffic.ProtocolTemplate.find(
+                    StackTypeId=f"^{proto_type}$"
+                ) for proto_type in ("ipv4", "ipv6", "vlan", "tcp", "udp", "icmpv1", "icmpv2")
+            }
 
             device.applog.info("Connection to Ixia REST API Server Established")
             ixia_ports = param["tgen_ports"]
@@ -115,25 +120,34 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                     device.applog.info("Changing all vports media mode to copper")
                     vport[0].L1Config.NovusTenGigLan.Media = "copper"
 
-                device.applog.info("Adding Ipv4 on ixia port {} swp {}".format(port, vport[1]))
+                device.applog.info("Adding interface on ixia port {} swp {}".format(port, vport[1]))
                 topo = IxnetworkIxiaClientImpl.ixnet.Topology.add(Vports=vport[0])
                 for dev in dev_groups[port]:
                     device.applog.info("Adding device {}".format(dev))
+                    is_ipv6 = dev.get("version") == "ipv6"
                     dev_group = topo.DeviceGroup.add(Multiplier=dev.get("count", 2))
                     if "vlan" in dev and dev["vlan"] is not None:
                         eth = dev_group.Ethernet.add(Name=vport[1], UseVlans=True, VlanCount=1)
                         eth.Vlan.find()[0].VlanId.Single(dev["vlan"])
                     else:
                         eth = dev_group.Ethernet.add(Name=vport[1])
-                    ep = eth.Ipv4.add(Name=dev["name"])
-                    ep.Address.Increment(dev["ip"], "0.0.0.1")
+
+                    if is_ipv6:
+                        ep = eth.Ipv6.add(Name=dev["name"])
+                        ep.Address.Increment(dev["ip"], "::1")
+                    else:
+                        ep = eth.Ipv4.add(Name=dev["name"])
+                        ep.Address.Increment(dev["ip"], "0.0.0.1")
                     ep.GatewayIp.Single(dev["gw"])
                     ep.Prefix.Single(dev["plen"])
                     if dev.get("bgp_peer", {}):
-                        bp = dev["bgp_peer"]
-                        bgp_ep = ep.BgpIpv4Peer.add(Name=dev["name"])
+                        if is_ipv6:
+                            bgp_ep = ep.BgpIpv6Peer.add(Name=dev["name"])
+                        else:
+                            bgp_ep = ep.BgpIpv4Peer.add(Name=dev["name"])
                         bgp_ep.DutIp.Single(dev["gw"])
                         bgp_ep.Type.Single("external")
+                        bp = dev["bgp_peer"]
                         bgp_ep.LocalAs2Bytes.Single(bp["local_as"])
                         bgp_ep.HoldTimer.Single(bp["hold_timer"])
                         bgp_ep.UpdateInterval.Single(bp["update_interval"])
@@ -143,9 +157,14 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                         )
                         ng.Enabled.Single(True)
                         for rr in bp["route_ranges"]:
-                            pool = ng.Ipv4PrefixPools.add(
-                                Name=dev["name"], NumberOfAddresses=rr["number_of_routes"]
-                            )
+                            if is_ipv6:
+                                pool = ng.Ipv6PrefixPools.add(
+                                    Name=dev["name"], NumberOfAddresses=rr["number_of_routes"]
+                                )
+                            else:
+                                pool = ng.Ipv4PrefixPools.add(
+                                    Name=dev["name"], NumberOfAddresses=rr["number_of_routes"]
+                                )
                             pool.NetworkAddress.Single(rr["first_route"])
                             IxnetworkIxiaClientImpl.rr_eps.append(pool)
 
@@ -255,9 +274,7 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
             return
         if pkt_data["ipproto"] not in ["tcp", "udp", "icmpv1", "icmpv2"]:
             return
-        ipproto_template = IxnetworkIxiaClientImpl.ixnet.Traffic.ProtocolTemplate.find(
-            StackTypeId="^{}$".format(pkt_data["ipproto"])
-        )
+        ipproto_template = self.proto_template[pkt_data["ipproto"]]
         l4_stack = config_element.Stack.read(ipv4_stack.AppendProtocol(ipproto_template))
         if "dstPort" in pkt_data:
             if ":" in pkt_data["dstPort"]:
@@ -279,32 +296,34 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                                 pkt_data["icmpCode"])
 
     def set_ethernet_traffic(self, device, name, pkt_data, traffic_type):
+        fiedls = {
+            "ipv4": {
+                "dstIp": "ipv4.header.dstIp",
+                "srcIp": "ipv4.header.srcIp",
+                "dscp_ecn": "ipv4.header.priority.raw",
+            },
+            "ipv6": {
+                "dstIp": "ipv6.header.dstIP",
+                "srcIp": "ipv6.header.srcIP",
+                "traffic_class": "ipv6.header.versionTrafficClassFlowLabel.trafficClass",
+            },
+            "dstMac": "ethernet.header.destinationAddress",
+            "srcMac": "ethernet.header.sourceAddress",
+            "vlanID": "vlan.header.vlanTag.vlanID",
+            "vlanPriority": "vlan.header.vlanTag.vlanUserPriority",
+        }
         # create an ipv4 traffic item
-        ipv4_template = IxnetworkIxiaClientImpl.ixnet.Traffic.ProtocolTemplate.find(
-            StackTypeId="^ipv4$"
-        )
-        vlan_template = IxnetworkIxiaClientImpl.ixnet.Traffic.ProtocolTemplate.find(
-            StackTypeId="^vlan$"
-        )
-        for ip1, ep1, rep1 in zip(
-            IxnetworkIxiaClientImpl.ip_eps,
-            IxnetworkIxiaClientImpl.eth_eps,
-            IxnetworkIxiaClientImpl.raw_eps,
-        ):
+        for ip1, ep1, rep1 in zip(self.ip_eps, self.eth_eps, self.raw_eps):
             if "ip_source" in pkt_data and ip1.Name not in pkt_data["ip_source"]:
                 continue
             if "ep_source" in pkt_data and ep1.Name not in pkt_data["ep_source"]:
                 continue
             device.applog.info("Creating the Ethernet traffic stream on {}".format(ep1.Name))
-            ti = IxnetworkIxiaClientImpl.ixnet.Traffic.TrafficItem.add(
+            ti = self.ixnet.Traffic.TrafficItem.add(
                 Name=name, TrafficType=traffic_type
             )
             ep_count = 0
-            for ip2, ep2, rep2 in zip(
-                IxnetworkIxiaClientImpl.ip_eps,
-                IxnetworkIxiaClientImpl.eth_eps,
-                IxnetworkIxiaClientImpl.raw_eps,
-            ):
+            for ip2, ep2, rep2 in zip(self.ip_eps, self.eth_eps, self.raw_eps):
                 if ep1 == ep2:
                     continue
                 if "ip_destination" in pkt_data and ip2.Name not in pkt_data["ip_destination"]:
@@ -320,7 +339,7 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                 else:
                     endpoint_set = ti.EndpointSet.add(Sources=ep1, Destinations=ep2)
                 ep_count += 1
-            IxnetworkIxiaClientImpl.tis.append(ti)
+            self.tis.append(ti)
             track_by = {"trackingenabled0", "sourceDestValuePair0"}
             ti.Enabled = True
             for ep in range(ep_count):
@@ -332,54 +351,63 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                 config_element.FrameSize.update(
                     Type="fixed", FixedSize=pkt_data.get("frameSize", "512")
                 )
-                config_element.Crc = IxnetworkIxiaClientImpl.bad_crc[pkt_data.get("bad_crc", False)]
+                config_element.Crc = self.bad_crc[pkt_data.get("bad_crc", False)]
                 config_element.TransmissionControl.update(Type="continuous")
                 eth_stack = config_element.Stack.find(StackTypeId="^ethernet$")
                 if "vlanID" in pkt_data:
                     vlan_stack = config_element.Stack.read(
-                        eth_stack.AppendProtocol(vlan_template)
+                        eth_stack.AppendProtocol(self.proto_template["vlan"])
                     )
-                    ipv4_stack = config_element.Stack.read(vlan_stack.AppendProtocol(ipv4_template))
+                    l2_stack = vlan_stack
                 else:
-                    ipv4_stack = config_element.Stack.read(
-                        eth_stack.AppendProtocol(ipv4_template)
-                    )
+                    l2_stack = eth_stack
+
+                if traffic_type == "ipv6":
+                    ip_type = "ipv6"
+                else:
+                    ip_type = "ipv4"
+
+                ip_stack = config_element.Stack.read(
+                    l2_stack.AppendProtocol(self.proto_template[ip_type])
+                )
+
                 if "dstMac" in pkt_data:
-                    self.__update_field(eth_stack.Field.find(FieldTypeId="ethernet.header.destinationAddress"),
+                    self.__update_field(eth_stack.Field.find(FieldTypeId=fiedls["dstMac"]),
                                         pkt_data["dstMac"])
                 if "srcMac" in pkt_data:
-                    self.__update_field(eth_stack.Field.find(FieldTypeId="ethernet.header.sourceAddress"),
+                    self.__update_field(eth_stack.Field.find(FieldTypeId=fiedls["srcMac"]),
                                         pkt_data["srcMac"])
                 if "vlanID" in pkt_data:
-                    self.__update_field(vlan_stack.Field.find(FieldTypeId="vlan.header.vlanTag.vlanID"),
+                    self.__update_field(vlan_stack.Field.find(FieldTypeId=fiedls["vlanID"]),
                                         pkt_data["vlanID"])
                     if "vlanPriority" in pkt_data:
-                        self.__update_field(vlan_stack.Field.find(FieldTypeId="vlan.header.vlanTag.vlanUserPriority"),
+                        self.__update_field(vlan_stack.Field.find(FieldTypeId=fiedls["vlanPriority"]),
                                             pkt_data["vlanPriority"])
                     track_by.update(["vlanVlanId0", "vlanVlanUserPriority0"])
-                if "dstIp" in pkt_data:
-                    self.__update_field(ipv4_stack.Field.find(FieldTypeId="ipv4.header.dstIp"),
-                                        pkt_data["dstIp"])
-                if "srcIp" in pkt_data:
-                    self.__update_field(ipv4_stack.Field.find(FieldTypeId="ipv4.header.srcIp"),
-                                        pkt_data["srcIp"])
-                if "dscp_ecn" in pkt_data:  # dscp and ecn
-                    self.__update_field(ipv4_stack.Field.find(FieldTypeId="ipv4.header.priority.raw"),
-                                        pkt_data["dscp_ecn"])
-                    track_by.add("ipv4Raw0")
-                self.set_l4_traffic(config_element, ipv4_stack, pkt_data)
+
+                for key, field_type in fiedls[ip_type].items():
+                    if key not in pkt_data:
+                        continue
+                    if key == "dscp_ecn":
+                        track_by.add("ipv4Raw0")
+                    if key == "traffic_class":
+                        track_by.add("ipv6Trafficclass0")
+                    self.__update_field(ip_stack.Field.find(FieldTypeId=field_type), pkt_data[key])
+
+                self.set_l4_traffic(config_element, ip_stack, pkt_data)
             ti.Tracking.find()[0].TrackBy = list(track_by)
 
-    def set_ipv4_traffic(self, device, name, pkt_data, traffic_type):
+    def set_ip_traffic(self, device, name, pkt_data, traffic_type):
         # create an ipv4 traffic item
+        protocol = "ipv6" if traffic_type == "ipv6" else "ipv4"
         for ep1, rr_ep1 in zip(IxnetworkIxiaClientImpl.ip_eps, IxnetworkIxiaClientImpl.rr_eps):
             if "bgp_source" in pkt_data and rr_ep1.Name not in pkt_data["bgp_source"]:
                 continue
             if "ip_source" in pkt_data and ep1.Name not in pkt_data["ip_source"]:
                 continue
-            device.applog.info("Creating the IPV4 traffic stream on {}".format(ep1.Name))
+            device.applog.info("Creating the {} traffic stream on {}".format(protocol, ep1.Name))
             ti = IxnetworkIxiaClientImpl.ixnet.Traffic.TrafficItem.add(
-                Name=name, TrafficType="ipv4"
+                Name=name, TrafficType=protocol
             )
             ep_count = 0
             for ep2, rr_ep2 in zip(IxnetworkIxiaClientImpl.ip_eps, IxnetworkIxiaClientImpl.rr_eps):
@@ -393,9 +421,9 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                 device.applog.info(
                     "Adding the endpoint ep1 {} to ep2 {}".format(ep1.Name, ep2.Name)
                 )
-                if traffic_type == "ipv4":
+                if traffic_type in ("ipv4", "ipv6"):
                     endpoint_set = ti.EndpointSet.add(Sources=ep1, Destinations=ep2)
-                else:
+                else:  # bgp
                     endpoint_set = ti.EndpointSet.add(Sources=rr_ep1, Destinations=rr_ep2)
                 ep_count += 1
             IxnetworkIxiaClientImpl.tis.append(ti)
@@ -413,12 +441,17 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                 )
                 config_element.Crc = IxnetworkIxiaClientImpl.bad_crc[pkt_data.get("bad_crc", False)]
                 config_element.TransmissionControl.update(Type="continuous")
-                ipv4_stack = config_element.Stack.find(StackTypeId="^ipv4$")
-                if "dscp_ecn" in pkt_data:  # dscp and ecn
-                    self.__update_field(ipv4_stack.Field.find(FieldTypeId="ipv4.header.priority.raw"),
+                ip_stack = config_element.Stack.find(StackTypeId=f"^{protocol}$")
+                if "dscp_ecn" in pkt_data:
+                    self.__update_field(ip_stack.Field.find(FieldTypeId="ipv4.header.priority.raw"),
                                         pkt_data["dscp_ecn"])
                     track_by.add("ipv4Raw0")
-                self.set_l4_traffic(config_element, ipv4_stack, pkt_data)
+                if "traffic_class" in pkt_data:
+                    self.__update_field(
+                        ip_stack.Field.find(FieldTypeId="ipv6.header.versionTrafficClassFlowLabel.trafficClass"),
+                        pkt_data["traffic_class"])
+                    track_by.add("ipv6Trafficclass0")
+                self.set_l4_traffic(config_element, ip_stack, pkt_data)
             ti.Tracking.find()[0].TrackBy = list(track_by)
 
     def run_traffic_item(self, device, command, *argv, **kwarg):
@@ -439,22 +472,14 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
             if not params or not params[0]:
                 return 0, "Need to specify the packet data"
             param = params[0]
-            type = param["pkt_data"].get("type", "ipv4")
-            if type == "ipv4":
-                self.set_ipv4_traffic(device, param["name"], param["pkt_data"], traffic_type="ipv4")
-            elif type == "bgp":
-                self.set_ipv4_traffic(device, param["name"], param["pkt_data"], traffic_type="bgp")
-            elif type == "ethernet":
+            traffic_type = param["pkt_data"].get("type", "ipv4")
+            if traffic_type == "ethernet":
+                traffic_type = "ethernetVlan"
+            if traffic_type in ("ipv4", "ipv6", "bgp"):
+                self.set_ip_traffic(device, param["name"], param["pkt_data"], traffic_type=traffic_type)
+            else:
                 self.set_ethernet_traffic(
-                    device, param["name"], param["pkt_data"], traffic_type="ethernetVlan"
-                )
-            elif type == "ethernetVlan":
-                self.set_ethernet_traffic(
-                    device, param["name"], param["pkt_data"], traffic_type="ethernetVlan"
-                )
-            elif type == "raw":
-                self.set_ethernet_traffic(
-                    device, param["name"], param["pkt_data"], traffic_type="raw"
+                    device, param["name"], param["pkt_data"], traffic_type=traffic_type
                 )
         elif command == "start_traffic":
             device.applog.info("Starting Traffic")
@@ -507,7 +532,10 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
             for ep in IxnetworkIxiaClientImpl.ip_eps:
                 device.applog.info("Sending ARP on " + ep.Name)
                 ep.Start()
-                ep.SendArp()
+                if "SendNs" in dir(ep):  # ipv6
+                    ep.SendNs()
+                else:  # ipv4
+                    ep.SendArp()
             time.sleep(5)
             device.applog.info("Generating Traffic")
             for ti in IxnetworkIxiaClientImpl.tis:
@@ -541,6 +569,8 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
     @classmethod
     def __get_ip_iface(cls, port, port_ip=None):
         vport = cls.ixnet.Vport.find(Name=port)
+        import pdb
+        pdb.set_trace()
         for ip_ep in cls.ip_eps:
             # ip -> eth -> dev group -> topo
             topo = ip_ep.parent.parent.parent
@@ -611,7 +641,11 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                 device.applog.info(f"Did not find IP endpoint {port} with ip {src}")
             else:
                 device.applog.info(f"Sending ARP from {ip_ep.Name}")
-                out.update(ip_ep.SendArp()[0])
+                if "SendNs" in dir(ip_ep):  # ipv6
+                    ret = ip_ep.SendNs()
+                else:  # ipv4
+                    ret = ip_ep.SendArp()
+                out.update(ret[0])
 
             res.append(out)
             if not out["arg2"]:
