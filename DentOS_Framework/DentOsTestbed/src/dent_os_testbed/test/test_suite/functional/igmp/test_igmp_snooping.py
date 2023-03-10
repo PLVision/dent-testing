@@ -19,7 +19,7 @@ async def get_bridge_mdb(device_name, options="-d -s -j"):
         device_name (str): Dent device host_name
         options (str): Options to pass to bridge cmd
     Returns:
-        Dictinary with parsed mdb and router entries
+        Dictionary with parsed mdb and router entries
     """
 
     out = await BridgeMdb.show(
@@ -39,7 +39,7 @@ async def common_bridge_and_igmp_setup(device_name, bridge, igmp_ver, dut_ports,
     Args:
         device_name (str): Dent device host name
         bridge (str): Bridge device name
-        igm_ver (int): IGMP Version to set on bridge dev
+        igmp_ver (int): IGMP Version to set on bridge dev
         dut_ports (list): List containing Dent device ports
         querier_interval (int): Multicast querier_interval to be set
     """
