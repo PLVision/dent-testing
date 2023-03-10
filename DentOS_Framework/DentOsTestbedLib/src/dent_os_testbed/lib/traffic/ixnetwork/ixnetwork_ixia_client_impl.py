@@ -278,9 +278,12 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
         field.update(**param)
 
     def set_l4_traffic(self, config_element, ipv4_stack, pkt_data):
+        l4_proto_types = ["tcp", "udp", "icmpv1", "icmpv2",
+                          "igmpv1", "igmpv2", "igmpv3MembershipQuery",
+                          "igmpv3MembershipReport"]
         if "ipproto" not in pkt_data:
             return
-        if pkt_data["ipproto"] not in ["tcp", "udp", "icmpv1", "icmpv2"]:
+        if pkt_data["ipproto"] not in l4_proto_types:
             return
         ipproto_template = IxnetworkIxiaClientImpl.ixnet.Traffic.ProtocolTemplate.find(
             StackTypeId="^{}$".format(pkt_data["ipproto"])
@@ -304,6 +307,25 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
         if "icmpCode" in pkt_data:
             self.__update_field(l4_stack.Field.find(FieldTypeId=f"{pkt_data['ipproto']}.message.codeValue"),
                                 pkt_data["icmpCode"])
+
+        if "igmpType" in pkt_data:
+            self.__update_field(l4_stack.Field.find(FieldTypeId=f"{pkt_data['ipproto']}.header.type"),
+                                pkt_data["igmpType"])
+        if "igmpChecksum" in pkt_data:
+            self.__update_field(l4_stack.Field.find(FieldTypeId=f"{pkt_data['ipproto']}.header.checksum"),
+                                pkt_data["igmpChecksum"])
+        if "igmpGroupAddr" in pkt_data:
+            self.__update_field(l4_stack.Field.find(FieldTypeId=f"{pkt_data['ipproto']}.header.groupAddress"),
+                                pkt_data["igmpGroupAddr"])
+        if "igmpRecordType" in pkt_data:
+            self.__update_field(l4_stack.Field.find(FieldTypeId=f"{pkt_data['ipproto']}.header.groupRecords.groupRecord.recordType"),
+                                pkt_data["igmpRecordType"])
+        if "igmpMcastAddr" in pkt_data:
+            self.__update_field(l4_stack.Field.find(FieldTypeId=f"{pkt_data['ipproto']}.header.groupRecords.groupRecord.multicastAddress"),
+                                pkt_data["igmpMcastAddr"])
+        if "igmpSourceAddr" in pkt_data:
+            self.__update_field(l4_stack.Field.find(FieldTypeId=f"{pkt_data['ipproto']}.header.groupRecords.groupRecord.multicastSources.multicastSource"),
+                                pkt_data["igmpSourceAddr"])
 
     def set_ethernet_traffic(self, device, name, pkt_data, traffic_type):
         # create an ipv4 traffic item
