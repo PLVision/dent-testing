@@ -23,13 +23,13 @@ pytestmark = [
 ]
 
 
-async def test_port_isolation_basic_functionality(testbed):
+async def test_port_isolation_stress_incremental_mac_addresses(testbed):
     """
-    Test Name: test_port_isolation_basic_functionality
+    Test Name: test_port_isolation_stress_incremental_mac_addresses
     Test Suite: suite_functional_port_isolation
-    Test Overview: Verify that isolated ports cannot send or receive unicast, multicast,
-                   or broadcast traffic from each other but still communicate normally
-                   with any other ports of the bridge.
+    Test Overview: Verify that isolated ports cannot send or receive packets containing
+                   incremental destination mac addresses to or from each other but still
+                   communicate normally with any other ports of the bridge.
     Test Author: Kostiantyn Stavruk
     Test Procedure:
     1.  Init bridge entity br0.
@@ -37,25 +37,26 @@ async def test_port_isolation_basic_functionality(testbed):
     3.  Set entities swp1, swp2, swp3, swp4 UP state.
     4.  Set bridge br0 admin state UP.
     5.  Set the first three bridge entities as isolated.
-    6.  Set up the following streams:
-            - unicast stream on the first (isolated) TG port
-            - multicast stream on the second (isolated) TG port
-            - broadcast stream on the third (isolated) TG port
-            - stream on the fourth (non-isolated) port
+    6.  Set up the streams.
     7.  Transmit traffic by TG.
     8.  Verify traffic sent from isolated ports that was received on a non-isolated port only.
     9.  Verify traffic sent from a non-isolated port is received on all ports.
+    10. Verify that all addresses have been learned.
     """
 
     bridge = "br0"
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
         pytest.skip("The testbed does not have enough dent with tgen connections")
-    device_host_name = dent_devices[0].host_name
+    dent_dev = dent_devices[0]
+    device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
+    ixia_vhost_mac_count = 4
     traffic_duration = 10
-    pps_value = 1000
+    pps_value = 4000
+    mac_count = 5000
+    tolerance = 0.8
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
@@ -111,9 +112,12 @@ async def test_port_isolation_basic_functionality(testbed):
             "stream_0": {
                 "ip_source": dev_groups[tg_ports[0]][0]["name"],
                 "ip_destination": dev_groups[tg_ports[3-x]][0]["name"],
-                "srcMac": "28:be:0d:47:eb:2b",
-                "dstMac": "1c:99:9f:fb:63:15",
-                "frameSize": 162,
+                "srcMac": {"type": "increment",
+                           "start": "40:ee:65:26:69:46",
+                           "step": "00:00:00:00:10:00",
+                           "count": mac_count},
+                "dstMac": "56:18:0b:25:41:b5",
+                "frameSize": 1451,
                 "rate": pps_value,
                 "protocol": "0x0800",
                 "type": "raw",
@@ -121,31 +125,38 @@ async def test_port_isolation_basic_functionality(testbed):
             "stream_1": {
                 "ip_source": dev_groups[tg_ports[1]][0]["name"],
                 "ip_destination": dev_groups[tg_ports[3-x if x < 2 else 0]][0]["name"],
-                "srcIp": "147.147.96.74",
-                "dstIp": "229.112.223.59",
-                "srcMac": "f2:de:a4:35:bd:4b",
-                "dstMac": "01:00:5E:70:df:3b",
-                "frameSize": 162,
+                "srcMac": {"type": "increment",
+                           "start": "78:d5:fc:e5:42:85",
+                           "step": "00:00:00:00:10:00",
+                           "count": mac_count},
+                "dstMac": "f2:c9:74:75:45:38",
+                "frameSize": 1451,
                 "rate": pps_value,
-                "protocol": "0x0800",
+                "protocol": "0x9200",
                 "type": "raw",
             },
             "stream_2": {
                 "ip_source": dev_groups[tg_ports[2]][0]["name"],
                 "ip_destination": dev_groups[tg_ports[3-x if x <= 0 else 2-x]][0]["name"],
-                "srcMac": "2a:3e:13:88:e5:6d",
-                "dstMac": "ff:ff:ff:ff:ff:ff",
-                "frameSize": 162,
+                "srcMac": {"type": "increment",
+                           "start": "ea:c5:88:37:c9:6f",
+                           "step": "00:00:00:00:10:00",
+                           "count": mac_count},
+                "dstMac": "fa:f5:38:5e:1a:18",
+                "frameSize": 1451,
                 "rate": pps_value,
-                "protocol": "0x0800",
+                "protocol": "0x88a8",
                 "type": "raw",
             },
             "stream_3": {
                 "ip_source": dev_groups[tg_ports[3]][0]["name"],
                 "ip_destination": dev_groups[tg_ports[2-x]][0]["name"],
-                "srcMac": "ea:f9:ca:10:1d:b6",
-                "dstMac": "ba:2e:c5:2c:fa:8d",
-                "frameSize": 162,
+                "srcMac": {"type": "increment",
+                           "start": "28:de:d0:df:49:ca",
+                           "step": "00:00:00:00:10:00",
+                           "count": mac_count},
+                "dstMac": "6a:e7:c4:5b:02:d1",
+                "frameSize": 1451,
                 "rate": pps_value,
                 "protocol": "0x0800",
                 "type": "raw",
@@ -176,5 +187,12 @@ async def test_port_isolation_basic_functionality(testbed):
         for row in stats.Rows:
             assert tgen_utils_get_loss(row) == expected_loss[row["Traffic Item"]], \
                 "Verify that traffic is forwarded/not forwarded in accordance."
+
+        rc, out = await dent_dev.run_cmd("bridge fdb show br br0 | grep 'extern_learn.*offload' | wc -l")
+        assert rc == 0, "Failed to grep 'extern_learn.*offload'."
+
+        amount = int(out) - ixia_vhost_mac_count
+        err_msg = f"Expected count of extern_learn offload entities: >{mac_count}*{tolerance}, Actual count: {amount}."
+        assert amount > mac_count*ixia_vhost_mac_count*tolerance, err_msg
 
         await tgen_utils_clear_traffic_items(tgen_dev)

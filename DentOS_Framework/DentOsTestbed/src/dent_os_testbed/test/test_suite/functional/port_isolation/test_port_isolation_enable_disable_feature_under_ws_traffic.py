@@ -1,4 +1,5 @@
-import pytest, asyncio
+import pytest
+import asyncio
 
 from dent_os_testbed.lib.bridge.bridge_link import BridgeLink
 from dent_os_testbed.lib.ip.ip_link import IpLink
@@ -20,11 +21,12 @@ pytestmark = [
     pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
 ]
 
+
 # verifying the traffic stats
 async def check_traffic_stats(stats, expected_loss):
     for row in stats.Rows:
-            assert tgen_utils_get_loss(row) == expected_loss[row["Traffic Item"]], \
-                "Verify that traffic is forwarded/not forwarded in accordance."
+        assert tgen_utils_get_loss(row) == expected_loss[row["Traffic Item"]], \
+            "Verify that traffic is forwarded/not forwarded in accordance."
 
 
 async def test_port_isolation_enable_disable_feature_under_ws_traffic(testbed):
@@ -82,7 +84,7 @@ async def test_port_isolation_enable_disable_feature_under_ws_traffic(testbed):
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-        {"device": port, "isolated": True} for port in ports[:3]]}])
+            {"device": port, "isolated": True} for port in ports[:3]]}])
     assert out[0][device_host_name]["rc"] == 0, f"Verify that entities set to isolated state 'ON'.\n{out}"
 
     address_map = (
@@ -135,7 +137,7 @@ async def test_port_isolation_enable_disable_feature_under_ws_traffic(testbed):
 
         out = await BridgeLink.set(
             input_data=[{device_host_name: [
-            {"device": port, "isolated": False} for port in ports[:3]]}])
+                {"device": port, "isolated": False} for port in ports[:3]]}])
         assert out[0][device_host_name]["rc"] == 0, f"Verify that entities set to isolated state 'OFF'.\n{out}"
 
         await tgen_utils_clear_traffic_stats(tgen_dev)
@@ -153,7 +155,7 @@ async def test_port_isolation_enable_disable_feature_under_ws_traffic(testbed):
         if x == 0:
             out = await BridgeLink.set(
                 input_data=[{device_host_name: [
-                {"device": port, "isolated": True} for port in ports[:3]]}])
+                    {"device": port, "isolated": True} for port in ports[:3]]}])
             assert out[0][device_host_name]["rc"] == 0, f"Verify that entities set to isolated state 'ON'.\n{out}"
 
             await tgen_utils_clear_traffic_stats(tgen_dev)
