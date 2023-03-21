@@ -98,10 +98,10 @@ async def test_port_isolation_basic_functionality(testbed):
     swp1 -> swp4  |  swp2 -> swp4   |  swp3 -> swp4  |  swp4 -> swp3
 
     — stream_0 —  |  — stream_1 —   |  — stream_2 —  |  — stream_3 —
-    swp1 -> swp3  |  swp2 -> swp3   |  swp3 -> swp3  |  swp4 -> swp2
+    swp1 -> swp3  |  swp2 -> swp3   |  swp3 -> swp2  |  swp4 -> swp2
 
     — stream_0 —  |  — stream_1 —   |  — stream_2 —  |  — stream_3 —
-    swp1 -> swp2  |  swp2 -> swp2   |  swp3 -> swp2  |  swp4 -> swp1
+    swp1 -> swp2  |  swp2 -> swp1   |  swp3 -> swp1  |  swp4 -> swp1
     """
 
     for x in range(3):
@@ -118,7 +118,7 @@ async def test_port_isolation_basic_functionality(testbed):
             },
             "stream_1": {
                 "ip_source": dev_groups[tg_ports[1]][0]["name"],
-                "ip_destination": dev_groups[tg_ports[(3-x) if x<2 else 0]][0]["name"],
+                "ip_destination": dev_groups[tg_ports[3-x if x<2 else 0]][0]["name"],
                 "srcIp": "147.147.96.74",
                 "dstIp": "229.112.223.59",
                 "srcMac": "f2:de:a4:35:bd:4b",
