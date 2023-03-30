@@ -96,7 +96,8 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
             IxnetworkIxiaClientImpl.bad_crc = {True: crc[0], False: crc[1]}
             IxnetworkIxiaClientImpl.stack_template = {
                 stack_type: IxnetworkIxiaClientImpl.ixnet.Traffic.ProtocolTemplate.find(StackTypeId=f"^{stack_type}$")
-                for stack_type in ("ipv4", "ipv6", "vlan", "ethernet", "tcp", "udp", "icmpv1", "icmpv2")
+                for stack_type in ("ipv4", "ipv6", "vlan", "ethernet", "tcp", "udp", "icmpv1", "icmpv2",
+                                   "igmpv2", "igmpv3MembershipQuery", "igmpv3MembershipReport")
             }
 
             device.applog.info("Connection to Ixia REST API Server Established")
@@ -112,6 +113,7 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
             vport_hrefs = [vport.href for vport in IxnetworkIxiaClientImpl.ixnet.Vport.find()]
             device.applog.info("Assigning ports")
             IxnetworkIxiaClientImpl.ixnet.AssignPorts(pports, [], vport_hrefs, True)
+
             for port, vport in vports.items():
                 card = vport[0].L1Config.NovusTenGigLan or vport[0].L1Config.Ethernet
                 if device.media_mode == "mixed":
@@ -119,12 +121,15 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                     required_media = next((link[2] for link in device.links if link[0] == port), 'copper')
                     device.applog.info(f"Changing port: {port} media mode {required_media}")
                     card.Media = required_media
+                    card.AutoInstrumentation = 'floating'
                 elif device.media_mode == "fiber":
                     device.applog.info("Changing all vports media mode to fiber")
                     card.Media = "fiber"
+                    card.AutoInstrumentation = 'floating'
                 else:
                     device.applog.info("Changing all vports media mode to copper")
                     card.Media = "copper"
+                    card.AutoInstrumentation = 'floating'
 
                 device.applog.info("Adding interface on ixia port {} swp {}".format(port, vport[1]))
                 topo = IxnetworkIxiaClientImpl.ixnet.Topology.add(Vports=vport[0])
@@ -312,18 +317,41 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
             Rate=pkt_data.get("rate", "100"),
         )
 
+    def __update_transmission_control(self, config_element, pkt_data):
+        """
+        Update transmission_control type from pkt_data
+        Args:
+            config_element (ConfigElement): grouping of endpoints under the Traffic Item per unique packet structure
+            pkt_data (dict): Packet stream config
+        """
+        transmission_control_types = {
+            "continuous": "continuous",
+            "fixedPktCount": "fixedFrameCount",
+            "fixedDuration": "fixedDuration"}
+        config_element.TransmissionControl.update(
+            Type=transmission_control_types[pkt_data.get("transmissionControlType", "continuous")],
+            StartDelay=pkt_data.get("startDelay", 0),
+            MinGapBytes=pkt_data.get("minGapBytes", 12),
+            FrameCount=pkt_data.get("frameCount", 1),
+            Duration=pkt_data.get("duration", 1))
+
     @classmethod
     def __create_traffic_items(cls, device, pkt_data, name):
         traffic_type = pkt_data.get("type", "ipv4")
         if traffic_type == "ethernet":
-            traffic_type = "ethernetVlan"
+            ixia_traffic_type = "ethernetVlan"
+        elif traffic_type == "bgp":
+            ixia_traffic_type = "ipv4"
+        else:
+            ixia_traffic_type = traffic_type
+
         for ip1, ep1, rep1, rr1 in zip(cls.ip_eps, cls.eth_eps, cls.raw_eps, cls.rr_eps):
             if any(src in pkt_data and endpoint.Name not in pkt_data[src]
                    for src, endpoint in (("ip_source", ip1), ("ep_source", ep1), ("bgp_source", rr1))):
                 continue
             device.applog.info(f"Creating {traffic_type} traffic stream")
             ti = cls.ixnet.Traffic.TrafficItem.add(
-                Name=name, TrafficType=traffic_type
+                Name=name, TrafficType=ixia_traffic_type
             )
             ep_count = 0
             for ip2, ep2, rep2, rr2 in zip(cls.ip_eps, cls.eth_eps, cls.raw_eps, cls.rr_eps):
@@ -394,6 +422,7 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                 "srcIp": "ipv4.header.srcIp",
                 "dscp_ecn": "ipv4.header.priority.raw",
                 "ttl": "ipv4.header.ttl",
+                "totalLength": "ipv4.header.totalLength",
             }
 
         ip_stack = config_element.Stack.find(StackTypeId=f"^{proto}$")
@@ -413,20 +442,37 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
         return ip_stack
 
     def __configure_l4_stack(self, config_element, pkt_data, track_by, ip_stack):
+        l4_proto_types = ["tcp", "udp", "icmpv1", "icmpv2",
+                          "igmpv2", "igmpv3MembershipQuery",
+                          "igmpv3MembershipReport"]
         if "ipproto" not in pkt_data:
             return
         proto = pkt_data["ipproto"]
-        if proto not in ["tcp", "udp", "icmpv1", "icmpv2"]:
+        if proto not in l4_proto_types:
             return
 
         l4_stack = config_element.Stack.read(
             ip_stack.AppendProtocol(self.stack_template[proto])
         )
+        if proto == "igmpv3MembershipReport":
+            grp_addr_id = "header.groupRecords.groupRecord.multicastAddress"
+            num_srcs_id = "header.groupRecords.groupRecord.numberOfSources"
+        else:
+            grp_addr_id = "header.groupAddress"
+            num_srcs_id = "header.numberOfSources"
+
         fields = {
             "dstPort": f"{proto}.header.dstPort",
             "srcPort": f"{proto}.header.srcPort",
             "icmpType": f"{proto}.message.messageType",
             "icmpCode": f"{proto}.message.codeValue",
+            "igmpType": f"{proto}.header.type",
+            "igmpChecksum": f"{proto}.header.checksum",
+            "igmpGroupAddr": f"{proto}.{grp_addr_id}",
+            "igmpRecordType": f"{proto}.header.groupRecords.groupRecord.recordType",
+            "igmpSourceAddr": f"{proto}.header.groupRecords.groupRecord.multicastSources.multicastSource",
+            "numberOfSources": f"{proto}.{num_srcs_id}",
+            "maxResponseCode": f"{proto}.header.maximumResponseCodeunits110Second",
         }
         for key, field_type in fields.items():
             if key not in pkt_data:
@@ -445,7 +491,7 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                     Type="fixed", FixedSize=pkt_data.get("frameSize", "512")
                 )
                 config_element.Crc = self.bad_crc[pkt_data.get("bad_crc", False)]
-                config_element.TransmissionControl.update(Type="continuous")
+                self.__update_transmission_control(config_element, pkt_data)
                 eth_stack = self.__configure_l2_stack(config_element, pkt_data, track_by)
                 ip_stack = self.__configure_l3_stack(config_element, pkt_data, track_by, eth_stack)
                 self.__configure_l4_stack(config_element, pkt_data, track_by, ip_stack)
@@ -695,6 +741,12 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
         if command == "switch_min_frame_size":
             IxnetworkIxiaClientImpl.ixnet.Traffic.EnableMinFrameSize = kwarg["params"].get("enable_min_size", True)
         return 0, ""
+
+    def format_switch_min_frame_size(self, command, *argv, **kwarg):
+        return command
+    
+    def parse_switch_min_frame_size(self, command, *argv, **kwarg):
+        return command
 
     @classmethod
     def __convert_to_ixia_speed(self, speed, duplex):
