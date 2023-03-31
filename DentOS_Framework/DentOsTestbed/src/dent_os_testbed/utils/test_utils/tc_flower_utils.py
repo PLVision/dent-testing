@@ -126,7 +126,7 @@ async def tcutil_cleanup_tc_rules(dent_dev, swp_tgen_ports, swp_tc_rules):
 
 
 def tcutil_tc_rules_to_tgen_streams(swp_tc_rules, streams=None, start=0, cnt=None,
-                                    frame_rate_pps=10, frame_size=256):
+                                    frame_rate_pps=10, frame_size=256, frame_rate_type=None):
     """
     - swp_tc_rules:   dict
     - streams:        streams dict that will be modified
@@ -134,6 +134,7 @@ def tcutil_tc_rules_to_tgen_streams(swp_tc_rules, streams=None, start=0, cnt=Non
     - cnt:            used to specify the number of streams to be created
     - frame_rate_pps: frame rate for each stream
     - frame_size:     packet size for each stream
+    - frame_rate_type which rate type to use when sending traffic(defaults to pps)
 
     Expects swp_tc_rules to be a dict:
     {
@@ -163,6 +164,7 @@ def tcutil_tc_rules_to_tgen_streams(swp_tc_rules, streams=None, start=0, cnt=Non
                 'dstIp': f'20.0.{swp[3:]}.3',
                 'rate': frame_rate_pps,
                 'frameSize': frame_size,
+                'frame_rate_type': frame_rate_type
             }
             st['type'] = 'ethernetVlan' if rule['protocol'] == '802.1Q' else 'ethernet'
             name = swp
@@ -279,7 +281,7 @@ async def tcutil_iptables_rules_to_tgen_streams(
 def tcutil_generate_rule_with_random_selectors(
     port, pref=None, want_mac=False, want_vlan=False, want_ip=False, want_tcp=False,
     want_port=False, want_icmp=False, action=None, direction='ingress',
-    skip_sw=False, skip_hw=False, want_proto=True,
+    skip_sw=False, skip_hw=False, want_proto=True
 ):
     """
     Creates a single tc rule with specified selectors:
@@ -326,7 +328,7 @@ def tcutil_generate_rule_with_random_selectors(
     filter_t = {}
     rule = {
         'dev': port,
-        'action': random.choice(action_list),
+        'action': action_list if type(action_list) is dict else random.choice(action_list),
         'direction': direction,
         'protocol': random.choice(protocols),
         'filtertype': filter_t,
