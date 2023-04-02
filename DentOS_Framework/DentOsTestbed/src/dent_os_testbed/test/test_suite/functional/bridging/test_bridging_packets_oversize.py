@@ -8,13 +8,13 @@ from dent_os_testbed.lib.ip.ip_link import IpLink
 
 from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_dent_devices_with_tgen,
+    tgen_utils_traffic_generator_connect,
+    tgen_utils_dev_groups_from_config,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
     tgen_utils_stop_traffic,
-    tgen_utils_get_loss,
-    tgen_utils_dev_groups_from_config,
-    tgen_utils_traffic_generator_connect,
+    tgen_utils_get_loss
 )
 
 pytestmark = [
@@ -22,6 +22,7 @@ pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
 ]
+
 
 async def get_port_stats(device_host_name, ports):
     stats = {}
@@ -57,11 +58,10 @@ async def test_bridging_packets_oversize(testbed):
     if not tgen_dev or not dent_devices:
         print("The testbed does not have enough dent with tgen connections")
         return
-    dent_dev = dent_devices[0]
-    device_host_name = dent_dev.host_name
+    device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
-    traffic_duration = 5
+    traffic_duration = 15
 
     out = await IpLink.add(
         input_data=[{device_host_name: [

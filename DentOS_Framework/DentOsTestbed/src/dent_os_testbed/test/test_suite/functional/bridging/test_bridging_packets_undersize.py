@@ -8,13 +8,14 @@ from dent_os_testbed.lib.ip.ip_link import IpLink
 
 from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_dent_devices_with_tgen,
+    tgen_utils_traffic_generator_connect,
+    tgen_utils_dev_groups_from_config,
+    tgen_utils_switch_min_frame_size,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
     tgen_utils_stop_traffic,
-    tgen_utils_get_loss,
-    tgen_utils_dev_groups_from_config,
-    tgen_utils_traffic_generator_connect,
+    tgen_utils_get_loss
 )
 
 pytestmark = [
@@ -22,6 +23,7 @@ pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
 ]
+
 
 async def get_port_stats(device_host_name, ports):
     stats = {}
@@ -47,9 +49,10 @@ async def test_bridging_packets_undersize(testbed):
     4.  Set bridge br0 admin state UP.
     5.  Set ports swp1, swp2, swp3, swp4 learning ON.
     6.  Set ports swp1, swp2, swp3, swp4 flood OFF.
-    7.  Set streams frameSize 48.
-    8.  Send traffic for bridge to learn addresses.
-    9.  Verify that addresses haven't been learned due to undersized packet.
+    7.  Enable smaller frame size (4 Byte Signature).
+    8.  Set streams frameSize 48.
+    9.  Send traffic for bridge to learn addresses.
+    10. Verify that addresses haven't been learned due to undersized packet.
     """
 
     bridge = "br0"
@@ -57,11 +60,10 @@ async def test_bridging_packets_undersize(testbed):
     if not tgen_dev or not dent_devices:
         print("The testbed does not have enough dent with tgen connections")
         return
-    dent_dev = dent_devices[0]
-    device_host_name = dent_dev.host_name
+    device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
-    traffic_duration = 5
+    traffic_duration = 10
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
@@ -84,6 +86,8 @@ async def test_bridging_packets_undersize(testbed):
             {"device": port, "learning": True, "flood": False} for port in ports]}])
     err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]["rc"] == 0, err_msg
+
+    await tgen_utils_switch_min_frame_size(tgen_dev, enable=True)
 
     address_map = (
         # swp port, tg port,    tg ip,     gw,        plen
