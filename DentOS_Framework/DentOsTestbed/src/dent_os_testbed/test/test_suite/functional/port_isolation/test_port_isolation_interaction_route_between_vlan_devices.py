@@ -25,9 +25,9 @@ pytestmark = [
 ]
 
 
-async def test_port_isolation_interaction_with_other_features_route_between_vlan_devices(testbed):
+async def test_port_isolation_interaction_route_between_vlan_devices(testbed):
     """
-    Test Name: test_port_isolation_interaction_with_other_features_route_between_vlan_devices
+    Test Name: test_port_isolation_interaction_route_between_vlan_devices
     Test Suite: suite_functional_port_isolation
     Test Overview: Verify Routing between VLAN devices when VLANs' enslaved ports defined as isolated.
     Test Author: Kostiantyn Stavruk

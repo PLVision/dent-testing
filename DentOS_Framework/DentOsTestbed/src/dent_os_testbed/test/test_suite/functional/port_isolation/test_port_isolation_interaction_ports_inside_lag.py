@@ -31,9 +31,9 @@ async def del_bonds(out, device_host_name):
     assert out[0][device_host_name]["rc"] == 0, f"Verify that bonds deleted.\n{out}"
 
 
-async def test_port_isolation_interaction_with_other_features_ports_inside_lag(testbed):
+async def test_port_isolation_interaction_ports_inside_lag(testbed):
     """
-    Test Name: test_port_isolation_interaction_with_other_features_ports_inside_lag
+    Test Name: test_port_isolation_interaction_ports_inside_lag
     Test Suite: suite_functional_port_isolation
     Test Overview: Verify port isolation functionally when ports enslaved to an isolated and non-isolated LAGs.
     Test Author: Kostiantyn Stavruk

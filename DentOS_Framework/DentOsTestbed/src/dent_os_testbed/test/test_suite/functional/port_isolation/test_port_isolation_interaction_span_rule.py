@@ -22,9 +22,9 @@ pytestmark = [
 ]
 
 
-async def test_port_isolation_interaction_with_other_features_span_rule(testbed):
+async def test_port_isolation_interaction_span_rule(testbed):
     """
-    Test Name: test_port_isolation_interaction_with_other_features_span_rule
+    Test Name: test_port_isolation_interaction_span_rule
     Test Suite: suite_functional_port_isolation
     Test Overview: Verify traffic is copied from/to isolated ports when SPAN rule is defined.
     Test Author: Kostiantyn Stavruk

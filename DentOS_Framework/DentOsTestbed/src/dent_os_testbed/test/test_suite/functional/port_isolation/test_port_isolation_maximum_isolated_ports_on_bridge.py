@@ -69,7 +69,7 @@ async def test_port_isolation_maximum_isolated_ports_on_bridge(testbed):
         for port in ports:
             links_present.append(f"{port}:" in out)
     assert all(links_present), "Not all ports exist."
-    print(f"It took {datetime.now() - start_time} to grep count of entities.\n")
+    print(f"It took {datetime.now() - start_time} to verify ports presence.\n")
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
