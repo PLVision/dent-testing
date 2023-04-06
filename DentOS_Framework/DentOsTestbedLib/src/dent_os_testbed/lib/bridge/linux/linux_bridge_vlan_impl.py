@@ -18,10 +18,10 @@ class LinuxBridgeVlanImpl(LinuxBridgeVlan):
         params = kwarg["params"]
         cmd = "bridge {} vlan {} ".format(params.get("cmd_options", ""), command)
         # custom code here
-        if "device" in params:
-            cmd += "dev {} ".format((params["device"]))
         if "vid" in params:
             cmd += "vid {} ".format((params["vid"]))
+        if "device" in params:
+            cmd += "dev {} ".format((params["device"]))
         if "pvid" in params and params["pvid"]:
             cmd += "pvid "
         if "untagged" in params and params["untagged"]:
