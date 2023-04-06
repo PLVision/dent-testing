@@ -135,6 +135,8 @@ class LinuxIpLinkImpl(LinuxIpLink):
             cmd += "master {} ".format((params["master"]))
         if "nomaster" in params:
             cmd += "nomaster"
+        if "vlan_default_pvid" in params:
+            cmd += "vlan_default_pvid {} ".format((params["vlan_default_pvid"]))
         return cmd
 
     def format_show(self, command, *argv, **kwarg):
