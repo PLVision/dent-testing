@@ -15,9 +15,9 @@ class LinuxDnsmasqImpl(LinuxDnsmasq):
           all is OK, or a non-zero code otherwise. Do not start up dnsmasq.
 
         """
-        params = kwarg["params"]
-        cmd = "dnsmasq {} ".format(command)
-        ############# Implement me ################
+        params = kwarg['params']
+        cmd = 'dnsmasq {} '.format(command)
+        # TODO: Implement me
 
         return cmd
 
@@ -27,8 +27,8 @@ class LinuxDnsmasqImpl(LinuxDnsmasq):
           all is OK, or a non-zero code otherwise. Do not start up dnsmasq.
 
         """
-        params = kwarg["params"]
-        cmd = "dnsmasq {} ".format(command)
-        ############# Implement me ################
+        params = kwarg['params']
+        cmd = 'dnsmasq {} '.format(command)
+        # TODO: Implement me
 
         return cmd

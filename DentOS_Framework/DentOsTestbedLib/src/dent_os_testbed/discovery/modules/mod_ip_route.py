@@ -6,19 +6,21 @@
 
 from dent_os_testbed.discovery.Module import Module
 from dent_os_testbed.lib.ip.ip_route import IpRoute
+
+
 class IpRouteMod(Module):
     """
     """
+
     def set_nexthop(self, src, dst):
-        
+
         for i,nexthop in enumerate(src):
             if 'via' in nexthop: dst[i].via = nexthop.get('via')
             if 'dev' in nexthop: dst[i].dev = nexthop.get('dev')
             if 'weight' in nexthop: dst[i].weight = nexthop.get('weight')
-        
-        
+
     def set_ip_route(self, src, dst):
-        
+
         for i,ip_route in enumerate(src):
             if 'type' in ip_route: dst[i].type = ip_route.get('type')
             if 'dst' in ip_route: dst[i].dst = ip_route.get('dst')
@@ -47,31 +49,29 @@ class IpRouteMod(Module):
             if 'gateway' in ip_route: dst[i].gateway = ip_route.get('gateway')
             if 'src' in ip_route: dst[i].src = ip_route.get('src')
             if 'options' in ip_route: dst[i].options = ip_route.get('options')
-        
-        
+
     async def discover(self):
         # need to get device instance to get the data from
         #
         for i, dut in enumerate(self.report.duts):
             if not dut.device_id: continue
             dev = self.ctx.devices_dict[dut.device_id]
-            if dev.os == "ixnetwork" or not await dev.is_connected():
-                print("Device not connected skipping ip_route discovery")
+            if dev.os == 'ixnetwork' or not await dev.is_connected():
+                print('Device not connected skipping ip_route discovery')
                 continue
-            print("Running ip_route Discovery on " + dev.host_name)
+            print('Running ip_route Discovery on ' + dev.host_name)
             out = await IpRoute.show(
                 input_data=[{dev.host_name: [{'dut_discovery':True}]}],
                 device_obj={dev.host_name: dev},
                 parse_output=True
             )
-            if out[0][dev.host_name]["rc"] != 0:
+            if out[0][dev.host_name]['rc'] != 0:
                 print(out)
-                print("Failed to get ip_route")
+                print('Failed to get ip_route')
                 continue
             if 'parsed_output' not in out[0][dev.host_name]:
-                print("Failed to get parsed_output ip_route")
-                print (out)
+                print('Failed to get parsed_output ip_route')
+                print(out)
                 continue
-            self.set_ip_route(out[0][dev.host_name]["parsed_output"], self.report.duts[i].network.layer3.routes)
-            print("Finished ip_route Discovery on {} with {} entries".format(dev.host_name, len(self.report.duts[i].network.layer3.routes)))
-        
+            self.set_ip_route(out[0][dev.host_name]['parsed_output'], self.report.duts[i].network.layer3.routes)
+            print('Finished ip_route Discovery on {} with {} entries'.format(dev.host_name, len(self.report.duts[i].network.layer3.routes)))
