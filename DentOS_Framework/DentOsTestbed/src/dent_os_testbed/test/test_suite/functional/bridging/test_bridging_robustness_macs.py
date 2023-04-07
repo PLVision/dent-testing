@@ -90,7 +90,7 @@ async def test_bridging_robustness_macs(testbed):
         for x in range(3):
             streams = {
                     f'bridge_{x + 1}': {
-                        'ip_source': dev_groups[tg_ports[random.randint(0,2)]][0]['name'],
+                        'ip_source': dev_groups[tg_ports[random.randint(0, 2)]][0]['name'],
                         'ip_destination': dev_groups[tg_ports[3]][0]['name'],
                         'srcMac': {'type': 'increment',
                                    'start': '00:00:00:00:00:35',
@@ -116,10 +116,10 @@ async def test_bridging_robustness_macs(testbed):
             assert loss == 0, f'Expected loss: 0%, actual: {loss}%'
 
         rc, out = await dent_dev.run_cmd("bridge fdb show br br0 | grep 'extern_learn.*offload' | wc -l")
-        assert rc == 0, f"Failed to grep 'extern_learn.*offload'.\n"
+        assert rc == 0, "Failed to grep 'extern_learn.*offload'."
 
         amount = int(out) - ixia_vhost_mac_count
         err_msg = f'Expected count of extern_learn offload entities: >{mac_count}*{tolerance}, Actual count: {amount}'
         assert amount > mac_count*tolerance, err_msg
-        if x != 2 :
+        if x != 2:
             await tgen_utils_clear_traffic_items(tgen_dev)
