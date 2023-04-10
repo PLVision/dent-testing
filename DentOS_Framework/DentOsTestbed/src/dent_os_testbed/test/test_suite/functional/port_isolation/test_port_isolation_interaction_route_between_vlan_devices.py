@@ -15,13 +15,13 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
     tgen_utils_stop_traffic,
-    tgen_utils_get_loss,
+    tgen_utils_get_loss
 )
 
 pytestmark = [
     pytest.mark.suite_functional_port_isolation,
     pytest.mark.asyncio,
-    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
+    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen", "cleanup_ip_addrs")
 ]
 
 

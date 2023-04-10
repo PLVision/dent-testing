@@ -2,6 +2,8 @@ import pytest
 import random
 import asyncio
 
+from dent_os_testbed.utils.test_utils.cleanup_utils import cleanup_kbyte_per_sec_rate_value
+from dent_os_testbed.lib.devlink.devlink_port import DevlinkPort
 from dent_os_testbed.lib.bridge.bridge_link import BridgeLink
 from dent_os_testbed.lib.ip.ip_link import IpLink
 
@@ -14,7 +16,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
     tgen_utils_stop_traffic,
-    tgen_utils_get_loss,
+    tgen_utils_get_loss
 )
 
 pytestmark = [
@@ -88,7 +90,7 @@ async def test_port_isolation_interaction_storm_control(testbed):
         (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
         (ports[1], tg_ports[1], "1.1.1.3", "1.1.1.1", 24),
         (ports[2], tg_ports[2], "1.1.1.4", "1.1.1.1", 24),
-        (ports[3], tg_ports[3], "1.1.1.5", "1.1.1.1", 24),
+        (ports[3], tg_ports[3], "1.1.1.5", "1.1.1.1", 24)
     )
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -98,25 +100,39 @@ async def test_port_isolation_interaction_storm_control(testbed):
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 
-    rc, out = await dent_dev.run_cmd("devlink port param set pci/0000:01:00.0/1 name unreg_mc_kbyte_per_sec_rate \
-        value 30277 cmode runtime")
-    assert rc == 0, "Failed to set unreg_mc_kbyte_per_sec_rate value 30277 kbps."
+    out = await DevlinkPort.set(
+        input_data=[{device_host_name: [
+            {"dev": "pci/0000:01:00.0/1", "name": "unreg_mc_kbyte_per_sec_rate",
+             "value": "30277", "cmode": "runtime"}]}])
+    err_msg = f"Failed to set rate value '30277'.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
-    rc, out = await dent_dev.run_cmd("devlink port param show pci/0000:01:00.0/1 name unreg_mc_kbyte_per_sec_rate \
-        | sed -n 's/.*cmode runtime value //p'")
-    assert rc == 0, "Failed to show unreg_mc_kbyte_per_sec_rate_rate value."
-    err_msg = f"Verify the Storm Control rate configured is 30277 kbps, the current rate is {out} kbps."
-    assert int(out.strip()) == 30277, err_msg
+    out = await DevlinkPort.show(
+        input_data=[{device_host_name: [
+            {"options": "-j", "dev": "pci/0000:01:00.0/1", "name": "unreg_mc_kbyte_per_sec_rate"}]}], parse_output=True)
+    err_msg = f"Failed to execute the command 'DevlinkPort.show'.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
+    devlink_info = out[0][device_host_name]["parsed_output"]
+    kbyte_value = devlink_info['param']['pci/0000:01:00.0/1'][0]['values'][0]['value']
+    err_msg = f"Verify that storm control rate configured is '30277' kbps.\n"
+    assert kbyte_value == 30277, err_msg
 
-    rc, out = await dent_dev.run_cmd("devlink port param set pci/0000:01:00.0/24 name unreg_mc_kbyte_per_sec_rate \
-        value 105367 cmode runtime")
-    assert rc == 0, "Failed to set unreg_mc_kbyte_per_sec_rate value 105367 kbps."
+    out = await DevlinkPort.set(
+        input_data=[{device_host_name: [
+            {"dev": "pci/0000:01:00.0/4", "name": "unreg_mc_kbyte_per_sec_rate",
+             "value": "105367", "cmode": "runtime"}]}])
+    err_msg = f"Failed to set rate value '105367'.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
 
-    rc, out = await dent_dev.run_cmd("devlink port param show pci/0000:01:00.0/24 name unreg_mc_kbyte_per_sec_rate \
-        | sed -n 's/.*cmode runtime value //p'")
-    assert rc == 0, "Failed to show unreg_mc_kbyte_per_sec_rate value."
-    err_msg = f"Verify the Storm Control rate configured is 105367 kbps, the current rate is {out} kbps."
-    assert int(out.strip()) == 105367, err_msg
+    out = await DevlinkPort.show(
+        input_data=[{device_host_name: [
+            {"options": "-j", "dev": "pci/0000:01:00.0/4", "name": "unreg_mc_kbyte_per_sec_rate"}]}], parse_output=True)
+    err_msg = f"Failed to execute the command 'DevlinkPort.show'.\n{out}"
+    assert out[0][device_host_name]["rc"] == 0, err_msg
+    devlink_info = out[0][device_host_name]["parsed_output"]
+    kbyte_value = devlink_info['param']['pci/0000:01:00.0/4'][0]['values'][0]['value']
+    err_msg = f"Verify that storm control rate configured is '105367' kbps.\n"
+    assert kbyte_value == 105367, err_msg
 
     """
     Set up the following streams:
@@ -203,7 +219,4 @@ async def test_port_isolation_interaction_storm_control(testbed):
 
         await tgen_utils_clear_traffic_items(tgen_dev)
 
-    for x in range(2):
-        rc, out = await dent_dev.run_cmd(f"devlink port param set pci/0000:01:00.0/{x+1 if x <= 0 else 24} \
-            name unreg_mc_kbyte_per_sec_rate value 0 cmode runtime")
-        assert rc == 0, "Failed to set the unreg_mc_kbyte_per_sec_rate value to default."
+    await cleanup_kbyte_per_sec_rate_value(dent_dev, unreg_mc=True)

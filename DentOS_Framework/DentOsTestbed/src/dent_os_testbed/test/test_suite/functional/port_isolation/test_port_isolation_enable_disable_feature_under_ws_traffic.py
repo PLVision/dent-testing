@@ -12,7 +12,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
-    tgen_utils_get_loss,
+    tgen_utils_get_loss
 )
 
 pytestmark = [
@@ -92,7 +92,7 @@ async def test_port_isolation_enable_disable_feature_under_ws_traffic(testbed):
         (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
         (ports[1], tg_ports[1], "1.1.1.3", "1.1.1.1", 24),
         (ports[2], tg_ports[2], "1.1.1.4", "1.1.1.1", 24),
-        (ports[3], tg_ports[3], "1.1.1.5", "1.1.1.1", 24),
+        (ports[3], tg_ports[3], "1.1.1.5", "1.1.1.1", 24)
     )
 
     dev_groups = tgen_utils_dev_groups_from_config(

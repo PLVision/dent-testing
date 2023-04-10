@@ -18,6 +18,7 @@ from dent_os_testbed.lib.tc.tc_qdisc import TcQdisc
 from dent_os_testbed.utils.Utils import check_asyncio_results
 
 from pyvis.network import Network
+from datetime import datetime
 
 async def tb_clean_config_device(d):
     config_file_list = [
@@ -551,3 +552,23 @@ async def tb_device_tcpdump(device, interface, options, count_only=False, timeou
 
     else:
         return out
+
+
+async def tb_ports_presence(device, ports):
+    """
+    Verify the time it took for all ports to get up
+    """
+    start_time = datetime.now()
+    links_present = []
+    rc, out = await device.run_cmd("ifconfig -a")
+    assert rc == 0, "Failed to run the command 'ifconfig -a'."
+    for port in ports:
+        links_present.append(f"{port}:" in out)
+    if not all(links_present):
+        time.sleep(30)
+        rc, out = await device.run_cmd("ifconfig -a")
+        assert rc == 0, "Failed to run the command 'ifconfig -a'."
+        for port in ports:
+            links_present.append(f"{port}:" in out)
+    assert all(links_present), "Not all ports exist."
+    print(f"It took {datetime.now() - start_time} to verify ports presence.\n")

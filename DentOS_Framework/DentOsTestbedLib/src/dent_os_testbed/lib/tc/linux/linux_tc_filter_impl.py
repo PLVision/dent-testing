@@ -26,6 +26,8 @@ class LinuxTcFilterImpl(LinuxTcFilter):
             cmd += "protocol {} ".format(params["protocol"])
         if "handle" in params:
             cmd += "handle {} ".format(params["handle"])
+        kind = params.get("kind", "")
+        cmd += "{} ".format(kind)
         if "pref" in params:
             cmd += "pref {} ".format(params["pref"])
         if "chain" in params:

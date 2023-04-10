@@ -2,6 +2,8 @@ import pytest
 import asyncio
 
 from dent_os_testbed.lib.bridge.bridge_link import BridgeLink
+from dent_os_testbed.lib.tc.tc_filter import TcFilter
+from dent_os_testbed.lib.tc.tc_qdisc import TcQdisc
 from dent_os_testbed.lib.ip.ip_link import IpLink
 
 from dent_os_testbed.utils.test_utils.tgen_utils import (
@@ -12,13 +14,13 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
     tgen_utils_stop_traffic,
-    tgen_utils_get_loss,
+    tgen_utils_get_loss
 )
 
 pytestmark = [
     pytest.mark.suite_functional_port_isolation,
     pytest.mark.asyncio,
-    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
+    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen", "cleanup_qdiscs")
 ]
 
 
@@ -77,8 +79,10 @@ async def test_port_isolation_interaction_span_rule(testbed):
             {"device": port, "isolated": True} for port in ports[:2]]}])
     assert out[0][device_host_name]["rc"] == 0, f"Verify that entities set to isolated state 'ON'.\n{out}"
 
-    rc, out = await dent_dev.run_cmd(f"tc qdisc add dev {ports[0]} ingress")
-    assert rc == 0, "Failed to configure ingress qdisc."
+    out = await TcQdisc.add(
+        input_data=[{device_host_name: [
+            {"dev": ports[0], "kind": "ingress"}]}])
+    assert out[0][device_host_name]["rc"] == 0, f"Failed to configure ingress qdisc.\n{out}"
 
     rc, out = await dent_dev.run_cmd(f"tc filter add dev {ports[0]} ingress matchall skip_sw action mirred \
         egress mirror dev {ports[1]}")
@@ -127,8 +131,10 @@ async def test_port_isolation_interaction_span_rule(testbed):
         assert tgen_utils_get_loss(row) == 0.000, \
             f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} forwarded.\n{out}"
 
-    rc, out = await dent_dev.run_cmd(f"tc filter delete dev {ports[0]} ingress pref 49152")
-    assert rc == 0, "Failed to delete tc filter."
+    out = await TcFilter.delete(
+        input_data=[{device_host_name: [
+            {"dev": ports[0], "kind": "ingress", "pref": "49152"}]}])
+    assert out[0][device_host_name]["rc"] == 0, f"Failed to delete tc filter.\n{out}"
 
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)
@@ -139,6 +145,3 @@ async def test_port_isolation_interaction_span_rule(testbed):
     for row in stats.Rows:
         assert tgen_utils_get_loss(row) == 100.000, \
             f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} not forwarded.\n{out}"
-
-    rc, out = await dent_dev.run_cmd(f"tc qdisc del dev {ports[0]} ingress")
-    assert rc == 0, "Failed to delete qdisc ingress."

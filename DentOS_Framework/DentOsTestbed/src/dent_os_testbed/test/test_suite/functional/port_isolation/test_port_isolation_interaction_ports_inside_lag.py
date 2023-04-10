@@ -13,22 +13,14 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_setup_streams,
     tgen_utils_start_traffic,
     tgen_utils_stop_traffic,
-    tgen_utils_get_loss,
+    tgen_utils_get_loss
 )
 
 pytestmark = [
     pytest.mark.suite_functional_port_isolation,
     pytest.mark.asyncio,
-    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen")
+    pytest.mark.usefixtures("cleanup_bridges", "cleanup_tgen", "cleanup_bonds")
 ]
-
-
-# deleting bonds
-async def del_bonds(out, device_host_name):
-    out = await IpLink.delete(
-        input_data=[{device_host_name: [
-            {"device": f"bond{x+1}"} for x in range(2)]}])
-    assert out[0][device_host_name]["rc"] == 0, f"Verify that bonds deleted.\n{out}"
 
 
 async def test_port_isolation_interaction_ports_inside_lag(testbed):
@@ -117,7 +109,7 @@ async def test_port_isolation_interaction_ports_inside_lag(testbed):
         (ports[0], tg_ports[0], "1.1.1.2", "1.1.1.1", 24),
         (ports[1], tg_ports[1], "1.1.1.3", "1.1.1.1", 24),
         (ports[2], tg_ports[2], "1.1.1.4", "1.1.1.1", 24),
-        (ports[3], tg_ports[3], "1.1.1.5", "1.1.1.1", 24),
+        (ports[3], tg_ports[3], "1.1.1.5", "1.1.1.1", 24)
     )
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -185,5 +177,3 @@ async def test_port_isolation_interaction_ports_inside_lag(testbed):
                 "Verify that traffic is forwarded/not forwarded in accordance."
 
         await tgen_utils_clear_traffic_items(tgen_dev)
-
-    await del_bonds(out, device_host_name)
