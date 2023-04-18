@@ -1,8 +1,8 @@
 import pytest
 import asyncio
 
-from dent_os_testbed.utils.test_utils.cleanup_utils import cleanup_kbyte_per_sec_rate_value
 from dent_os_testbed.test.test_suite.functional.storm_control.storm_control_utils import devlink_rate_value
+from dent_os_testbed.utils.test_utils.cleanup_utils import cleanup_kbyte_per_sec_rate_value
 from dent_os_testbed.lib.ip.ip_link import IpLink
 from random import randrange
 

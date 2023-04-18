@@ -1,8 +1,8 @@
 import pytest
 import asyncio
 
+from dent_os_testbed.test.test_suite.functional.storm_control.storm_control_utils import devlink_rate_value
 from dent_os_testbed.utils.test_utils.cleanup_utils import cleanup_kbyte_per_sec_rate_value
-from dent_os_testbed.lib.devlink.devlink_port import DevlinkPort
 from dent_os_testbed.lib.ip.ip_link import IpLink
 from random import randrange
 
@@ -21,27 +21,6 @@ pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.usefixtures('cleanup_bridges', 'cleanup_tgen')
 ]
-
-
-async def verify_rate_value(dev, name, value, device_host_name):
-    out = await DevlinkPort.show(input_data=[{device_host_name: [
-        {'options': '-j', 'dev': dev, 'name': name}]}], parse_output=True)
-    err_msg = f"Failed to execute the command 'DevlinkPort.show'.\n{out}"
-    assert out[0][device_host_name]['rc'] == 0, err_msg
-    devlink_info = out[0][device_host_name]['parsed_output']
-    kbyte_value = devlink_info['param'][dev][0]['values'][0]['value']
-    assert kbyte_value == value, f"Verify that storm control rate configured is '{value}' kbps.\n"
-
-
-async def devlink_rate_value(dev, name, value, cmode=False, device_host_name=True,
-                             set_and_verify=False, verify=False):
-    if set_and_verify:
-        out = await DevlinkPort.set(input_data=[{device_host_name: [
-            {'dev': dev, 'name': name, 'value': value, 'cmode': cmode}]}])
-        assert out[0][device_host_name]['rc'] == 0, f"Failed to set rate value '{value}'.\n{out}"
-        await verify_rate_value(dev, name, value, device_host_name)
-    if verify:
-        await verify_rate_value(dev, name, value, device_host_name)
 
 
 async def test_storm_control_broadcast_traffic(testbed):
@@ -94,47 +73,47 @@ async def test_storm_control_broadcast_traffic(testbed):
     await devlink_rate_value(dev='pci/0000:01:00.0/1', name='bc_kbyte_per_sec_rate', value=0,
                              device_host_name=device_host_name, verify=True)
     await devlink_rate_value(dev='pci/0000:01:00.0/1', name='bc_kbyte_per_sec_rate', value=118227, cmode='runtime',
-                             device_host_name=device_host_name, set_and_verify=True)
-
-    address_map = (
-        # swp port, tg port,    tg ip,     gw,        plen
-        (ports[0], tg_ports[0], '1.1.1.2', '1.1.1.1', 24),
-        (ports[1], tg_ports[1], '1.1.1.3', '1.1.1.1', 24)
-    )
-
-    dev_groups = tgen_utils_dev_groups_from_config(
-        {'ixp': port, 'ip': ip, 'gw': gw, 'plen': plen}
-        for _, port, ip, gw, plen in address_map
-    )
-
-    await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
-
-    """
-    Set up the following stream:
-    — stream_A —
-    swp1 -> swp2
-    """
-
-    streams = {
-        'stream_A': {
-            'ip_source': dev_groups[tg_ports[0]][0]['name'],
-            'ip_destination': dev_groups[tg_ports[1]][0]['name'],
-            'srcIp': '104.52.13.241',
-            'dstIp': '255.255.255.255',
-            'srcMac': '92:cc:23:09:37:ca',
-            'dstMac': 'ff:ff:ff:ff:ff:ff',
-            'frameSize': randrange(100, 1500),
-            'rate': pps_value,
-            'protocol': '0x0800',
-            'type': 'raw'
-        }
-    }
-
-    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
-    await tgen_utils_start_traffic(tgen_dev)
-    await asyncio.sleep(traffic_duration)
+                             device_host_name=device_host_name, set=True, verify=True)
 
     try:
+        address_map = (
+            # swp port, tg port,    tg ip,     gw,        plen
+            (ports[0], tg_ports[0], '1.1.1.2', '1.1.1.1', 24),
+            (ports[1], tg_ports[1], '1.1.1.3', '1.1.1.1', 24)
+        )
+
+        dev_groups = tgen_utils_dev_groups_from_config(
+            {'ixp': port, 'ip': ip, 'gw': gw, 'plen': plen}
+            for _, port, ip, gw, plen in address_map
+        )
+
+        await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
+
+        """
+        Set up the following stream:
+        — stream_A —
+        swp1 -> swp2
+        """
+
+        streams = {
+            'stream_A': {
+                'ip_source': dev_groups[tg_ports[0]][0]['name'],
+                'ip_destination': dev_groups[tg_ports[1]][0]['name'],
+                'srcIp': '104.52.13.241',
+                'dstIp': '255.255.255.255',
+                'srcMac': '92:cc:23:09:37:ca',
+                'dstMac': 'ff:ff:ff:ff:ff:ff',
+                'frameSize': randrange(100, 1500),
+                'rate': pps_value,
+                'protocol': '0x0800',
+                'type': 'raw'
+            }
+        }
+
+        await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
+        await tgen_utils_start_traffic(tgen_dev)
+        await asyncio.sleep(traffic_duration)
+
         # check the traffic stats
         stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
         for row in stats.Rows:
