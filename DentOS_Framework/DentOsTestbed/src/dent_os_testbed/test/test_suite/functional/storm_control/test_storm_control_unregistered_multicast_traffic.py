@@ -25,7 +25,7 @@ pytestmark = [
 
 async def test_storm_control_unregistered_multicast_traffic(testbed):
     """
-    Test Name: ttest_storm_control_unregistered_multicast_traffic
+    Test Name: test_storm_control_unregistered_multicast_traffic
     Test Suite: suite_functional_storm_control
     Test Overview: Verify Unregistered Multicast Traffic is limited on the RX port by Storm Control.
     Test Author: Kostiantyn Stavruk
