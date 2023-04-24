@@ -23,9 +23,9 @@ pytestmark = [
 ]
 
 
-async def test_storm_control_rule_set_for_specific_traffic_type(testbed):
+async def test_storm_control_rule_set_for_br_and_mc_traffic(testbed):
     """
-    Test Name: test_storm_control_rule_set_for_specific_traffic_type
+    Test Name: test_storm_control_rule_set_for_br_and_mc_traffic
     Test Suite: suite_functional_storm_control
     Test Overview: Verify Storm Control limits the rate of specific traffic types.
     Test Author: Kostiantyn Stavruk
@@ -42,11 +42,8 @@ async def test_storm_control_rule_set_for_specific_traffic_type(testbed):
     7.  Transmit continues traffic by TG.
     8.  Verify broadcast traffic is limited on RX port. Verify multicast and unknown unicast are not limited.
     9.  Disable storm control rate limit for broadcast traffic.
-        Set storm control rate limit of multicast traffic on TX port.
-    10. Verify multicast traffic is limited on RX port. Verify broadcast and unknown unicast are not limited.
-    11. Disable storm control rate limit for multicast traffic.
-        Set storm control rate limit of unknown unicast traffic on TX port.
-    12. Verify unknown unicast traffic is limited on RX port. Verify broadcast and multicast are not limited.
+    10. Set storm control rate limit of multicast traffic on TX port.
+    11. Verify multicast traffic is limited on RX port. Verify broadcast and unknown unicast are not limited.
     """
 
     bridge = 'br0'
@@ -152,19 +149,6 @@ async def test_storm_control_rule_set_for_specific_traffic_type(testbed):
 
         await devlink_rate_value(dev='pci/0000:01:00.0/1', name='unreg_mc_kbyte_per_sec_rate',
                                  value=27713, cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
-        await asyncio.sleep(traffic_duration)
-
-        # check the traffic stats
-        stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-        for row in stats.Rows:
-            loss = tgen_utils_get_loss(row)
-            assert loss == 0, f'Expected loss: 0%, actual: {loss}%'
-
-        await devlink_rate_value(dev='pci/0000:01:00.0/1', name='unreg_mc_kbyte_per_sec_rate',
-                                 value=0, cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
-
-        await devlink_rate_value(dev='pci/0000:01:00.0/1', name='unk_uc_kbyte_per_sec_rate',
-                                 value=7229, cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
         await asyncio.sleep(traffic_duration)
 
         # check the traffic stats
