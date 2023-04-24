@@ -34,10 +34,10 @@ async def test_storm_control_rule_set_for_br_and_mc_traffic(testbed):
     2.  Set ports swp1, swp2 master br0.
     3.  Set entities swp1, swp2 UP state.
     4.  Set bridge br0 admin state UP.
-    5.  Set up the following stream:
-        - broadcast stream with random generated size of packet, on TX port
-        - multicast stream with random generated size of packet, on TX port
-        - unknown unicast stream with random generated size of packet, on TX port
+    5.  Set up the following streams:
+        - broadcast stream with random generated size of packet, on TX port;
+        - multicast stream with random generated size of packet, on TX port;
+        - unknown unicast stream with random generated size of packet, on TX port.
     6.  Set storm control rate limit of broadcast traffic on TX port.
     7.  Transmit continues traffic by TG.
     8.  Verify broadcast traffic is limited on RX port. Verify multicast and unknown unicast are not limited.
@@ -74,8 +74,9 @@ async def test_storm_control_rule_set_for_br_and_mc_traffic(testbed):
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
-    await devlink_rate_value(dev='pci/0000:01:00.0/1', name='bc_kbyte_per_sec_rate',
-                             value=21689, cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
+    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
+                             name='bc_kbyte_per_sec_rate', value=21689,
+                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
 
     try:
         address_map = (
@@ -144,11 +145,13 @@ async def test_storm_control_rule_set_for_br_and_mc_traffic(testbed):
             loss = tgen_utils_get_loss(row)
             assert loss == 0, f'Expected loss: 0%, actual: {loss}%'
 
-        await devlink_rate_value(dev='pci/0000:01:00.0/1', name='bc_kbyte_per_sec_rate',
-                                 value=0, cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
+        await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
+                                 name='bc_kbyte_per_sec_rate', value=0,
+                                 cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
 
-        await devlink_rate_value(dev='pci/0000:01:00.0/1', name='unreg_mc_kbyte_per_sec_rate',
-                                 value=27713, cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
+        await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
+                                 name='unreg_mc_kbyte_per_sec_rate', value=27713,
+                                 cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
         await asyncio.sleep(traffic_duration)
 
         # check the traffic stats

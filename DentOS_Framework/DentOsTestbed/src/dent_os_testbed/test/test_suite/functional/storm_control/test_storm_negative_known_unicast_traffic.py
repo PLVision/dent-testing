@@ -78,10 +78,12 @@ async def test_storm_negative_known_unicast_traffic(testbed):
             {'device': ports[0], 'lladdr': '68:16:3d:2e:b4:c8', 'master': True, 'static': True}]}])
     assert out[0][device_host_name]['rc'] == 0, f'Verify that FDB static entry added.\n{out}'
 
-    await devlink_rate_value(dev='pci/0000:01:00.0/1', name='unk_uc_kbyte_per_sec_rate',
-                             value=0, device_host_name=device_host_name, verify=True)
-    await devlink_rate_value(dev='pci/0000:01:00.0/1', name='unk_uc_kbyte_per_sec_rate',
-                             value=93420, cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
+    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
+                             name='unk_uc_kbyte_per_sec_rate', value=0,
+                             device_host_name=device_host_name, verify=True)
+    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
+                             name='unk_uc_kbyte_per_sec_rate', value=93420,
+                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
 
     try:
         address_map = (

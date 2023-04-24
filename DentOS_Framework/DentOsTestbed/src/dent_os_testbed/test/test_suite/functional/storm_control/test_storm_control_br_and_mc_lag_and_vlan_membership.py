@@ -34,12 +34,12 @@ async def test_storm_control_br_and_mc_lag_and_vlan_membership(testbed):
     1.  Create a bond (bond1), set link UP state on it and enslave the first port connected to Ixia to it.
     2.  Create a bond (bond2), set link UP state on it and enslave the third port connected to Ixia to it.
     3.  Set entities swp1, swp2, swp3, swp4 UP state.
-    4.  Init bridge entity br0.
+    4.  Init vlan aware bridge entity br0.
     5.  Set bridge br0 admin state UP.
     6.  Set ports swp2, swp4 master br0.
     7.  Set bonds bond1, bond2 master br0.
     8.  Set up the following streams:
-        - Ixia port 2: broadcast and multicast with random generated size of packet
+        - Ixia port 2: broadcast and multicast streams with random generated size of packet.
     9.  Transmit continues traffic by TG.
     10. Verify the RX rate on the RX port is as expected - the rate is limited by storm control.
     """
@@ -117,20 +117,27 @@ async def test_storm_control_br_and_mc_lag_and_vlan_membership(testbed):
             for x in range(2)]}])
     assert out[0][device_host_name]['rc'] == 0, f"Verify that entities added to vid '1' and '2'.\n{out}"
 
-    await devlink_rate_value(dev='pci/0000:01:00.0/1', name='unk_uc_kbyte_per_sec_rate', value=94404, cmode='runtime',
-                             device_host_name=device_host_name, set=True, verify=True)
-    await devlink_rate_value(dev='pci/0000:01:00.0/2', name='bc_kbyte_per_sec_rate', value=1210, cmode='runtime',
-                             device_host_name=device_host_name, set=True, verify=True)
-    await devlink_rate_value(dev='pci/0000:01:00.0/2', name='unreg_mc_kbyte_per_sec_rate', value=35099, cmode='runtime',
-                             device_host_name=device_host_name, set=True, verify=True)
-    await devlink_rate_value(dev='pci/0000:01:00.0/2', name='unk_uc_kbyte_per_sec_rate', value=37519, cmode='runtime',
-                             device_host_name=device_host_name, set=True, verify=True)
-    await devlink_rate_value(dev='pci/0000:01:00.0/3', name='bc_kbyte_per_sec_rate', value=32678, cmode='runtime',
-                             device_host_name=device_host_name, set=True, verify=True)
-    await devlink_rate_value(dev='pci/0000:01:00.0/3', name='unk_uc_kbyte_per_sec_rate', value=36309, cmode='runtime',
-                             device_host_name=device_host_name, set=True, verify=True)
-    await devlink_rate_value(dev='pci/0000:01:00.0/4', name='unreg_mc_kbyte_per_sec_rate', value=83511, cmode='runtime',
-                             device_host_name=device_host_name, set=True, verify=True)
+    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
+                             name='unk_uc_kbyte_per_sec_rate', value=94404,
+                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
+    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[1].replace("swp","")}',
+                             name='bc_kbyte_per_sec_rate', value=1210,
+                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
+    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[1].replace("swp","")}',
+                             name='unreg_mc_kbyte_per_sec_rate', value=35099,
+                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
+    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[1].replace("swp","")}',
+                             name='unk_uc_kbyte_per_sec_rate', value=37519,
+                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
+    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[2].replace("swp","")}',
+                             name='bc_kbyte_per_sec_rate', value=32678,
+                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
+    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[2].replace("swp","")}',
+                             name='unk_uc_kbyte_per_sec_rate', value=36309,
+                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
+    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[3].replace("swp","")}',
+                             name='unreg_mc_kbyte_per_sec_rate', value=83511,
+                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
 
     try:
         address_map = (
@@ -206,6 +213,7 @@ async def test_storm_control_br_and_mc_lag_and_vlan_membership(testbed):
         await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
         await tgen_utils_start_traffic(tgen_dev)
         await asyncio.sleep(traffic_duration)
+
         # check the traffic stats
         stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
         expected_loss = {

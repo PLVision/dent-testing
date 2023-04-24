@@ -70,10 +70,12 @@ async def test_storm_control_broadcast_traffic(testbed):
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
-    await devlink_rate_value(dev='pci/0000:01:00.0/1', name='bc_kbyte_per_sec_rate', value=0,
+    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
+                             name='bc_kbyte_per_sec_rate', value=0,
                              device_host_name=device_host_name, verify=True)
-    await devlink_rate_value(dev='pci/0000:01:00.0/1', name='bc_kbyte_per_sec_rate', value=118227, cmode='runtime',
-                             device_host_name=device_host_name, set=True, verify=True)
+    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
+                             name='bc_kbyte_per_sec_rate', value=118227,
+                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
 
     try:
         address_map = (

@@ -122,6 +122,6 @@ PYTEST_SUITE_GROUPS = {
         'suite_functional_l1',
         'suite_functional_port_isolation',
         'suite_functional_igmp',
-        'suite_functional_storm_control'
+        'suite_functional_storm_control',
     ]
 }
