@@ -1,11 +1,12 @@
 import pytest
-import random
 import asyncio
 
+from dent_os_testbed.test.test_suite.functional.storm_control.storm_control_utils import verify_expected_rx_rate
 from dent_os_testbed.test.test_suite.functional.storm_control.storm_control_utils import devlink_rate_value
 from dent_os_testbed.utils.test_utils.cleanup_utils import cleanup_kbyte_per_sec_rate_value
 from dent_os_testbed.lib.bridge.bridge_vlan import BridgeVlan
 from dent_os_testbed.lib.ip.ip_link import IpLink
+from random import randrange
 
 from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_get_dent_devices_with_tgen,
@@ -13,8 +14,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_dev_groups_from_config,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
-    tgen_utils_start_traffic,
-    tgen_utils_get_loss
+    tgen_utils_start_traffic
 )
 
 pytestmark = [
@@ -38,10 +38,11 @@ async def test_storm_control_br_and_unk_un_and_vlan_membership(testbed):
     5.  Set bridge br0 admin state UP.
     6.  Set ports swp2, swp4 master br0.
     7.  Set bonds bond1, bond2 master br0.
-    8.  Set up the following streams:
+    8.  Set storm control rate limit rule for all TG port.
+    9.  Set up the following streams:
         - Ixia port 3: broadcast and unknown unicast streams with random generated size of packet.
-    9.  Transmit continues traffic by TG.
-    10. Verify the RX rate on the RX port is as expected - the rate is limited by storm control.
+    10. Transmit continues traffic by TG.
+    11. Verify the RX rate on the RX port is as expected - the rate is limited by storm control.
     """
 
     bridge = 'br0'
@@ -52,8 +53,9 @@ async def test_storm_control_br_and_unk_un_and_vlan_membership(testbed):
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
+    kbyte_value_unk_uc = 20511
+    kbyte_value_bc = 32678
     traffic_duration = 15
-    pps_value = 1000
 
     for x in range(2):
         out = await IpLink.add(
@@ -130,10 +132,10 @@ async def test_storm_control_br_and_unk_un_and_vlan_membership(testbed):
                              name='unk_uc_kbyte_per_sec_rate', value=37519,
                              cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
     await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[2].replace("swp","")}',
-                             name='bc_kbyte_per_sec_rate', value=32678,
+                             name='bc_kbyte_per_sec_rate', value=kbyte_value_bc,
                              cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
     await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[2].replace("swp","")}',
-                             name='unk_uc_kbyte_per_sec_rate', value=36309,
+                             name='unk_uc_kbyte_per_sec_rate', value=kbyte_value_unk_uc,
                              cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
     await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[3].replace("swp","")}',
                              name='unreg_mc_kbyte_per_sec_rate', value=83511,
@@ -164,11 +166,12 @@ async def test_storm_control_br_and_unk_un_and_vlan_membership(testbed):
         streams = {
             'stream_br': {
                 'ip_source': dev_groups[tg_ports[2]][0]['name'],
-                'ip_destination': dev_groups[tg_ports[3]][0]['name'],
+                'ip_destination': dev_groups[tg_ports[0]][0]['name'],
                 'srcMac': 'b4:87:2a:9f:75:d5',
                 'dstMac': 'ff:ff:ff:ff:ff:ff',
-                'frameSize': random.randint(128, 1000),
-                'rate': pps_value,
+                'frameSize': randrange(100, 1500),
+                'frame_rate_type': 'line_rate',
+                'rate': 30,
                 'protocol': '0x0800',
                 'type': 'raw'
             },
@@ -177,8 +180,9 @@ async def test_storm_control_br_and_unk_un_and_vlan_membership(testbed):
                 'ip_destination': dev_groups[tg_ports[0]][0]['name'],
                 'srcMac': '1c:30:27:a1:3c:bc',
                 'dstMac': '4a:4c:30:4e:9d:1e',
-                'frameSize': random.randint(128, 1000),
-                'rate': pps_value,
+                'frameSize': randrange(100, 1500),
+                'frame_rate_type': 'line_rate',
+                'rate': 30,
                 'protocol': '0x0800',
                 'type': 'raw'
             },
@@ -189,8 +193,9 @@ async def test_storm_control_br_and_unk_un_and_vlan_membership(testbed):
                 'dstIp': '0.0.0.0',
                 'srcMac': '8:d4:6b:50:c9:f9',
                 'dstMac': 'b6:ee:e2:ef:d7:68',
-                'frameSize': random.randint(128, 1000),
-                'rate': pps_value,
+                'frameSize': randrange(100, 1500),
+                'frame_rate_type': 'line_rate',
+                'rate': 30,
                 'protocol': '0x0800',
                 'type': 'raw'
             },
@@ -199,8 +204,9 @@ async def test_storm_control_br_and_unk_un_and_vlan_membership(testbed):
                 'ip_destination': dev_groups[tg_ports[3]][0]['name'],
                 'srcMac': 'ae:8a:1d:f3:1d:a5',
                 'dstMac': '6e:f8:5a:c0:66:84',
-                'frameSize': random.randint(128, 1000),
-                'rate': pps_value,
+                'frameSize': randrange(100, 1500),
+                'frame_rate_type': 'line_rate',
+                'rate': 30,
                 'protocol': '0x0800',
                 'type': 'raw'
             }
@@ -211,15 +217,9 @@ async def test_storm_control_br_and_unk_un_and_vlan_membership(testbed):
         await asyncio.sleep(traffic_duration)
 
         # check the traffic stats
-        stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-        expected_loss = {
-            'stream_br': 0,
-            'stream_1_unk_un': 100,
-            'stream_2_unk_un': 100,
-            'stream_3_unk_un': 0
-        }
-        for row in stats.Rows:
-            assert tgen_utils_get_loss(row) == expected_loss[row['Traffic Item']], \
-                'Verify that traffic forwarded/not forwarded in accordance.'
+        stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Port Statistics')
+        kbyte_value = kbyte_value_bc+kbyte_value_unk_uc
+        await verify_expected_rx_rate(kbyte_value, stats, rx_ports=[streams['stream_3_unk_un']['ip_destination']],
+                                      deviation=0.10)
     finally:
         await cleanup_kbyte_per_sec_rate_value(dent_dev, all_values=True)
