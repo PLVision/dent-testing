@@ -19,16 +19,18 @@ async def verify_dut_routes(dent, expected_routes):
     for expected_route in expected_routes:
         for route in routes:
             for key in expected_route:  # find matching route
-                if key == 'flags':
+                if key in ['flags', 'should_exist']:
                     continue
                 if expected_route[key] != route[key]:
                     break
             else:  # route found
+                assert expected_route['should_exist'], f'Route {route} not expected'
                 assert all(flag in route['flags'] for flag in expected_route['flags']), \
                     f'Route {route} should have {expected_route["flags"]} flags'
                 break
         else:  # route not found
-            raise LookupError(f'Route {expected_route} expected, but not found')
+            if expected_route['should_exist']:
+                raise LookupError(f'Route {expected_route} expected, but not found')
 
 
 async def verify_dut_neighbors(dent, expected_neis):
