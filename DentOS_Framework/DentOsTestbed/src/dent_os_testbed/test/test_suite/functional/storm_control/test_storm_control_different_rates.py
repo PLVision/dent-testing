@@ -25,25 +25,18 @@ pytestmark = [
 
 
 async def set_rates(kbyte_value_stream, ports, device_host_name):
-    devlink_variable = {'cmode': 'runtime', 'device_host_name': device_host_name, 'set': True, 'verify': True}
-    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
-                             name='bc_kbyte_per_sec_rate', value=kbyte_value_stream[0],
-                             **devlink_variable)
-    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
-                             name='unreg_mc_kbyte_per_sec_rate', value=kbyte_value_stream[1],
-                             **devlink_variable)
-    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
-                             name='unk_uc_kbyte_per_sec_rate', value=kbyte_value_stream[2],
-                             **devlink_variable)
-    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[1].replace("swp","")}',
-                             name='bc_kbyte_per_sec_rate', value=kbyte_value_stream[3],
-                             **devlink_variable)
-    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[2].replace("swp","")}',
-                             name='unreg_mc_kbyte_per_sec_rate', value=kbyte_value_stream[4],
-                             **devlink_variable)
-    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[3].replace("swp","")}',
-                             name='unk_uc_kbyte_per_sec_rate', value=kbyte_value_stream[5],
-                             **devlink_variable)
+    params = [
+        {'port': ports[0], 'name': 'bc_kbyte_per_sec_rate', 'value': kbyte_value_stream[0]},
+        {'port': ports[0], 'name': 'unreg_mc_kbyte_per_sec_rate', 'value': kbyte_value_stream[1]},
+        {'port': ports[0], 'name': 'unk_uc_kbyte_per_sec_rate', 'value': kbyte_value_stream[2]},
+        {'port': ports[1], 'name': 'bc_kbyte_per_sec_rate', 'value': kbyte_value_stream[3]},
+        {'port': ports[2], 'name': 'unreg_mc_kbyte_per_sec_rate', 'value': kbyte_value_stream[4]},
+        {'port': ports[3], 'name': 'unk_uc_kbyte_per_sec_rate', 'value': kbyte_value_stream[5]}
+    ]
+    for value in params:
+        await devlink_rate_value(dev=f'pci/0000:01:00.0/{value["port"].replace("swp","")}',
+                                 name=value['name'], value=value['value'],
+                                 cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
 
 
 async def verify_rates(kbyte_value_stream, tgen_dev, correlation, deviation):
@@ -276,7 +269,8 @@ async def test_storm_control_different_rates(testbed):
                 rates = collected[stream]
                 tx_rate = float(rates['tx_rate'])
                 rx_rate = float(rates['rx_rate'])
-                assert math.isclose(tx_rate, rx_rate, rel_tol=deviation), 'Verify the rate is limited by storm control.'
+                err_msg = 'Verify the rate is not limited by storm control.'
+                assert math.isclose(tx_rate, rx_rate, rel_tol=deviation), err_msg
             else:
                 print(f'{stream} is not in the collected dictionary.')
     finally:

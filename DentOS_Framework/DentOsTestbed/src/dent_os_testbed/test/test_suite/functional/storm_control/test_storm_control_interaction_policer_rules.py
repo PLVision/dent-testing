@@ -1,3 +1,4 @@
+import math
 import pytest
 import asyncio
 import random
@@ -27,7 +28,7 @@ pytestmark = [
 ]
 
 
-async def test_storm_control_interaction_policer_rules(testbed):
+async def test_storm_control_interaction_policer_rules(testbed, define_bash_utils):
     """
     Test Name: test_storm_control_interaction_policer_rules
     Test Suite: suite_functional_storm_control
@@ -46,7 +47,7 @@ async def test_storm_control_interaction_policer_rules(testbed):
     10. Set ports swp1, swp2, swp3, swp4 master br0.
     11. Set entities swp1, swp2, swp3, swp4 UP state.
     12. Define a police pass rule for each qdisc that matches the selectors.
-    13. Transmit continues traffic from all ports simultaneously.
+    13. Transmit continues traffic.
     14. Verify the RX rate on ports is according to policer dp limit rules (Storm Control has no effect).
     """
 
@@ -58,23 +59,27 @@ async def test_storm_control_interaction_policer_rules(testbed):
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
-    traffic_duration = 10
-    pps_value = 1000
+    size_packets = random.randint(500, 1000)
+    traffic_duration = 15
+    expected_rate = 4000
+    cpu_stat_code = 195
+    counter_type = 'sw'
+    deviation = 0.10
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port,  'operstate': 'up'} for port in ports]}])
+            {'device': port, 'operstate': 'up'} for port in ports]}])
     assert out[0][device_host_name]['rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
 
-    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
-                             name='unk_uc_kbyte_per_sec_rate', value=37686,
-                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
-    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[1].replace("swp","")}',
-                             name='unreg_mc_kbyte_per_sec_rate', value=109413,
-                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
-    await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[2].replace("swp","")}',
-                             name='bc_kbyte_per_sec_rate', value=75373,
-                             cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
+    params = [
+        {'port': ports[0], 'name': 'unk_uc_kbyte_per_sec_rate', 'value': 37686},
+        {'port': ports[1], 'name': 'unreg_mc_kbyte_per_sec_rate', 'value': 109413},
+        {'port': ports[2], 'name': 'bc_kbyte_per_sec_rate', 'value': 75373}
+    ]
+    for value in params:
+        await devlink_rate_value(dev=f'pci/0000:01:00.0/{value["port"].replace("swp","")}',
+                                 name=value['name'], value=value['value'],
+                                 cmode='runtime', device_host_name=device_host_name, set=True, verify=True)
 
     try:
         out = await TcQdisc.add(
@@ -106,50 +111,73 @@ async def test_storm_control_interaction_policer_rules(testbed):
 
         """
         Set up the following streams:
-        — stream_br —  |  — stream_1_mc —  |  — stream_2_mc —  |  - stream_3_mc -
-         swp2 -> swp1  |   swp2 -> swp1    |    swp2 -> swp3       swp2 -> swp4
+        — stream_1 —  |  — stream_2 —  |  — stream_3 —  |  - stream_4 -
+        swp1 -> swp4  |  swp2 -> swp4  |  swp3 -> swp4  |  swp3 -> swp4
+                                                           swp3 -> swp2
+                                                           swp3 -> swp1
         """
 
         streams = {
             'stream_1': {
                 'ip_source': dev_groups[tg_ports[0]][0]['name'],
                 'ip_destination': dev_groups[tg_ports[3]][0]['name'],
-                'srcMac': 'b4:87:2a:9f:73:d5',
-                'dstMac': '10:62:5a:cf:ab:39',
-                'frameSize': random.randint(128, 1000),
-                'rate': pps_value,
+                'srcMac': '10:62:5a:cf:ab:39',
+                'dstMac': '34:1e:60:35:58:ac',
+                'frameSize': size_packets,
+                'frame_rate_type': 'line_rate',
+                'rate': 100,
                 'protocol': '0x8100',
-                'type': 'raw'
+                'type': 'raw',
+                'vlanID': 853
             },
             'stream_2': {
                 'ip_source': dev_groups[tg_ports[1]][0]['name'],
                 'ip_destination': dev_groups[tg_ports[3]][0]['name'],
                 'srcMac': '98:92:be:4c:c8:53',
                 'dstMac': '01:00:5E:51:14:af',
-                'frameSize': random.randint(128, 1000),
-                'rate': pps_value,
+                'frameSize': size_packets,
+                'frame_rate_type': 'line_rate',
+                'rate': 100,
                 'protocol': '0x8100',
-                'type': 'raw'
+                'type': 'raw',
+                'vlanID': 2830
             },
             'stream_3': {
                 'ip_source': dev_groups[tg_ports[2]][0]['name'],
                 'ip_destination': dev_groups[tg_ports[3]][0]['name'],
                 'srcMac': '54:84:c3:74:89:37',
                 'dstMac': 'ff:ff:ff:ff:ff:ff',
-                'frameSize': random.randint(128, 1000),
-                'rate': pps_value,
-                'protocol': '0x0800',
-                'type': 'raw'
+                'frameSize': size_packets,
+                'frame_rate_type': 'line_rate',
+                'rate': 100,
+                'protocol': '0x8100',
+                'type': 'raw',
+                'vlanID': 2454
             }
         }
+        streams.update({
+            f'stream_4_swp3->swp{4-x if x <= 0 else 3-x}': {
+                'ip_source': dev_groups[tg_ports[2]][0]['name'],
+                'ip_destination': dev_groups[tg_ports[3-x if x <= 0 else 2-x]][0]['name'],
+                'srcMac': f'e4:c7:7f:{x+6}e:60:2b',
+                'dstMac': f'01:00:5E:19:bd:a{x+5}',
+                'frameSize': size_packets,
+                'frame_rate_type': 'line_rate',
+                'rate': 100,
+                'protocol': '0x0800',
+                'type': 'raw',
+                'vlanID': 2830
+            } for x in range(3)
+        })
 
         await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
         await tgen_utils_start_traffic(tgen_dev)
         await asyncio.sleep(traffic_duration)
-        # check the traffic stats
-        stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
 
-        # Verify CPU trapped packet rate is according to policer trap rules (Storm Control has no effect)
+        rc, out = await dent_dev.run_cmd(f'get_cpu_traps_rate_code_avg {cpu_stat_code} {counter_type}')
+        assert not rc, f'get_cpu_traps_rate_code_avg failed with rc {rc}'
+        err_msg = 'Verify CPU trapped packet rate is according to policer trap rules.'
+        assert math.isclose(int(out.strip()), expected_rate, rel_tol=deviation/2), err_msg
 
         await tgen_utils_stop_traffic(tgen_dev)
 
@@ -185,7 +213,11 @@ async def test_storm_control_interaction_policer_rules(testbed):
         await asyncio.sleep(traffic_duration)
 
         # check the traffic stats
-        stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-
+        stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Traffic Item Statistics')
+        collected = {row['Traffic Item']:
+                     {'tx_rate': row['Tx Rate (Bps)'], 'rx_rate': row['Rx Rate (Bps)']} for row in stats.Rows}
+        assert all(math.isclose(float(collected[f'stream_4_swp3->swp{4-x if x <= 0 else 3-x}']['tx_rate']),
+                   float(collected[f'stream_4_swp3->swp{4-x if x <= 0 else 3-x}']['rx_rate']),
+                   rel_tol=deviation) for x in range(3)), 'Verify the rate is not limited by storm control.'
     finally:
         await cleanup_kbyte_per_sec_rate_value(dent_dev, all_values=True)
