@@ -176,7 +176,7 @@ async def test_storm_control_interaction_policer_rules(testbed, define_bash_util
 
         rc, out = await dent_dev.run_cmd(f'get_cpu_traps_rate_code_avg {cpu_stat_code} {counter_type}')
         assert not rc, f'get_cpu_traps_rate_code_avg failed with rc {rc}'
-        err_msg = 'Verify CPU trapped packet rate is according to policer trap rules.'
+        err_msg = 'Failed: CPU trapped packet rate does not meet police trap rules.'
         assert math.isclose(int(out.strip()), expected_rate, rel_tol=deviation/2), err_msg
 
         await tgen_utils_stop_traffic(tgen_dev)
@@ -218,6 +218,7 @@ async def test_storm_control_interaction_policer_rules(testbed, define_bash_util
                      {'tx_rate': row['Tx Rate (Bps)'], 'rx_rate': row['Rx Rate (Bps)']} for row in stats.Rows}
         assert all(math.isclose(float(collected[f'stream_4_swp3->swp{4-x if x <= 0 else 3-x}']['tx_rate']),
                    float(collected[f'stream_4_swp3->swp{4-x if x <= 0 else 3-x}']['rx_rate']),
-                   rel_tol=deviation) for x in range(3)), 'Verify the rate is not limited by storm control.'
+                   rel_tol=deviation) for x in range(3)), 'Failed: the rate is limited by storm control.'
     finally:
-        await cleanup_kbyte_per_sec_rate_value(dent_dev, all_values=True)
+        await tgen_utils_stop_traffic(tgen_dev)
+        await cleanup_kbyte_per_sec_rate_value(dent_dev, tgen_dev, all_values=True)

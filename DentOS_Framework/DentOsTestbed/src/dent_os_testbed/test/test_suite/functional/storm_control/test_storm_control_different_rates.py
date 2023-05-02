@@ -14,7 +14,8 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_dev_groups_from_config,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
-    tgen_utils_start_traffic
+    tgen_utils_start_traffic,
+    tgen_utils_stop_traffic
 )
 
 pytestmark = [
@@ -54,7 +55,7 @@ async def verify_rates(kbyte_value_stream, tgen_dev, correlation, deviation):
     }
     for stream, value in rate_value.items():
         assert math.isclose(value*correlation*1000, float(collected[stream]['rx_rate']), rel_tol=deviation), \
-            f'Verify the rate is limited by storm control for {rate_value}.'
+            f'Failed: the rate is not limited by storm control for {rate_value}.'
 
 
 async def test_storm_control_different_rates(testbed):
@@ -255,7 +256,7 @@ async def test_storm_control_different_rates(testbed):
             await verify_rates(kbyte_value_stream, tgen_dev, correlation, deviation)
 
         # disable storm control for all ports
-        await cleanup_kbyte_per_sec_rate_value(dent_dev, all_values=True)
+        await cleanup_kbyte_per_sec_rate_value(dent_dev, tgen_dev, all_values=True)
         await asyncio.sleep(traffic_duration)
 
         # verify the rate is not limited
@@ -269,9 +270,8 @@ async def test_storm_control_different_rates(testbed):
                 rates = collected[stream]
                 tx_rate = float(rates['tx_rate'])
                 rx_rate = float(rates['rx_rate'])
-                err_msg = 'Verify the rate is not limited by storm control.'
+                err_msg = 'Failed: the rate is limited by storm control.'
                 assert math.isclose(tx_rate, rx_rate, rel_tol=deviation), err_msg
-            else:
-                print(f'{stream} is not in the collected dictionary.')
     finally:
-        await cleanup_kbyte_per_sec_rate_value(dent_dev, all_values=True)
+        await tgen_utils_stop_traffic(tgen_dev)
+        await cleanup_kbyte_per_sec_rate_value(dent_dev, tgen_dev, all_values=True)

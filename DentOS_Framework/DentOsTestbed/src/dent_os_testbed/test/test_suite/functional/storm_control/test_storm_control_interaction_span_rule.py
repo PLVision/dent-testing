@@ -14,7 +14,8 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_dev_groups_from_config,
     tgen_utils_get_traffic_stats,
     tgen_utils_setup_streams,
-    tgen_utils_start_traffic
+    tgen_utils_start_traffic,
+    tgen_utils_stop_traffic
 )
 
 pytestmark = [
@@ -170,14 +171,14 @@ async def test_storm_control_interaction_span_rule(testbed):
                      {'tx_rate': row['Tx Rate (Bps)'], 'rx_rate': row['Rx Rate (Bps)']} for row in stats.Rows}
         assert math.isclose(float(collected['stream_1']['tx_rate']),
                             float(collected['stream_1']['rx_rate']), rel_tol=deviation), \
-            'Verify the rate is not limited by storm control due to mirred rule'
+            'Failed: the rate is limited by storm control due to mirred rule.'
         for x in range(2):
             assert math.isclose(kbyte_value_stream[x+1]*1000,
                                 float(collected[f'stream_{x+2}']['rx_rate']), rel_tol=deviation), \
-                'Verify the rate is limited by storm control.'
+                'Failed: the rate is not limited by storm control.'
 
         # disable storm control for all streams
-        await cleanup_kbyte_per_sec_rate_value(dent_dev, all_values=True)
+        await cleanup_kbyte_per_sec_rate_value(dent_dev, tgen_dev, all_values=True)
         await asyncio.sleep(traffic_duration)
 
         # verify the rate is not limited
@@ -190,9 +191,8 @@ async def test_storm_control_interaction_span_rule(testbed):
                 rates = collected[stream]
                 tx_rate = float(rates['tx_rate'])
                 rx_rate = float(rates['rx_rate'])
-                err_msg = 'Verify the rate is not limited by storm control.'
+                err_msg = 'Failed: the rate is limited by storm control.'
                 assert math.isclose(tx_rate, rx_rate, rel_tol=deviation), err_msg
-            else:
-                print(f'{stream} is not in the collected dictionary.')
     finally:
-        await cleanup_kbyte_per_sec_rate_value(dent_dev, all_values=True)
+        await tgen_utils_stop_traffic(tgen_dev)
+        await cleanup_kbyte_per_sec_rate_value(dent_dev, tgen_dev, all_values=True)
