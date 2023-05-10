@@ -1,7 +1,7 @@
 from dent_os_testbed.lib.lldp.lldp import Lldp
 
 
-async def verify_lldp_pck_count(out, device_host_name, exp_count, port):
+async def verify_lldp_pkt_count(out, device_host_name, exp_count, port):
     out = await Lldp.show(
         input_data=[{device_host_name: [
             {'interface': port, 'statistics': True, 'ports': True}]}], parse_output=True)

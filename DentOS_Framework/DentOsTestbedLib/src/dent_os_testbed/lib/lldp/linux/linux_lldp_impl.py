@@ -21,9 +21,9 @@ class LinuxLldpImpl(LinuxLldp):
         if params.get('dut_discovery', False):
             params['cmd_options'] = '-f json'
         if 'lldpctl' in kwarg['params']:
-            cmd = 'lldpctl{} {} '.format(params.get('cmd_options', ''), command)
+            cmd = 'lldpctl {} {} '.format(params.get('cmd_options', ''), command)
         else:
-            cmd = 'lldpcli{} {} '.format(params.get('cmd_options', ''), command)
+            cmd = 'lldpcli {} {} '.format(params.get('cmd_options', ''), command)
         if 'neighbors' in params and params['neighbors']:
             cmd += 'neighbors '
         if 'statistics' in params and params['statistics']:
