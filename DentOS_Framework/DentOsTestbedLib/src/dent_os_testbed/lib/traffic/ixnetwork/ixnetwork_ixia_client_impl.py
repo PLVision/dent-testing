@@ -73,7 +73,7 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                 RestPort=cport,
                 UserName=device.username,
                 Password=device.password,
-                SessionName='DENT',
+                SessionName='stepan',
                 ClearConfig=True
             )  # ,LogLevel='info'
             session = gw.Session
@@ -108,6 +108,14 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                 pport = port.split(':')
                 pports.append({'Arg1': pport[0], 'Arg2': int(pport[1]), 'Arg3': int(pport[2])})
             vport_hrefs = [vport.href for vport in IxnetworkIxiaClientImpl.ixnet.Vport.find()]
+            # Add lags / ports to lag
+            lag_ports = []
+            for dev, value in dev_groups.items():
+                if value[0]['type'] == 'lag':
+                    lag_ports.append(value[0]['lag_members'])
+                    lag_vports = [vport for vport, port in vports.items() if port in value[0]['lag_members']]
+                    IxnetworkIxiaClientImpl.ixnet.Lag.add(Name=dev, Vports=lag_vports)
+            # lag_hrefs = [lag.href for lag in IxnetworkIxiaClientImpl.ixnet.Lag.find()]
             device.applog.info('Assigning ports')
             IxnetworkIxiaClientImpl.ixnet.AssignPorts(pports, [], vport_hrefs, True)
 
@@ -127,18 +135,23 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                     device.applog.info('Changing all vports media mode to copper')
                     card.Media = 'copper'
                     card.AutoInstrumentation = 'floating'
-
+                # Check for lag members
+                if port in lag_ports:
+                    continue
                 device.applog.info('Adding interface on ixia port {} swp {}'.format(port, vport[1]))
                 topo = IxnetworkIxiaClientImpl.ixnet.Topology.add(Vports=vport[0])
                 for dev in dev_groups[port]:
+                    ethernet_name = vports[1] if dev.get('type') != 'lag' else dev.get('name')
+                    if dev.get('type') == 'lag':
+                        topo = IxnetworkIxiaClientImpl.ixnet.Topology.add(Ports=lag_vports)
                     device.applog.info('Adding device {}'.format(dev))
                     is_ipv6 = dev.get('version', 'ipv4') == 'ipv6'
                     dev_group = topo.DeviceGroup.add(Multiplier=dev.get('count', 2))
                     if 'vlan' in dev and dev['vlan'] is not None:
-                        eth = dev_group.Ethernet.add(Name=vport[1], UseVlans=True, VlanCount=1)
+                        eth = dev_group.Ethernet.add(Name=ethernet_name, UseVlans=True, VlanCount=1)
                         eth.Vlan.find()[0].VlanId.Single(dev['vlan'])
                     else:
-                        eth = dev_group.Ethernet.add(Name=vport[1])
+                        eth = dev_group.Ethernet.add(Name=ethernet_name)
                     if is_ipv6:
                         ep = eth.Ipv6.add(Name=dev['name'])
                         ep.Address.Increment(dev['ip'], '::1')
@@ -180,7 +193,8 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
                         IxnetworkIxiaClientImpl.rr_eps.append(ep)
                     IxnetworkIxiaClientImpl.ip_eps.append(ep)
                     IxnetworkIxiaClientImpl.eth_eps.append(eth)
-                    IxnetworkIxiaClientImpl.raw_eps.append(vport[0].Protocols.find())
+                    if port not in lag_ports:
+                        IxnetworkIxiaClientImpl.raw_eps.append(vport[0].Protocols.find())
         except Exception as e:
             device.applog.info(e)
         return 0, 'Connected!'
