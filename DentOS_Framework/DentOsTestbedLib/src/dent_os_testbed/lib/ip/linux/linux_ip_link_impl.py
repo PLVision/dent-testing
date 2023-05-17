@@ -161,6 +161,8 @@ class LinuxIpLinkImpl(LinuxIpLink):
             cmd += 'group {} '.format((params['group']))
         if 'link_type' in params:
             cmd += 'type {} '.format((params['link_type']))
+        if 'type' in params:
+            cmd += 'type {} '.format((params['type']))
 
         return cmd
 
