@@ -32,6 +32,8 @@ class LinuxLldpImpl(LinuxLldp):
             cmd += 'ports'
         if 'interface' in kwarg['params']:
             cmd += ' {} '.format(kwarg['params']['interface'])
+        if 'chassis' in params and params['chassis']:
+            cmd += 'chassis'
         return cmd
 
     def parse_show(self, command, output, *argv, **kwarg):
@@ -97,6 +99,12 @@ class LinuxLldpImpl(LinuxLldp):
             cmd += 'status {} '.format((params['status']))
         if 'tx-interval' in params:
             cmd += 'tx-interval {} '.format((params['tx-interval']))
+        if 'tx-hold' in params:
+            cmd += 'tx-hold {} '.format((params['tx-hold']))
+        if 'system' in params:
+            cmd += 'system {} '.format((params['system']))
+        if 'real' in params and params['real']:
+            cmd += 'real'
         return cmd
 
     def parse_set(self, command, output, *argv, **kwarg):
