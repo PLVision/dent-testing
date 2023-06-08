@@ -110,6 +110,16 @@ async def get_initial_routes(dev):
     return out[0][dev.host_name]['parsed_output']
 
 
+async def get_initial_tables(dev):
+    """Gets tables defined before test. Needed to cleanup tables configured during the test"""
+    out = await IpRoute.show(
+        input_data=[{dev.host_name: [{'table': 'all', 'cmd_options': '-j'}]}],
+        parse_output=True
+    )
+    assert out[0][dev.host_name]['rc'] == 0, 'Failed retrieving tables'
+    return out[0][dev.host_name]['parsed_output']
+
+
 async def cleanup_routes(dev, initial_routes):
     """
     Removes all IP routes configured during test.
@@ -127,6 +137,26 @@ async def cleanup_routes(dev, initial_routes):
             {'dev': route['dev'], 'dst': route['dst']}
             for route in new_routes if route not in initial_routes
         ]}])
+
+
+async def cleanup_vr_tables(dev, initial_tables):
+    """
+    Removes all IP tables configured during test.
+    Can be used separately or by using `cleanup_vr_tables` fixture.
+    """
+    logger = AppLogger(DEFAULT_LOGGER)
+    logger.info('Deleting tables')
+    out = await IpRoute.show(
+        input_data=[{dev.host_name: [{'table': 'all', 'cmd_options': '-j'}]}],
+        parse_output=True
+    )
+    assert out[0][dev.host_name]['rc'] == 0, 'Failed retrieving tables'
+    new_tables = out[0][dev.host_name]['parsed_output']
+    if new_tables != initial_tables:
+        for table in new_tables:
+            if all([table not in initial_tables, 'table' in table, table != 'local']):
+                await IpRoute.flush(input_data=[{dev.host_name: [
+                    {'table': table['table']}]}])
 
 
 async def cleanup_sysctl():
