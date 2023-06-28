@@ -144,6 +144,7 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
 
         except Exception as e:
             device.applog.info(e)
+            return -1, str(e)
         return 0, 'Connected!'
 
     @staticmethod
