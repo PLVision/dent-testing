@@ -14,7 +14,6 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_setup_streams,
     tgen_utils_get_loss,
     tgen_utils_start_traffic,
-    tgen_utils_stop_traffic,
     tgen_utils_get_swp_info,
 )
 pytestmark = [pytest.mark.suite_functional_lacp,
@@ -32,7 +31,7 @@ async def test_lacp_routing_over_vlan_device(testbed):
     1. Enable IPv4 forwarding
     2. Create bridge and 2 bonds
     3. Enslave DUT port <==> tgen port 1 to bond1
-        # DUT port <==>  Ixia port2 to bond 2
+        # DUT port <==>  tgen port2 to bond 2
         # DUT port <==> tgen port 3 to bond 2
         # DUT port <==>  tgen port 4 to bond 2
     4. Enslave bond2 to bridge
@@ -82,25 +81,17 @@ async def test_lacp_routing_over_vlan_device(testbed):
     assert out[0][dent]['rc'] == 0, 'Failed setting bond to state up'
 
     # 3. Enslave DUT port <==> tgen port 1 to bond 1
-    # DUT port <==>  Ixia port2 to bond 2
+    # DUT port <==>  tgen port2 to bond 2
     # DUT port <==> tgen port 3 to bond 2
     # DUT port <==>  tgen port 4 to bond 2
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'down'} for port in ports]}])
+    out = await IpLink.set(input_data=[
+        {dent: [{'device': port, 'operstate': 'down'} for port in ports] +
+               [{'device': ports[0], 'master': bond_1}] +
+               [{'device': port, 'master': bond_2} for port in ports[1:]] +
+               [{'device': bond_2, 'master': bridge}] +
+               [{'device': port, 'operstate': 'up'} for port in ports]
+         }])
     assert out[0][dent]['rc'] == 0, 'Failed setting links to state down'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': ports[0], 'master': bond_1}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {bond_1} as master for {ports[0]}'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bond_2} for port in ports[1:]]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {bond_2} as master for {ports[1:]}'
-
-    # 4. Enslave bond 2 to vlan_device
-    out = await IpLink.set(input_data=[{dent: [{'device': bond_2, 'master': bridge}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {bridge} as master for {bond_2}'
-
-    # 5. Set link up on all participant ports
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'} for port in ports]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {ports[0]} to state up'
 
     out = await IpLink.add(input_data=[{dent: [
         {'link': bridge,
@@ -113,11 +104,11 @@ async def test_lacp_routing_over_vlan_device(testbed):
     assert out[0][dent]['rc'] == 0, 'Failed setting vlan device to state up'
 
     # 6. Configure ip addresses in each LAG and configure route 10.1.1.0/24 via vlan device
-    out = await IpAddress.add(input_data=[{dent: [{'dev': bond_1, 'prefix': '1.1.1.1/24'}]}])
+    out = await IpAddress.add(input_data=[
+        {dent: [{'dev': bond_1, 'prefix': '1.1.1.1/24'}] +
+               [{'dev': vlan_device, 'prefix': '2.2.2.2/24'}]
+         }])
     assert out[0][dent]['rc'] == 0, f'Failed adding IP address to {bond_1}'
-
-    out = await IpAddress.add(input_data=[{dent: [{'dev': vlan_device, 'prefix': '2.2.2.2/24'}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed adding IP address to {vlan_device}'
 
     out = await IpRoute.add(input_data=[{dent: [{'dst': '10.1.1.0/24', 'via': '2.2.2.3'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add ip route'
@@ -165,7 +156,10 @@ async def test_lacp_routing_over_vlan_device(testbed):
     try:
         await tgen_utils_setup_streams(tgen_dev, None, streams)
     except AssertionError as e:
-        pytest.skip(str(e))
+        if 'LAG' in str(e):
+            pytest.skip(str(e))
+        else:
+            raise  # will re-raise the AssertionError
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(25)
 
@@ -174,4 +168,3 @@ async def test_lacp_routing_over_vlan_device(testbed):
     for row in stats.Rows:
         err_msg = f"Expected 0.00 loss, actual {float(row['Loss %'])}"
         assert tgen_utils_get_loss(row) == 0.000, err_msg
-    await tgen_utils_stop_traffic(tgen_dev)

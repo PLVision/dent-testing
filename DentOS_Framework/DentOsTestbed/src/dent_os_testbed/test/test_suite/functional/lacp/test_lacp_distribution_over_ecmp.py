@@ -69,44 +69,29 @@ async def test_lacp_ecmp_distribution_over_lag(testbed):
     # DUT port <==>  tgen port2 to bond 2
     # DUT port <==> tgen port 3 to bond 2
     # DUT port <==>  tgen port 4 to bond 3
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'down'} for port in ports]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting links to state down'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': ports[0], 'master': bonds[0]}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {bonds[0]} as master for {ports[0]}'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': ports[1], 'master': bonds[1]}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {bonds[1]} as master for {ports[1]}'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bonds[2]} for port in ports[2:]]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {bonds[2]} as master for {ports[2:]}'
-
-    # 4. Set link up on all participant ports
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'} for port in ports]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {ports[0]} to state up'
+    out = await IpLink.set(input_data=[
+        {dent: [{'device': port, 'operstate': 'down'} for port in ports] +
+               [{'device': ports[0], 'master': bonds[0]}] +
+               [{'device': ports[1], 'master': bonds[1]}] +
+               [{'device': port, 'master': bonds[2]} for port in ports[2:]] +
+               [{'device': port, 'operstate': 'up'} for port in ports]
+         }])
+    assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces'
 
     # 5. Configure ip addresses in each LAG and configure route 10.1.1.0/24 via bridge
-    out = await IpAddress.add(input_data=[{dent: [{'dev': bonds[0], 'prefix': '1.1.1.1/24'}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed adding IP address to {bonds[0]}'
-
-    out = await IpAddress.add(input_data=[{dent: [{'dev': bonds[1], 'prefix': '2.2.2.1/24'}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed adding IP address to {bonds[1]}'
-
-    out = await IpAddress.add(input_data=[{dent: [{'dev': bonds[2], 'prefix': '3.3.3.1/24'}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed adding IP address to {bonds[2]}'
+    for id, bond in enumerate(bonds, start=1):
+        out = await IpAddress.add(input_data=[{dent: [{'dev': bond, 'prefix': f'{id}.{id}.{id}.{id}/24'}]}])
+        assert out[0][dent]['rc'] == 0, f'Failed adding IP address to {bond}'
 
     # Add static arp entries to bond_2 and bond_3
-    out = await IpNeighbor.add(input_data=[{dent: [
-        {'dev': 'bond_2', 'address': '2.2.2.3', 'lladdr': '00:AD:20:B2:A7:75'}]}])
-    assert out[0][dent]['rc'] == 0, 'Failed adding ip neighbor'
-
-    out = await IpNeighbor.add(input_data=[{dent: [
-        {'dev': 'bond_3', 'address': '3.3.3.4', 'lladdr': '00:59:CD:1E:83:1B'}]}])
+    out = await IpNeighbor.add(input_data=[
+        {dent: [{'dev': 'bond_2', 'address': '2.2.2.3', 'lladdr': '00:AD:20:B2:A7:75'},
+                {'dev': 'bond_3', 'address': '3.3.3.4', 'lladdr': '00:59:CD:1E:83:1B'}]
+         }])
     assert out[0][dent]['rc'] == 0, 'Failed adding ip neighbor'
 
     out = await IpRoute.add(input_data=[{dent: [
         {'dst': '10.1.1.0/24', 'nexthop': [{'via': '2.2.2.3', 'weight': 1}, {'via': '3.3.3.4', 'weight': 1}]}]}])
-
     assert out[0][dent]['rc'] == 0, 'Failed to add ip route'
 
     # 6. Setup one stream with DIP 10.1.1.1
@@ -141,7 +126,10 @@ async def test_lacp_ecmp_distribution_over_lag(testbed):
     try:
         await tgen_utils_setup_streams(tgen_dev, None, streams)
     except AssertionError as e:
-        pytest.skip(str(e))
+        if 'LAG' in str(e):
+            pytest.skip(str(e))
+        else:
+            raise  # will re-raise the AssertionError
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(10)
     await tgen_utils_stop_traffic(tgen_dev)

@@ -70,32 +70,30 @@ async def test_lacp_all_vlan_modes(testbed):
     # DUT port <==>  tgen port2 to bond 2
     # DUT port <==> tgen port 3 to bond 2
     # DUT port <==>  tgen port 4 to bond 3
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'down'} for port in ports]}])
+    out = await IpLink.set(input_data=[
+        {dent: [{'device': port, 'operstate': 'down'} for port in ports] +
+               [{'device': ports[0], 'master': bonds[0]}] +
+               [{'device': ports[1], 'master': bonds[1]}] +
+               [{'device': port, 'master': bonds[2]} for port in ports[2:]] +
+               [{'device': bond, 'master': bridge} for bond in bonds]
+         }])
     assert out[0][dent]['rc'] == 0, 'Failed setting links to state down'
-    out = await IpLink.set(input_data=[{dent: [{'device': ports[0], 'master': bonds[0]}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {bonds[0]} as master for {ports[0]}'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': ports[1], 'master': bonds[1]}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {bonds[1]} as master for {ports[1]}'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bonds[2]} for port in ports[2:]]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {bonds[2]} as master for {ports[2:]}'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': bond, 'master': bridge} for bond in bonds]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting bond as slave on bridge'
 
     # 3. Set link up on all participant ports
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'} for port in ports]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {ports[0]} to state up'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': bond, 'operstate': 'up'} for bond in bonds]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting bond to state up'
+    out = await IpLink.set(input_data=[
+        {dent: [{'device': port, 'operstate': 'up'} for port in ports] +
+               [{'device': bond, 'operstate': 'up'} for bond in bonds]
+         }])
+    assert out[0][dent]['rc'] == 0, 'Failed setting interfaces to state up'
 
     # 4. Add bond_1 to VLAN 2 (tagged) and to 4 (pvid untagged), bond_2 to VLAN 2 (tagged), and bond_3 to 4 (pvid)
-    out = await BridgeVlan.add(input_data=[{dent: [{'device': bonds[0], 'vid': 2}]}])
-    out = await BridgeVlan.add(input_data=[{dent: [{'device': bonds[0], 'vid': 4, 'pvid': True, 'untagged': True}]}])
-    out = await BridgeVlan.add(input_data=[{dent: [{'device': bonds[1], 'vid': 2}]}])
-    out = await BridgeVlan.add(input_data=[{dent: [{'device': bonds[2], 'vid': 4, 'pvid': True}]}])
+    out = await BridgeVlan.add(input_data=[
+        {dent: [{'device': bonds[0], 'vid': 2}] +
+               [{'device': bonds[0], 'vid': 4, 'pvid': True, 'untagged': True}] +
+               [{'device': bonds[1], 'vid': 2}] +
+               [{'device': bonds[2], 'vid': 4, 'pvid': True}]
+         }])
+    assert out[0][dent]['rc'] == 0, 'Failed adding interfaces to VLAN'
 
     # 5. Setup one stream with uknown unicast untagged
     dev_groups = tgen_utils_dev_groups_from_config((
@@ -121,7 +119,10 @@ async def test_lacp_all_vlan_modes(testbed):
     try:
         await tgen_utils_setup_streams(tgen_dev, None, streams)
     except AssertionError as e:
-        pytest.skip(str(e))
+        if 'LAG' in str(e):
+            pytest.skip(str(e))
+        else:
+            raise  # will re-raise the AssertionError
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(10)
     await tgen_utils_stop_traffic(tgen_dev)

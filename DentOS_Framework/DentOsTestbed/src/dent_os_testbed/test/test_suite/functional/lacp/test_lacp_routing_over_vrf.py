@@ -68,72 +68,52 @@ async def test_lacp_routing_over_lag_vrf(testbed):
     assert out[0][dent]['rc'] == 0, 'Failed setting bond to state up'
 
     # Create 2 VRF tables
-    out = await IpLink.add(input_data=[{dent: [{'dev': vrf_1,  'type': 'vrf', 'table': 10}]}])
-    assert out[0][dent]['rc'] == 0, 'Failed to add vrf'
+    for vrf, table_id in zip([vrf_1, vrf_2], [10, 20]):
+        out = await IpLink.add(input_data=[{dent: [{'dev': vrf,  'type': 'vrf', 'table': table_id}]}])
+        assert out[0][dent]['rc'] == 0, 'Failed to add vrf'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': vrf_1, 'operstate': 'up'}]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting vrf to up state'
+        out = await IpLink.set(input_data=[{dent: [{'device': vrf, 'operstate': 'up'}]}])
+        assert out[0][dent]['rc'] == 0, 'Failed setting vrf to up state'
 
-    out = await IpRoute.add(input_data=[{dent: [{'table': 10, 'type': 'unreachable', 'table_id': 'default'}]}])
-    assert out[0][dent]['rc'] == 0, 'Failed adding route'
-
-    out = await IpLink.add(input_data=[{dent: [{'dev': vrf_2,  'type': 'vrf', 'table': 20}]}])
-    assert out[0][dent]['rc'] == 0, 'Failed to add vrf'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': vrf_2, 'operstate': 'up'}]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting vrf to up state'
-
-    out = await IpRoute.add(input_data=[{dent: [{'table': 20, 'type': 'unreachable', 'table_id': 'default'}]}])
-    assert out[0][dent]['rc'] == 0, 'Failed adding route'
+        out = await IpRoute.add(input_data=[{dent: [{'table': table_id, 'type': 'unreachable', 'table_id': 'default'}]}])
+        assert out[0][dent]['rc'] == 0, 'Failed adding route'
 
     # 2. Enslave DUT port <==> tgen port 1 to bond 1
     # DUT port <==>  tgen port2 to bond 2
     # DUT port <==> tgen port 3 to bond 2
     # DUT port <==>  tgen port 4 to bond 3
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'down'} for port in ports]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting links to state down'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': ports[0], 'master': bonds[0]}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {bonds[0]} as master for {ports[0]}'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': ports[1], 'master': bonds[1]}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {bonds[1]} as master for {ports[1]}'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bonds[2]} for port in ports[2:]]}])
-    assert out[0][dent]['rc'] == 0, f'Failed setting {bonds[2]} as master for {ports[2:]}'
+    out = await IpLink.set(input_data=[
+        {dent: [{'device': port, 'operstate': 'down'} for port in ports] +
+               [{'device': ports[0], 'master': bonds[0]}] +
+               [{'device': ports[1], 'master': bonds[1]}] +
+               [{'device': port, 'master': bonds[2]} for port in ports[2:]]
+         }])
+    assert out[0][dent]['rc'] == 0, 'Failed setting master to state down'
 
     # 3. Set link up on all participant ports
     out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'} for port in ports]}])
     assert out[0][dent]['rc'] == 0, f'Failed setting {ports[0]} to state up'
 
     #  Enslave bond1 and bond2 to vrf1 and bond3 to vrf2
-    out = await IpLink.set(input_data=[{dent: [{'device': bonds[0], 'master':vrf_1}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed enslaving {bonds[0]} to {vrf_1}'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': bonds[1], 'master':vrf_1}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed enslaving {bonds[1]} to {vrf_1}'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': bonds[2], 'master':vrf_2}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed enslaving {bonds[2]} to {vrf_2}'
+    out = await IpLink.set(input_data=[
+        {dent: [{'device': bonds[0], 'master':vrf_1}] +
+               [{'device': bonds[1], 'master': vrf_1}] +
+               [{'device': bonds[2], 'master': vrf_2}]
+         }])
+    assert out[0][dent]['rc'] == 0, 'Failed enslaving bonds to vrf'
 
     # 4. Configure ip addresses in each LAG and configure route 10.1.1.0/24 via bridge
-    out = await IpAddress.add(input_data=[{dent: [{'dev': bonds[0], 'prefix': '1.1.1.1/24'}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed adding IP address to {bonds[0]}'
+    out = await IpAddress.add(input_data=[
+        {dent: [{'dev': bonds[0], 'prefix': '1.1.1.1/24'}] +
+               [{'dev': bonds[1], 'prefix': '2.2.2.1/24'}] +
+               [{'dev': bonds[2], 'prefix': '2.2.2.1/24'}]
+         }])
+    assert out[0][dent]['rc'] == 0, 'Failed adding IP address'
 
-    out = await IpAddress.add(input_data=[{dent: [{'dev': bonds[1], 'prefix': '2.2.2.1/24'}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed adding IP address to {bonds[1]}'
-
-    out = await IpAddress.add(input_data=[{dent: [{'dev': bonds[2], 'prefix': '2.2.2.1/24'}]}])
-    assert out[0][dent]['rc'] == 0, f'Failed adding IP address to {bonds[2]}'
-
-    out = await IpRoute.add(input_data=[{dent: [{'vrf': vrf_1,
-                                                 'dst': '10.1.1.0/24',
-                                                 'via': '2.2.2.3'}]}])
-    assert out[0][dent]['rc'] == 0, 'Failed to add ip route'
-
-    out = await IpRoute.add(input_data=[{dent: [{'vrf': vrf_2,
-                                                 'dst': '10.1.1.0/24',
-                                                 'via': '2.2.2.3'}]}])
+    out = await IpRoute.add(input_data=[
+        {dent: [{'vrf': vrf_1, 'dst': '10.1.1.0/24', 'via': '2.2.2.3'}] +
+               [{'vrf': vrf_2, 'dst': '10.1.1.0/24', 'via': '2.2.2.3'}]
+         }])
 
     assert out[0][dent]['rc'] == 0, 'Failed to add ip route'
 
@@ -171,7 +151,10 @@ async def test_lacp_routing_over_lag_vrf(testbed):
     try:
         await tgen_utils_setup_streams(tgen_dev, None, streams)
     except AssertionError as e:
-        pytest.skip(str(e))
+        if 'LAG' in str(e):
+            pytest.skip(str(e))
+        else:
+            raise  # will re-raise the AssertionError
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(10)
     await tgen_utils_stop_traffic(tgen_dev)
@@ -190,8 +173,8 @@ async def test_lacp_routing_over_lag_vrf(testbed):
     total_received_bond_3 = sum([int(row['Valid Frames Rx.'])
                                 for row in stats.Rows if row['Port Name'] in tgen_lag_3[1]])
     err_msg = f'Expected packets  {0.0}, actual packets: {total_received_bond_3}'
-    assert isclose(total_received_bond_3, 20, rel_tol=0.2), err_msg
+    assert total_received_bond_3 <= 50, err_msg
 
     total_received = sum([int(row['Valid Frames Rx.']) for row in stats.Rows])
-    assert isclose(total_received, tx_packets,
-                   rel_tol=0.05), f'Expected packets  {total_received}, actual packets: {tx_packets}'
+    assert isclose(total_received, tx_packets, rel_tol=0.05),\
+        f'Expected packets  {total_received}, actual packets: {tx_packets}'

@@ -32,8 +32,6 @@ async def test_lacp_acl_negative(testbed):
             'The testbed does not have enough dent with tgen connections')
     device = dent_devices[0]
     dent = device.host_name
-
-    dent = device.host_name
     bond = 'bond_33'
 
     out = await IpLink.add(input_data=[{dent: [{
@@ -56,7 +54,7 @@ async def test_lacp_acl_negative(testbed):
     tc_rule = {
         'dev': bond,
         'direction': 'ingress',
-        'filtertype': {'': ''},
+        'filtertype': {},
         'action': 'drop'
         }
 
@@ -67,5 +65,6 @@ async def test_lacp_acl_negative(testbed):
     # 5. Verify the rule is not offloaded
     out = await TcFilter.show(input_data=[{dent: [
         {'dev': bond, 'direction': 'ingress', 'options': '-j'}]}], parse_output=True)
+    assert out[0][dent]['rc'] == 0, 'Fail retrieving rules'
     not_offloaded = out[0][dent]['parsed_output'][1]['options'].get('not_in_hw')
     assert not_offloaded, 'Verify the rule is not offloaded'
