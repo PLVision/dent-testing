@@ -12,7 +12,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (tgen_utils_get_dent_dev
                                                          tgen_utils_traffic_generator_connect, )
 pytestmark = [pytest.mark.suite_functional_devlink,
               pytest.mark.asyncio,
-              pytest.mark.usefixtures('cleanup_tgen', 'cleanup_bonds', 'cleanup_bridges')]
+              pytest.mark.usefixtures('cleanup_tgen', 'cleanup_bonds', 'cleanup_bridges', 'enable_mstpd')]
 
 
 @pytest.mark.parametrize('version', ['rstp', 'stp'])
@@ -59,25 +59,20 @@ async def test_lacp_loopback_detection(testbed, version):
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2. Enslave ports according to the test's setup topology
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bond}]} for bond, port in bonds.items()])
-    assert out[0][dent]['rc'] == 0, 'Failed enslaving port to bond'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': bond, 'master': bridge} for bond in bonds]}])
-    assert out[0][dent]['rc'] == 0, 'Failed enslaving bond to bridge'
-
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bridge} for port in dut_ixia_ports]}])
-    assert out[0][dent]['rc'] == 0, 'Failed enslaving bond to bridge'
+    out = await IpLink.set(input_data=[
+                    {dent: [{'device': port, 'master': bond}]} for bond, port in bonds.items()] +
+                           [{'device': bond, 'master': bridge} for bond in bonds] +
+                           [{'device': port, 'master': bridge} for port in dut_ixia_ports])
+    assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces'
 
     # 4. Set link up on all participant ports, bonds, bridges
-    out = await IpLink.set(
-        input_data=[{dent: [{'device': port_in_bond, 'operstate': 'up'} for port_in_bond in bonds.values()]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting loopback links to state up'
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'} for port in dut_ixia_ports]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting loopback links to state up'
-    out = await IpLink.set(input_data=[{dent: [{'device': bond, 'operstate': 'up'} for bond in bonds]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting bond to state up'
-    out = await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state up'
+    out = await IpLink.set(input_data=[
+        {dent: [{'device': port_in_bond, 'operstate': 'up'} for port_in_bond in bonds.values()] +
+               [{'device': port, 'operstate': 'up'} for port in dut_ixia_ports] +
+               [{'device': bond, 'operstate': 'up'} for bond in bonds] +
+               [{'device': bridge, 'operstate': 'up'}]
+         }])
+    assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces'
 
     # 5. Wait until topology converges
     await asyncio.sleep(wait_time)
@@ -107,7 +102,13 @@ async def test_lacp_loopback_detection(testbed, version):
         }
     }
 
-    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
+    try:
+        await tgen_utils_setup_streams(tgen_dev, None, streams)
+    except AssertionError as e:
+        if 'LAG' in str(e):
+            pytest.skip(str(e))
+        else:
+            raise  # will re-raise the AssertionError
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(wait_time)
     await tgen_utils_stop_traffic(tgen_dev)

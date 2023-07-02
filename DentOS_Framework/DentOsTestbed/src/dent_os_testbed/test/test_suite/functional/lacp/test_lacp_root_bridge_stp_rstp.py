@@ -7,7 +7,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import tgen_utils_get_dent_devi
 
 pytestmark = [pytest.mark.suite_functional_devlink,
               pytest.mark.asyncio,
-              pytest.mark.usefixtures('cleanup_tgen', 'cleanup_bonds', 'cleanup_bridges')]
+              pytest.mark.usefixtures('cleanup_tgen', 'cleanup_bonds', 'cleanup_bridges', 'enable_mstpd')]
 
 
 @pytest.mark.parametrize('version', ['stp', 'rstp'])
@@ -147,9 +147,8 @@ async def test_lacp_root_bridge_selection_stp(testbed, version):
          'bridge': bridge_names[2],
          'mstid': 0,
          'priority': 1}
-    ]}], parse_output=True)
-    # rc for some reason '-1' but priority changes. Mstpd bug?
-    # assert out[0][dent]['rc'] == 0, 'Failed to change priority of the bridge'
+    ]}])
+    assert out[0][dent]['rc'] == 0, 'Failed to change priority of the bridge'
 
     # 10 Wait seconds for topology to re-build.
     await asyncio.sleep(time_to_wait)

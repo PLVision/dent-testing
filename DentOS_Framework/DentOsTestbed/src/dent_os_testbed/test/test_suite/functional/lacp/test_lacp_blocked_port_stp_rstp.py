@@ -7,7 +7,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import tgen_utils_get_dent_devi
 
 pytestmark = [pytest.mark.suite_functional_devlink,
               pytest.mark.asyncio,
-              pytest.mark.usefixtures('cleanup_tgen', 'cleanup_bonds', 'cleanup_bridges')]
+              pytest.mark.usefixtures('cleanup_tgen', 'cleanup_bonds', 'cleanup_bridges', 'enable_mstpd')]
 
 
 @pytest.mark.parametrize('version', ['rstp', 'stp'])
@@ -86,12 +86,12 @@ async def test_lacp_root_port(testbed, version):
         assert rc == 0, 'Failed to change MAC address'
 
     # 4. Set link up on all participant ports, bonds, bridges
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'} for port in bonds.values()]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting loopback links to state up'
-    out = await IpLink.set(input_data=[{dent: [{'device': bond, 'operstate': 'up'} for bond in bonds]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting bond to state up'
-    out = await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'} for bridge in bridges]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state up'
+    out = await IpLink.set(input_data=[
+        {dent: [{'device': port, 'operstate': 'up'} for port in bonds.values()] +
+               [{'device': bond, 'operstate': 'up'} for bond in bonds] +
+               [{'device': bridge, 'operstate': 'up'} for bridge in bridges]
+         }])
+    assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces'
 
     # 5. Wait until topology converges
     await asyncio.sleep(time_to_wait)
@@ -143,9 +143,8 @@ async def test_lacp_root_port(testbed, version):
          'port': bond_to_bridges[1],
          'mstid': 0,
          'priority': 7}
-    ]}], parse_output=True)
-    # rc for some reason '-1' but priority changes. Mstpd bug?
-    # assert out[0][dent]['rc'] == 0, 'Failed to change priority of the bridge'
+    ]}])
+    assert out[0][dent]['rc'] == 0, 'Failed to change priority of the bridge'
 
     # 10. Wait for topology to re-build.
     await asyncio.sleep(time_to_wait)

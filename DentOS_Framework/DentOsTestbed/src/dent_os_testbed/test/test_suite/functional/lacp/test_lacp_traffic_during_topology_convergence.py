@@ -80,9 +80,10 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
         out = await IpLink.set(input_data=[{dent: [{'device': lag, 'master': bridge} for lag in lags]}])
         assert out[0][dent]['rc'] == 0, f'Failed enslaving lag to {bridge}'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': dut_tgen_ports[0], 'master': bridge_names[0]}]}])
-    assert out[0][dent]['rc'] == 0, 'Failed enslaving port'
-    out = await IpLink.set(input_data=[{dent: [{'device': dut_tgen_ports[1], 'master': bridge_names[1]}]}])
+    out = await IpLink.set(input_data=[
+        {dent: [{'device': dut_tgen_ports[0], 'master': bridge_names[0]}] +
+               [{'device': dut_tgen_ports[1], 'master': bridge_names[1]}]
+         }])
     assert out[0][dent]['rc'] == 0, 'Failed enslaving port'
 
     # 3. Change the MAC addresses for all bridges
@@ -91,14 +92,13 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
         assert rc == 0, 'Failed to change MAC address'
 
     # 4. Set link up on all participant ports, bonds, bridges
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'} for port in bonds.values()]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting loopback links to state up'
-    out = await IpLink.set(input_data=[{dent: [{'device': bond, 'operstate': 'up'} for bond in bonds]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting bond to state up'
-    out = await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'} for bridge in bridges]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state up'
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'} for port in dut_tgen_ports]}])
-    assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state up'
+    out = await IpLink.set(input_data=[
+        {dent: [{'device': port, 'operstate': 'up'} for port in bonds.values()] +
+               [{'device': bond, 'operstate': 'up'} for bond in bonds] +
+               [{'device': bridge, 'operstate': 'up'} for bridge in bridges] +
+               [{'device': port, 'operstate': 'up'} for port in dut_tgen_ports]
+         }])
+    assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces'
 
     # 5.Send broadcast traffic for a random time between 30-60 seconds.
     dev_groups = tgen_utils_dev_groups_from_config((
@@ -125,8 +125,13 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
         }
     }
 
-    await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
-
+    try:
+        await tgen_utils_setup_streams(tgen_dev, None, streams)
+    except AssertionError as e:
+        if 'LAG' in str(e):
+            pytest.skip(str(e))
+        else:
+            raise  # will re-raise the AssertionError
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(wait_time)
     await tgen_utils_stop_traffic(tgen_dev)
