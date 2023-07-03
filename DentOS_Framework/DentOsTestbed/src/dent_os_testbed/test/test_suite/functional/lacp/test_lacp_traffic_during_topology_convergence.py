@@ -73,6 +73,14 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2. Enslave ports to bonds, bonds to bridges
+    out = await IpLink.set(input_data=[
+        {dent: [{'device': port, 'operstate': 'down'} for port in bonds.values()] +
+               [{'device': bond, 'operstate': 'down'} for bond in bonds] +
+               [{'device': bridge, 'operstate': 'down'} for bridge in bridges] +
+               [{'device': port, 'operstate': 'down'} for port in dut_tgen_ports]
+         }])
+    assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces to down'
+
     out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bond}]} for bond, port in bonds.items()])
     assert out[0][dent]['rc'] == 0, 'Failed enslaving bonds'
 
@@ -98,7 +106,7 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
                [{'device': bridge, 'operstate': 'up'} for bridge in bridges] +
                [{'device': port, 'operstate': 'up'} for port in dut_tgen_ports]
          }])
-    assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces'
+    assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces to up'
 
     # 5.Send broadcast traffic for a random time between 30-60 seconds.
     dev_groups = tgen_utils_dev_groups_from_config((
@@ -144,7 +152,7 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Port Statistics')
     for row in stats.Rows:
         if row['Port Name'] in tg_ports[:2]:
-            err_msg = f'Expected {1400} got : {float(row["Rx. Rate (Mbps)"])}'
+            err_msg = 'Expected 1400 got : {float(row["Rx. Rate (Mbps)"])}'
             assert float(row['Rx. Rate (Mbps)']) > 1400, err_msg
 
     # 8. Set bridge stp_state to 1.
@@ -220,7 +228,7 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Port Statistics')
     for row in stats.Rows:
         if row['Port Name'] == tg_ports[1]:
-            err_msg = f'Expected {1400} got : {float(row["Rx. Rate (Mbps)"])}'
+            err_msg = 'Expected 1400 got : {float(row["Rx. Rate (Mbps)"])}'
             assert isclose(float(row['Rx. Rate (Mbps)']), 1400, rel_tol=tolerance), err_msg
 
     # 16. Stop the traffic. Verify there is no storming

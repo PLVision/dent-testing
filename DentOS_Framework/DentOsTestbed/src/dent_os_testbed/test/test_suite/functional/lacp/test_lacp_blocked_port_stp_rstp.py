@@ -7,7 +7,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import tgen_utils_get_dent_devi
 
 pytestmark = [pytest.mark.suite_functional_devlink,
               pytest.mark.asyncio,
-              pytest.mark.usefixtures('cleanup_tgen', 'cleanup_bonds', 'cleanup_bridges', 'enable_mstpd')]
+              pytest.mark.usefixtures('cleanup_bonds', 'cleanup_bridges', 'enable_mstpd')]
 
 
 @pytest.mark.parametrize('version', ['rstp', 'stp'])
@@ -73,7 +73,7 @@ async def test_lacp_root_port(testbed, version):
     out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'down'} for port in bonds.values()]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting links to state down'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': bond, 'master': port}]} for port, bond in bonds.items()])
+    out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bond}]} for bond, port in bonds.items()])
     assert out[0][dent]['rc'] == 0, 'Failed enslaving port to bond'
 
     for bridge, lags in bridges.items():
@@ -110,8 +110,7 @@ async def test_lacp_root_port(testbed, version):
          'bridge': bridge_names[1],
          'options': '-f json'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get bridge detail'
-    assert out[0][dent]['parsed_output'][0][
-        'root-port'] != '', f'Bridge { bridge_names[1]} is a root bridge'
+    assert out[0][dent]['parsed_output'][0]['root-port'] != '', f'Bridge { bridge_names[1]} is a root bridge'
 
     # 7. Verify bridge_2 has a blocking port
     out = await Mstpctl.show(input_data=[{dent: [

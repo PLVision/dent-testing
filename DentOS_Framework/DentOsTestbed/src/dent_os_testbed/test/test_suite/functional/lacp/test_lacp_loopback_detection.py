@@ -60,10 +60,19 @@ async def test_lacp_loopback_detection(testbed, version):
 
     # 2. Enslave ports according to the test's setup topology
     out = await IpLink.set(input_data=[
-                    {dent: [{'device': port, 'master': bond}]} for bond, port in bonds.items()] +
-                           [{'device': bond, 'master': bridge} for bond in bonds] +
-                           [{'device': port, 'master': bridge} for port in dut_ixia_ports])
-    assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces'
+        {dent: [{'device': port_in_bond, 'operstate': 'down'} for port_in_bond in bonds.values()] +
+               [{'device': port, 'operstate': 'down'} for port in dut_ixia_ports] +
+               [{'device': bond, 'operstate': 'down'} for bond in bonds] +
+               [{'device': bridge, 'operstate': 'down'}]
+         }])
+    assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces to down'
+
+    out = await IpLink.set(input_data=[
+        {dent: [{'device': port, 'master': bond} for bond, port in bonds.items()] +
+         [{'device': bond, 'master': bridge} for bond in bonds] +
+         [{'device': port, 'master': bridge} for port in dut_ixia_ports]
+         }])
+    assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces to up'
 
     # 4. Set link up on all participant ports, bonds, bridges
     out = await IpLink.set(input_data=[
@@ -164,4 +173,4 @@ async def test_lacp_loopback_detection(testbed, version):
     for row in stats.Rows:
         if row['Port Name'] == tg_ports[0]:
             err_msg = f'Expected 0 got : {float(row["Rx. Rate (Mbps)"])}'
-            assert isclose(float(row['Rx. Rate (Mbps)']), 0, rel_tol=0.1), err_msg
+            assert isclose(float(row['Rx. Rate (Mbps)']), 0.00, abs_tol=0.1), err_msg
