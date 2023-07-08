@@ -5,7 +5,7 @@ from dent_os_testbed.lib.ip.ip_link import IpLink
 from dent_os_testbed.lib.mstpctl.mstpctl import Mstpctl
 from dent_os_testbed.utils.test_utils.tgen_utils import tgen_utils_get_dent_devices_with_tgen
 
-pytestmark = [pytest.mark.suite_functional_devlink,
+pytestmark = [pytest.mark.suite_functional_lacp,
               pytest.mark.asyncio,
               pytest.mark.usefixtures('cleanup_bonds', 'cleanup_bridges', 'enable_mstpd')]
 

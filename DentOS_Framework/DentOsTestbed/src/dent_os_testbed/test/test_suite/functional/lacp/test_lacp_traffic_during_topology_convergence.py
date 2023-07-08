@@ -10,7 +10,7 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (tgen_utils_get_dent_dev
                                                          tgen_utils_stop_traffic, tgen_utils_get_traffic_stats,
                                                          tgen_utils_dev_groups_from_config,
                                                          tgen_utils_traffic_generator_connect, )
-pytestmark = [pytest.mark.suite_functional_devlink,
+pytestmark = [pytest.mark.suite_functional_lacp,
               pytest.mark.asyncio,
               pytest.mark.usefixtures('cleanup_tgen', 'cleanup_bonds', 'cleanup_bridges')]
 
