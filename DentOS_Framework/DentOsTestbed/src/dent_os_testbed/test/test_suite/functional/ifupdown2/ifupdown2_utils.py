@@ -41,6 +41,15 @@ BRIDGE_TEMPLATE = \
         bridge-ports {ports}
     """
 
+VLAN_DEV_TEMPLATE = \
+    """
+
+    auto {name}
+    iface {name} inet static
+        vlan-id {vid}
+        vlan-raw-device {bridge}
+    """
+
 FDB_TEMPLATE = \
     """
 
@@ -73,10 +82,10 @@ def config_bridge(bridge, ports, vlan_aware=False, pvid=None, vlans=None):
     result = BRIDGE_TEMPLATE.format(bridge=bridge, ports=' '.join(ports))
     if vlan_aware:
         result += f'{" " * 4}bridge-vlan-aware yes\n'
-    if pvid:
+    if pvid is not None:
         result += f'{" " * 8}bridge-pvid {pvid}\n'
-    if vlans:
-        result += f'{" " * 8}bridge-vids {" ".join(vlans)}\n'
+    if type(vlans) is list:
+        result += f'{" " * 8}bridge-vids {" ".join(map(str, vlans))}\n'
     return result
 
 
