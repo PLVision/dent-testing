@@ -1,12 +1,27 @@
 import pytest_asyncio
 import pytest
 
+from dent_os_testbed.lib.interfaces.interface import Interface
+
 from dent_os_testbed.utils.test_utils.tgen_utils import tgen_utils_get_dent_devices_with_tgen
 
 from dent_os_testbed.test.test_suite.functional.ifupdown2.ifupdown2_utils import (
     IFUPDOWN_CONF, IFUPDOWN_BACKUP,
     INTERFACES_FILE,
 )
+
+
+async def _apply_config(dent_dev, fields, config_file=IFUPDOWN_CONF):
+    # Prep env and change it
+    opts = [f's~^{k}=.*~{k}={v}~' for k, v in fields.items()]
+    rc, _ = await dent_dev.run_cmd(f'sed -i -E "{"; ".join(opts)}" {config_file}')
+    return rc
+
+
+async def _copy(dent_dev, src, dst, do_assert=True):
+    rc, out = await dent_dev.run_cmd(f'cp {src} {dst}', sudo=True)
+    if do_assert:
+        assert not rc, f'Failed to copy.\n{out}'
 
 
 @pytest_asyncio.fixture()
@@ -26,25 +41,17 @@ async def prepare_env(testbed):
         }
 
         # Make backup's
-        rc, out = await dent_dev.run_cmd(f'cp {IFUPDOWN_CONF} {IFUPDOWN_BACKUP}', sudo=True)
-        assert not rc, f'Failed to copy.\n{out}'
-        rc, out = await dent_dev.run_cmd(f'cp {defaults[dent_dev]["default_interfaces_configfile"]} {INTERFACES_FILE}', sudo=True)
-        assert not rc, f'Failed to copy.\n{out}'
+        await _copy(dent_dev, IFUPDOWN_CONF, IFUPDOWN_BACKUP)
+        await _copy(dent_dev, defaults[dent_dev]['default_interfaces_configfile'], INTERFACES_FILE)
 
-    async def apply_config(dent_dev, fields, config_file=IFUPDOWN_CONF):
-        # Prep env and change it
-        opts = [f's~^{k}=.*~{k}={v}~' for k, v in fields.items()]
-        rc, out = await dent_dev.run_cmd(f'sed -i -E "{"; ".join(opts)}" {config_file}')
-        return rc
-
-    yield apply_config
+    yield _apply_config
 
     for dent_dev in dent_devices:
-        try:
-            rc = await apply_config(dent_dev, defaults[dent_dev])
-            assert not rc, f'Error during apply of ifupdown2 config {rc}'
-        except AssertionError:
-            rc, out = await dent_dev.run_cmd(f'cp {IFUPDOWN_BACKUP} {IFUPDOWN_CONF}')
+        # Restore from backup
+        rc = await _apply_config(dent_dev, defaults[dent_dev])
+        if rc != 0:
+            dent_dev.applog.error(f'Error during apply of ifupdown2 config {rc}')
+            await _copy(dent_dev, IFUPDOWN_BACKUP, IFUPDOWN_CONF, do_assert=False)
 
-    rc, out = await dent_dev.run_cmd('ifreload -a -v')
-    assert not rc, 'Failed to reload ifupdown2 config'
+        out = await Interface.reload(input_data=[{dent_dev.host_name: [{'options': '-a -v'}]}])
+        assert out[0][dent_dev.host_name]['rc'] == 0, 'Failed to reload config'
