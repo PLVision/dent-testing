@@ -5,7 +5,6 @@ import random
 from dent_os_testbed.Device import DeviceType
 from dent_os_testbed.lib.os.service import Service
 from dent_os_testbed.lib.ip.ip_route import IpRoute
-from dent_os_testbed.lib.interfaces.interface import Interface
 
 from dent_os_testbed.test.test_suite.functional.vrrp.vrrp_utils import (
     verify_vrrp_ping,
@@ -94,7 +93,8 @@ async def test_vrrp_ifupdown(testbed, configure_vrrp, prepare_env):
         pytest.skip('The testbed does not have enough agg devices')
     agg = agg[0]
 
-    wait_for_keepalived = 15
+    wait_for_keepalived = 20
+    wait_for_ifupdown = 60
     vlan = random.randint(1, 4094)
     vrrp_ip = '192.168.1.2'
     bridge = 'br0'
@@ -175,12 +175,11 @@ async def test_vrrp_ifupdown(testbed, configure_vrrp, prepare_env):
 
     # 9. Reboot infra
     await reboot_and_wait(agg)
+    await asyncio.sleep(wait_for_ifupdown)
 
-    out = await Interface.reload(input_data=[{agg.host_name: [{'options': '-a -v'}]}])
-    assert out[0][agg.host_name]['rc'] == 0, 'Failed to reload config'
-
-    out = await Service.restart(input_data=[{agg.host_name: [{'name': 'keepalived'}]}])
+    out = await Service.start(input_data=[{agg.host_name: [{'name': 'keepalived'}]}])
     assert out[0][agg.host_name]['rc'] == 0, 'Failed to restart keepalived'
+    await asyncio.sleep(wait_for_keepalived)
 
     # 10. Verify Macvlan was created with a RIF
     out = await IpRoute.show(input_data=[{
