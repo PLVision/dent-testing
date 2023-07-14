@@ -2,19 +2,25 @@ import time
 import asyncio
 import re
 
-from random import randint
+from random import randint, choice
+from math import isclose
 from ipaddress import IPv4Network
 
 from dent_os_testbed.lib.ip.ip_route import IpRoute
 from dent_os_testbed.lib.ip.ip_address import IpAddress
 from dent_os_testbed.lib.bridge.bridge_vlan import BridgeVlan
 from dent_os_testbed.lib.ip.ip_link import IpLink
+from dent_os_testbed.lib.interfaces.interface import Interface
 
 from dent_os_testbed.utils.test_utils.tgen_utils import (
     tgen_utils_start_traffic,
     tgen_utils_stop_traffic,
     tgen_utils_clear_traffic_stats,
+    tgen_utils_get_traffic_stats,
 )
+
+from dent_os_testbed.test.test_suite.functional.devlink.devlink_utils import (
+    verify_cpu_traps_rate_code_avg, CPU_STAT_CODE_ACL_CODE_3)
 
 IFUPDOWN_CONF = '/etc/network/ifupdown2/ifupdown2.conf'
 IFUPDOWN_BACKUP = '/etc/network/ifupdown2/ifupdown2.bak'
@@ -24,7 +30,6 @@ IPV4_TEMPLATE = \
 
     auto {name}
     iface {name} inet {inet}
-        address {address}
     """
 
 ECMP_TEMPLATE = \
@@ -65,8 +70,34 @@ LACP_TEMPLATE = \
         bond-mode 802.3ad
     """
 
+ARP_TEMPLATE = \
+    """
 
-def config_bridge(bridge, ports, vlan_aware=False, pvid=None, vlans=None):
+    up ip neigh add {ip} lladdr {mac} dev {port}
+    """
+
+
+def config_qdist_temp(dev, block_num, direction='ingress'):
+    """
+    Setup ifupdown2 config for qdist
+    Args:
+        dev (str): Device name
+        blockNum (str/int): Shared block num or port name
+        direction (str): Direction to set ingress/egress
+    Returns:
+        Ifupdown2 qdist config in string representation
+    """
+    template = ''
+    if isinstance(block_num, int):
+        template += f'post-up tc qdisc add dev {dev} {direction}_block {block_num} {direction}\n'
+        template += f'down tc qdisc del dev {dev} {direction}_block {block_num} {direction}\n'
+    else:
+        template += f'post-up tc qdisc add dev {dev} {direction}\n'
+        template += f'down tc qdisc del dev {dev} {direction}\n'
+    return template
+
+
+def config_bridge_temp(bridge, ports, vlan_aware=False, pvid=None, vlans=None):
     """
     Setup ifupdown2 config for bridge device
     Args:
@@ -77,23 +108,77 @@ def config_bridge(bridge, ports, vlan_aware=False, pvid=None, vlans=None):
         vlans (list): Bridge vlans to set
     Returns:
         Ifupdown2 bridge config in string representation
-
     """
     result = BRIDGE_TEMPLATE.format(bridge=bridge, ports=' '.join(ports))
     if vlan_aware:
-        result += f'{" " * 4}bridge-vlan-aware yes\n'
-    if pvid is not None:
-        result += f'{" " * 8}bridge-pvid {pvid}\n'
+        result += 'bridge-vlan-aware yes\n'
+    if pvid:
+        result += f'bridge-pvid {pvid}\n'
     if type(vlans) is list:
-        result += f'{" " * 8}bridge-vids {" ".join(map(str, vlans))}\n'
+        result += f'bridge-vids {" ".join(map(str, vlans))}\n'
     return result
+
+
+def config_ipv4_temp(name, inet, ipaddr=None):
+    """
+    Setup ifupdown2 config for port device
+    Args:
+        name (str): Port name
+        inet (str): Device inet type
+        ipaddr (str): Ipv4 address to configure
+    Returns:
+        Ifupdown2 port config in string representation
+    """
+    res = IPV4_TEMPLATE.format(name=name, inet=inet)
+    if ipaddr:
+        res += f'address {ipaddr}\n'
+    return res
+
+
+def config_acl_rule_temp(tc_rule):
+    """
+    Setup ifupdown2 config for acl rule
+    Args:
+        tc_rule (dict): Dict with tcutil_generate_rule_with_random_selectors output
+    Returns:
+        Ifupdown2 acl rule config in string representation
+    """
+    cmd = 'post-up tc filter add '
+    if tc_rule.get('dev'):
+        if isinstance(tc_rule['dev'], str):
+            cmd += f'dev {tc_rule["dev"]} '
+        elif isinstance(tc_rule['dev'], int):
+            cmd += f'block {tc_rule["dev"]} '
+    if tc_rule.get('direction'):
+        cmd += f'{tc_rule["direction"]} '
+    if tc_rule.get('pref'):
+        cmd += f'pref {tc_rule["pref"]} '
+    if tc_rule.get('protocol'):
+        cmd += f'protocol {tc_rule["protocol"]} '
+    if 'filtertype' in tc_rule:
+        if type(tc_rule['filtertype']) is dict:
+            cmd += 'flower '
+            for field, value in tc_rule['filtertype'].items():
+                cmd += '{} {} '.format(field, value)
+    if 'action' in tc_rule.keys():
+        if 'trap' in tc_rule['action']:
+            cmd += 'action trap '
+        if 'police' in tc_rule['action']:
+            cmd += 'action police '
+            for field, value in tc_rule['action']['police'].items():
+                cmd += '{} {} '.format(field, value)
+        if 'pass' in tc_rule['action']:
+            cmd += 'action pass '
+        if 'drop' in tc_rule['action']:
+            cmd += 'action drop '
+    return cmd + '\n'
 
 
 def random_mac():
     return ':'.join(['02'] + [f'{randint(0, 255):02x}' for _ in range(5)])
 
 
-def conf_ecmp(route, nexthops):
+def config_ecmp_temp(route, nexthops):
     """
     Setup ifupdown2 config for ecmp route
     Args:
@@ -154,16 +239,21 @@ async def write_reload_check_ifupdown_config(dent_dev, config_to_wtite, default_
     assert not rc, f'Failed to write ifupdown2 config to a {default_interfaces_configfile}'
 
     # Verify (ifquery) no errors in configuration file
-    rc, out = await dent_dev.run_cmd(f'ifquery -a -i {default_interfaces_configfile}')
-    assert 'error' not in out.strip(), f'Error spotted in output of ifquery cmd {out.strip()}'
+    out = await Interface.query(input_data=[{dent_dev.host_name: [
+        {'options': f'-a -i {default_interfaces_configfile}'
+         }]}])
+    assert 'error' not in out[0][dent_dev.host_name]['result'], 'Error spotted in output of ifquery'
+    assert not out[0][dent_dev.host_name]['rc'], 'Ifquery failed'
 
     # Apply (ifreload) ifupdown configuration
-    rc, out = await dent_dev.run_cmd('ifreload -a -v')
-    assert not rc, f'Failed to reload ifupdown2 config.\n{out}'
+    out = await Interface.reload(input_data=[{dent_dev.host_name: [{'options': '-a -v'}]}])
+    assert not out[0][dent_dev.host_name]['rc'], 'Failed to reload config'
 
     # Check (ifquery --check) running vs actual configuration
-    rc, out = await dent_dev.run_cmd(f'ifquery -a -c -i {default_interfaces_configfile}')
-    assert not rc, f'Unexpected running configuration \n{out}'
+    out = await Interface.query(input_data=[{dent_dev.host_name: [
+        {'options': f'-a -c -i {default_interfaces_configfile}'
+         }]}])
+    assert not out[0][dent_dev.host_name]['rc'], 'Ifquery failed'
 
 
 async def verify_ip_address_routes(dev_name, address_map, ecmp_route):
@@ -290,3 +380,87 @@ async def check_member_devices(dev_name, device_members, status='UP'):
             for link in parsed:
                 assert link['ifname'] in members and link['operstate'] == status, \
                     f'Unexpected member port {link["ifname"]} or state {link["operstate"]}'
+
+
+async def delete_rule(dent_dev, rule, config_file):
+    """
+    Delete Acl rule from ifupdown2 config
+    Args:
+        dent_dev (obj): Dut object
+        rule (str): Acl rule to remove
+        config_file (str): Path to ifupdown2 config
+    """
+    cmd = f"sed -i -e 's/.*{rule[:-1]}//g' {config_file}"
+    rc, _ = await dent_dev.run_cmd(cmd, sudo=True)
+    assert not rc, f'Failed to delete rule {rule} from {config_file}'
+
+
+async def add_rule(dent_dev, before_rule, added_rule, config_file):
+    """
+    Add Acl rule to ifupdown2 config
+    Args:
+        dent_dev (obj): Dut object
+        before_rule (str): Acl rule before which to insert added_rule
+        added_rule (str): Acl rule to add
+        config_file (str): Path to ifupdown2 config
+    """
+    cmd = f"sed -i '/^{before_rule[:-1]}/i {added_rule}' {config_file}"
+    rc, _ = await dent_dev.run_cmd(cmd, sudo=True)
+    assert not rc, f'Failed to add rule in {config_file}'
+
+
+def update_rules(first_rule, second_rule, first_action, second_action, pref, rate_bps):
+    """
+    Update Acl rules dictionary in case of trap action
+    Args:
+        first_rule (dict): First Acl rule dict
+        second_rule (dict): Second Acl rule dict
+        first_action (str): First Acl rule action
+        second_action (str): Second Acl rule action
+        pref (int): Priority of first Acl rule
+        rate_bps (int): Rate in bps to set in case of policer action
+    """
+    second_rule['action'] = second_action
+    second_rule['pref'] = pref + 10000
+
+    for rule, action in zip([first_rule, second_rule], [first_action, second_action]):
+        if action == 'trap':
+            policeTrap = choice([True, False])
+            if policeTrap:
+                rule['action'] = {'trap': '',
+                                  'police': {'rate': f'{rate_bps}bps', 'burst': f'{rate_bps + 1000}', 'conform-exceed': '', 'drop': ''}}
+
+
+async def verify_traffic_by_highest_prio(tgen_dev, dent_dev, rule, tx_port, rx_port, exp_rate_pps,
+                                         deviation=0.1, cpu_code=CPU_STAT_CODE_ACL_CODE_3):
+    """
+    Verify traffic handled according to highest Acl rule
+    Args:
+        tgen_dev (obj): Traffic generator object
+        dent_dev (obj): Dut device object
+        rule (str): Rule action
+        tx_port (str): Tx Port
+        rx_port (str): Rx Port
+        exp_rate_pps (int): Expected rate pps in case of trap policer rule
+        deviation (float): Deviation percent
+        cpu_stat_code (int): Cpu code to read counters from
+    """
+    stats = await tgen_utils_get_traffic_stats(tgen_dev, stats_type='Port Statistics')
+    if rule == 'drop':
+        for row in stats.Rows:
+            if row['Port Name'] == rx_port:
+                # There may be some pkt traversing on port, add a deviation of pkt's amount
+                assert int(row['Valid Frames Rx. Rate']) <= 50, \
+                    f'Current rate {row["Valid Frames Rx. Rate"]} exceeds expected rate 0'
+    elif rule == 'pass':
+        tx_rate = [row['Frames Tx. Rate'] for row in stats.Rows if row['Port Name'] == tx_port]
+        for row in stats.Rows:
+            if row['Port Name'] == rx_port:
+                res = isclose(int(tx_rate[0]), int(row['Valid Frames Rx. Rate']), rel_tol=deviation)
+                assert res, f'Current rate {row["Valid Frames Rx. Rate"]} exceeds expected rate {tx_rate[0]}'
+    else:
+        try:
+            await verify_cpu_traps_rate_code_avg(dent_dev, cpu_code, exp_rate_pps)
+        except AssertionError:
+            await asyncio.sleep(10)  # Policer rate may be unstable, sleep and try again
+            await verify_cpu_traps_rate_code_avg(dent_dev, cpu_code, exp_rate_pps)

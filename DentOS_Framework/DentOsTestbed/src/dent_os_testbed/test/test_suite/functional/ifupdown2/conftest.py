@@ -25,7 +25,7 @@ async def _copy(dent_dev, src, dst, do_assert=True):
 
 
 @pytest_asyncio.fixture()
-async def prepare_env(testbed):
+async def modify_ifupdown_conf(testbed):
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 0)
     if not tgen_dev or not dent_devices:
         pytest.skip('The testbed does not have enough dent with tgen connections')
