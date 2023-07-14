@@ -15,9 +15,10 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 )
 
 from dent_os_testbed.test.test_suite.functional.ifupdown2.ifupdown2_utils import (
-    VLAN_DEV_TEMPLATE, INTERFACES_FILE, IPV4_TEMPLATE,
+    VLAN_DEV_TEMPLATE, INTERFACES_FILE,
     write_reload_check_ifupdown_config,
-    reboot_and_wait, config_bridge,
+    reboot_and_wait, config_bridge_temp,
+    config_ipv4_temp,
 )
 
 
@@ -28,7 +29,7 @@ pytestmark = [
 ]
 
 
-async def test_vrrp_ifupdown(testbed, configure_vrrp, prepare_env):
+async def test_vrrp_ifupdown(testbed, configure_vrrp, modify_ifupdown_conf):
     """
     Test Name: test_vrrp_ifupdown
     Test Suite: suite_functional_vrrp
@@ -121,17 +122,17 @@ async def test_vrrp_ifupdown(testbed, configure_vrrp, prepare_env):
         'addon_syntax_check': 1,
         'default_interfaces_configfile': INTERFACES_FILE,
     }
-    out = await asyncio.gather(*[prepare_env(dent, config) for dent in infra + [agg]])
+    out = await asyncio.gather(*[modify_ifupdown_conf(dent, config) for dent in infra + [agg]])
     assert all(not rc for rc in out), 'Failed to prepare ifupdown2 enviroment config'
 
     # 2. Make ifupdown2 configuration:
     # Add VLAN-aware bridge
-    full_config[agg] += config_bridge(bridge, [links[0][agg], links[1][agg]], vlan_aware=True,
-                                      pvid=0, vlans=[vlan])
-    full_config[infra[0]] += config_bridge(bridge, [links[0][infra[0]]], vlan_aware=True,
+    full_config[agg] += config_bridge_temp(bridge, [links[0][agg], links[1][agg]], vlan_aware=True,
                                            pvid=0, vlans=[vlan])
-    full_config[infra[1]] += config_bridge(bridge, [links[1][infra[1]]], vlan_aware=True,
-                                           pvid=0, vlans=[vlan])
+    full_config[infra[0]] += config_bridge_temp(bridge, [links[0][infra[0]]], vlan_aware=True,
+                                                pvid=0, vlans=[vlan])
+    full_config[infra[1]] += config_bridge_temp(bridge, [links[1][infra[1]]], vlan_aware=True,
+                                                pvid=0, vlans=[vlan])
 
     # Create vlan interface on top of the bridge
     full_config[agg] += VLAN_DEV_TEMPLATE.format(name=vlan_dev, vid=vlan, bridge=bridge)
@@ -139,9 +140,9 @@ async def test_vrrp_ifupdown(testbed, configure_vrrp, prepare_env):
     full_config[infra[1]] += VLAN_DEV_TEMPLATE.format(name=vlan_dev, vid=vlan, bridge=bridge)
 
     # Add IP address to the vlan interface
-    full_config[agg] += IPV4_TEMPLATE.format(name=vlan_dev, inet='static', address='192.168.1.1/24')
-    full_config[infra[0]] += IPV4_TEMPLATE.format(name=vlan_dev, inet='static', address='192.168.1.3/24')
-    full_config[infra[1]] += IPV4_TEMPLATE.format(name=vlan_dev, inet='static', address='192.168.1.4/24')
+    full_config[agg] += config_ipv4_temp(vlan_dev, 'static', ipaddr='192.168.1.1/24')
+    full_config[infra[0]] += config_ipv4_temp(vlan_dev, 'static', ipaddr='192.168.1.3/24')
+    full_config[infra[1]] += config_ipv4_temp(vlan_dev, 'static', ipaddr='192.168.1.4/24')
 
     # 3. Apply ifupdown configuration
     await asyncio.gather(*[write_reload_check_ifupdown_config(dent, full_config[dent],
