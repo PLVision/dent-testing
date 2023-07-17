@@ -97,7 +97,7 @@ def config_qdist_temp(dev, block_num, direction='ingress'):
     return template
 
 
-def config_bridge_temp(bridge, ports, vlan_aware=False, pvid=None, vlans=None):
+def config_bridge_temp(bridge, ports, vlan_aware=False, pvid=None, vlans=None, stp=None, hwaddress=None):
     """
     Setup ifupdown2 config for bridge device
     Args:
@@ -106,6 +106,8 @@ def config_bridge_temp(bridge, ports, vlan_aware=False, pvid=None, vlans=None):
         vlan_aware (bool): Sets bridge to vlan-aware
         pvid (int): Bridge pvid to set
         vlans (list): Bridge vlans to set
+        stp(bool): Set bridge stp
+        hwaddress(str): Bridge mac address
     Returns:
         Ifupdown2 bridge config in string representation
     """
@@ -116,6 +118,10 @@ def config_bridge_temp(bridge, ports, vlan_aware=False, pvid=None, vlans=None):
         result += f'bridge-pvid {pvid}\n'
     if type(vlans) is list:
         result += f'bridge-vids {" ".join(map(str, vlans))}\n'
+    if stp:
+        result += 'bridge-stp yes\n'
+    if hwaddress:
+        result += f'hwaddress {hwaddress}\n'
     return result
 
 
