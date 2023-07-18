@@ -128,7 +128,7 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
 
             # Add ports
             for port, vport in vports.items():
-                if vport[0].href in lag_ports:
+                if vport[0].href in lag_ports or port not in dev_groups.keys():
                     continue
                 device.applog.info('Adding interface on ixia port {} swp {}'.format(port, vport[1]))
                 topo = IxnetworkIxiaClientImpl.ixnet.Topology.add(Vports=vport[0])
@@ -216,8 +216,7 @@ class IxnetworkIxiaClientImpl(IxnetworkIxiaClient):
         Changes media modes for Ixia ports
         """
         for port, vport in vports.items():
-            # or vport[0].L1Config.Ethernet
-            card = vport[0].L1Config.NovusTenGigLan
+            card = vport[0].L1Config.NovusTenGigLan or vport[0].L1Config.Ethernet
             if device.media_mode == 'mixed':
                 # Get required media mode. Default - copper
                 required_media = next((link[2] for link in device.links if link[0] == port), 'copper')
