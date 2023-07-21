@@ -35,7 +35,8 @@ async def check_ping_to_tgen_link(testbed, dev_groups, dent_dev):
         for ep in dev_groups.values():
             ip = ep[0]['ip']
             out = await IpRoute.get(
-                input_data=[{dev.host_name: [{'dst': f'{ip}', 'cmd_options': '-j'}]}]
+                input_data=[
+                    {dev.host_name: [{'dst': f'{ip}', 'options': '-j'}]}]
             )
             dev.applog.info(f'Ran IpRoute.get {ip} out {out}')
             rc = await tb_ping_device(dev, f'{ip}', dump=True)
@@ -83,7 +84,8 @@ async def test_arp_flush_w_traffic(testbed):
         },
     }
     await tgen_utils_setup_streams(
-        tgen_dev, pytest._args.config_dir + f'/{dent}/tgen_basic_config.ixncfg', streams
+        tgen_dev, pytest._args.config_dir +
+        f'/{dent}/tgen_basic_config.ixncfg', streams
     )
     await tgen_utils_start_traffic(tgen_dev)
     # - check the traffic stats

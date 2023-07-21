@@ -46,7 +46,8 @@ async def test_bridging_packets_oversize(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -54,23 +55,25 @@ async def test_bridging_packets_oversize(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that bridge created.\n{out}'
+            {'dev': bridge, 'type': 'bridge'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that bridge created.\n{out}'
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'learning': True, 'flood': False} for port in ports]}])
+            {'dev': port, 'learning': True, 'flood': False} for port in ports]}])
     err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
@@ -123,7 +126,8 @@ async def test_bridging_packets_oversize(testbed):
 
     # check quantity of oversized packets
     for row, port in zip(stats.Rows, old_stats.keys()):
-        oversized = int(new_stats[port]['oversize']) - int(old_stats[port]['oversize'])
+        oversized = int(new_stats[port]['oversize']) - \
+            int(old_stats[port]['oversize'])
         err_msg = 'Verify that quantity of oversized packets is correct.'
         assert int(row['Tx Frames']) == oversized, err_msg
 
@@ -160,7 +164,8 @@ async def test_bridging_packets_undersize(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -168,23 +173,25 @@ async def test_bridging_packets_undersize(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that bridge created.\n{out}'
+            {'dev': bridge, 'type': 'bridge'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that bridge created.\n{out}'
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'learning': True, 'flood': False} for port in ports]}])
+            {'dev': port, 'learning': True, 'flood': False} for port in ports]}])
     err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
@@ -239,7 +246,8 @@ async def test_bridging_packets_undersize(testbed):
 
     # check quantity of undersized packets
     for row, port in zip(stats.Rows, old_stats.keys()):
-        undersized = int(new_stats[port]['undersize']) - int(old_stats[port]['undersize'])
+        undersized = int(new_stats[port]['undersize']) - \
+            int(old_stats[port]['undersize'])
         err_msg = 'Verify that quantity of undersized packets is correct.'
         assert int(row['Tx Frames']) == undersized, err_msg
 

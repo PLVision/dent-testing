@@ -46,7 +46,8 @@ async def test_lacp_ecmp_distribution_over_lag(testbed):
     """
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device = dent_devices[0]
     dent = device.host_name
     tg_ports = tgen_dev.links_dict[dent][0]
@@ -59,10 +60,10 @@ async def test_lacp_ecmp_distribution_over_lag(testbed):
 
     # 1. Enable IPv4 forwarding
     # 2. Create 3 bonds
-    out = await IpLink.add(input_data=[{dent: [{'device': bond, 'type': 'bond', 'mode': '802.3ad'} for bond in bonds]}])
+    out = await IpLink.add(input_data=[{dent: [{'dev': bond, 'type': 'bond', 'mode': '802.3ad'} for bond in bonds]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bond'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': bond, 'operstate': 'up'} for bond in bonds]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': bond, 'operstate': 'up'} for bond in bonds]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bond to state up'
 
     # 3. Enslave DUT port <==> tgen port 1 to bond 1
@@ -70,11 +71,11 @@ async def test_lacp_ecmp_distribution_over_lag(testbed):
     # DUT port <==> tgen port 3 to bond 2
     # DUT port <==>  tgen port 4 to bond 3
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'down'} for port in ports] +
-               [{'device': ports[0], 'master': bonds[0]}] +
-               [{'device': ports[1], 'master': bonds[1]}] +
-               [{'device': port, 'master': bonds[2]} for port in ports[2:]] +
-               [{'device': port, 'operstate': 'up'} for port in ports]
+        {dent: [{'dev': port, 'operstate': 'down'} for port in ports] +
+               [{'dev': ports[0], 'master': bonds[0]}] +
+               [{'dev': ports[1], 'master': bonds[1]}] +
+               [{'dev': port, 'master': bonds[2]} for port in ports[2:]] +
+               [{'dev': port, 'operstate': 'up'} for port in ports]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces'
 
@@ -96,9 +97,12 @@ async def test_lacp_ecmp_distribution_over_lag(testbed):
 
     # 6. Setup one stream with DIP 10.1.1.1
     dev_groups = tgen_utils_dev_groups_from_config((
-        {'ixp': tgen_lag_1[0], 'ip': '1.1.1.2', 'gw': '1.1.1.1', 'plen': 24, 'lag_members': tgen_lag_1[1]},
-        {'ixp': tgen_lag_2[0], 'ip': '2.2.2.3', 'gw': '2.2.2.1', 'plen': 24, 'lag_members': tgen_lag_2[1]},
-        {'ixp': tgen_lag_3[0], 'ip': '3.3.3.4', 'gw': '3.3.3.1', 'plen': 24, 'lag_members': tgen_lag_3[1]}
+        {'ixp': tgen_lag_1[0], 'ip': '1.1.1.2', 'gw': '1.1.1.1',
+            'plen': 24, 'lag_members': tgen_lag_1[1]},
+        {'ixp': tgen_lag_2[0], 'ip': '2.2.2.3', 'gw': '2.2.2.1',
+            'plen': 24, 'lag_members': tgen_lag_2[1]},
+        {'ixp': tgen_lag_3[0], 'ip': '3.3.3.4', 'gw': '3.3.3.1',
+            'plen': 24, 'lag_members': tgen_lag_3[1]}
     ))
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
@@ -133,7 +137,7 @@ async def test_lacp_ecmp_distribution_over_lag(testbed):
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(10)
     await tgen_utils_stop_traffic(tgen_dev)
-    await asyncio.sleep(10)
+    await asyncio.sleep(20)
 
     # 8. Verify no traffic loss; traffic distribution
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Port Statistics')
@@ -142,7 +146,8 @@ async def test_lacp_ecmp_distribution_over_lag(testbed):
         if row['Port Name'] not in tgen_lag_3[1]:
             continue
         err_msg = f'Expected packets  {row["Valid Frames Rx."]}, actual packets: {tx_packets / 4}'
-        assert isclose(int(row['Valid Frames Rx.']), tx_packets / 4, rel_tol=0.05), err_msg
+        assert isclose(int(row['Valid Frames Rx.']),
+                       tx_packets / 4, rel_tol=0.05), err_msg
     total_received = sum([int(row['Valid Frames Rx.']) for row in stats.Rows])
     assert isclose(total_received, tx_packets, rel_tol=0.05),\
         f'Expected packets  {total_received}, actual packets: {tx_packets}'

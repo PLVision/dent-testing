@@ -41,16 +41,18 @@ async def port_state(testbed, counter, software_reboot=False):
             for port in ports:
                 links_present.append(f'{port}:' in out)
         assert all(links_present), 'Not all ports exist.'
-        print(f'It took {datetime.now() - start_time} to grep count of entities.\n')
+        print(
+            f'It took {datetime.now() - start_time} to grep count of entities.\n')
 
         out = await IpLink.set(
             input_data=[{device_host_name: [
-                {'device': port, 'operstate': 'up'} for port in ports]}])
-        assert out[0][device_host_name]['rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
+                {'dev': port, 'operstate': 'up'} for port in ports]}])
+        assert out[0][device_host_name][
+            'rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
 
         start_time = datetime.now()
         for _ in range(20):
-            out = await IpLink.show(input_data=[{device_host_name: [{'cmd_options': '-j'}]}],
+            out = await IpLink.show(input_data=[{device_host_name: [{'options': '-j'}]}],
                                     parse_output=True)
             assert out[0][device_host_name]['rc'] == 0, 'Failed to get links.\n'
 
@@ -65,8 +67,10 @@ async def port_state(testbed, counter, software_reboot=False):
                 break
             time.sleep(timeout/6)
         else:
-            assert all(links_up), "One of the ports, or even all of them, are not in the 'UP' state."
-        print(f"It took {datetime.now() - start_time} to set entities to 'UP' state.\n")
+            assert all(
+                links_up), "One of the ports, or even all of them, are not in the 'UP' state."
+        print(
+            f"It took {datetime.now() - start_time} to set entities to 'UP' state.\n")
         if software_reboot:
             await dent_dev.reboot()
             start = time.time()

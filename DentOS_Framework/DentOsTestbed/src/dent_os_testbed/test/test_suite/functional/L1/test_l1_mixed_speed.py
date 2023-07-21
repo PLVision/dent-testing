@@ -53,7 +53,8 @@ async def test_l1_mixed_speed(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
@@ -66,15 +67,15 @@ async def test_l1_mixed_speed(testbed):
         pytest.skip(str(e))
 
     # 1. Init bridge entity br0.
-    out = await IpLink.add(input_data=[{device_host_name: [{'device': bridge, 'type': 'bridge'}]}])
+    out = await IpLink.add(input_data=[{device_host_name: [{'dev': bridge, 'type': 'bridge'}]}])
     assert out[0][device_host_name]['rc'] == 0, 'Verify that bridge created.'
 
-    out = await IpLink.set(input_data=[{device_host_name: [{'device': bridge, 'operstate': 'up'}]}])
+    out = await IpLink.set(input_data=[{device_host_name: [{'dev': bridge, 'operstate': 'up'}]}])
     assert out[0][device_host_name]['rc'] == 0, "Verify that bridge set to 'UP' state."
 
     # 2. Enslave ports to bridge br0
     out = await IpLink.set(input_data=[{device_host_name: [
-        {'device': port,
+        {'dev': port,
          'operstate': 'up',
          'master': bridge} for port in ports]}])
     err_msg = "Verify that bridge entities set to 'UP' state and links enslaved to bridge."
@@ -110,8 +111,10 @@ async def test_l1_mixed_speed(testbed):
 
     dev_groups = tgen_utils_dev_groups_from_config(
         [{'ixp': tg_ports[0], 'ip': '100.1.1.2', 'gw': '100.1.1.6', 'plen': 24},
-         {'ixp': tg_ports[1], 'ip': '100.1.1.3', 'gw': '100.1.1.6', 'plen': 24},
-         {'ixp': tg_ports[2], 'ip': '100.1.1.4', 'gw': '100.1.1.6', 'plen': 24},
+         {'ixp': tg_ports[1], 'ip': '100.1.1.3',
+             'gw': '100.1.1.6', 'plen': 24},
+         {'ixp': tg_ports[2], 'ip': '100.1.1.4',
+             'gw': '100.1.1.6', 'plen': 24},
          {'ixp': tg_ports[3], 'ip': '100.1.1.5', 'gw': '100.1.1.6', 'plen': 24}])
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 

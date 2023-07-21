@@ -43,7 +43,8 @@ async def test_lacp_all_vlan_modes(testbed):
     """
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device = dent_devices[0]
     dent = device.host_name
     tg_ports = tgen_dev.links_dict[dent][0]
@@ -56,14 +57,14 @@ async def test_lacp_all_vlan_modes(testbed):
     rate = 10000
 
     # 1. Create 3 bonds and a bridge
-    out = await IpLink.add(input_data=[{dent: [{'device': bridge, 'type': 'bridge',
+    out = await IpLink.add(input_data=[{dent: [{'dev': bridge, 'type': 'bridge',
                                                 'vlan_filtering': 1,
                                                 'vlan_default_pvid': 0}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
-    out = await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'}]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': bridge, 'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bridge to up state'
 
-    out = await IpLink.add(input_data=[{dent: [{'device': bond, 'type': 'bond', 'mode': '802.3ad'} for bond in bonds]}])
+    out = await IpLink.add(input_data=[{dent: [{'dev': bond, 'type': 'bond', 'mode': '802.3ad'} for bond in bonds]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add a bond'
 
     # 2. Enslave DUT port <==> tgen port 1 to bond 1
@@ -71,35 +72,38 @@ async def test_lacp_all_vlan_modes(testbed):
     # DUT port <==> tgen port 3 to bond 2
     # DUT port <==>  tgen port 4 to bond 3
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'down'} for port in ports] +
-               [{'device': ports[0], 'master': bonds[0]}] +
-               [{'device': ports[1], 'master': bonds[1]}] +
-               [{'device': port, 'master': bonds[2]} for port in ports[2:]] +
-               [{'device': bond, 'master': bridge} for bond in bonds]
+        {dent: [{'dev': port, 'operstate': 'down'} for port in ports] +
+               [{'dev': ports[0], 'master': bonds[0]}] +
+               [{'dev': ports[1], 'master': bonds[1]}] +
+               [{'dev': port, 'master': bonds[2]} for port in ports[2:]] +
+               [{'dev': bond, 'master': bridge} for bond in bonds]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed setting links to state down'
 
     # 3. Set link up on all participant ports
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'up'} for port in ports] +
-               [{'device': bond, 'operstate': 'up'} for bond in bonds]
+        {dent: [{'dev': port, 'operstate': 'up'} for port in ports] +
+               [{'dev': bond, 'operstate': 'up'} for bond in bonds]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed setting interfaces to state up'
 
     # 4. Add bond_1 to VLAN 2 (tagged) and to 4 (pvid untagged), bond_2 to VLAN 2 (tagged), and bond_3 to 4 (pvid)
     out = await BridgeVlan.add(input_data=[
-        {dent: [{'device': bonds[0], 'vid': 2}] +
-               [{'device': bonds[0], 'vid': 4, 'pvid': True, 'untagged': True}] +
-               [{'device': bonds[1], 'vid': 2}] +
-               [{'device': bonds[2], 'vid': 4, 'pvid': True}]
+        {dent: [{'dev': bonds[0], 'vid': 2}] +
+               [{'dev': bonds[0], 'vid': 4, 'pvid': True, 'untagged': True}] +
+               [{'dev': bonds[1], 'vid': 2}] +
+               [{'dev': bonds[2], 'vid': 4, 'pvid': True}]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed adding interfaces to VLAN'
 
     # 5. Setup one stream with uknown unicast untagged
     dev_groups = tgen_utils_dev_groups_from_config((
-        {'ixp': tgen_lag_1[0], 'ip': '1.1.1.2', 'gw': '1.1.1.1', 'plen': 24, 'lag_members': tgen_lag_1[1]},
-        {'ixp': tgen_lag_2[0], 'ip': '2.2.2.3', 'gw': '2.2.2.1', 'plen': 24, 'lag_members': tgen_lag_2[1]},
-        {'ixp': tgen_lag_3[0], 'ip': '3.3.3.4', 'gw': '3.3.3.1', 'plen': 24, 'lag_members': tgen_lag_3[1]}
+        {'ixp': tgen_lag_1[0], 'ip': '1.1.1.2', 'gw': '1.1.1.1',
+            'plen': 24, 'lag_members': tgen_lag_1[1]},
+        {'ixp': tgen_lag_2[0], 'ip': '2.2.2.3', 'gw': '2.2.2.1',
+            'plen': 24, 'lag_members': tgen_lag_2[1]},
+        {'ixp': tgen_lag_3[0], 'ip': '3.3.3.4', 'gw': '3.3.3.1',
+            'plen': 24, 'lag_members': tgen_lag_3[1]}
     ))
 
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
@@ -130,9 +134,12 @@ async def test_lacp_all_vlan_modes(testbed):
 
     # 7. Verify traffic received on ports within the bond_3
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Port Statistics')
-    tx_packets = sum([int(row['Frames Tx.']) for row in stats.Rows if row['Port Name'] in tgen_lag_1[1]])
-    total_received = sum([int(row['Valid Frames Rx.']) for row in stats.Rows if row['Port Name'] in tgen_lag_3[1]])
-    assert isclose(total_received, tx_packets, rel_tol=0.05), f'Expected: {tx_packets}, actual: {total_received}'
+    tx_packets = sum([int(row['Frames Tx.'])
+                     for row in stats.Rows if row['Port Name'] in tgen_lag_1[1]])
+    total_received = sum([int(row['Valid Frames Rx.'])
+                         for row in stats.Rows if row['Port Name'] in tgen_lag_3[1]])
+    assert isclose(total_received, tx_packets,
+                   rel_tol=0.05), f'Expected: {tx_packets}, actual: {total_received}'
 
     await tgen_utils_clear_traffic_items(tgen_dev)
     streams = {
@@ -157,6 +164,9 @@ async def test_lacp_all_vlan_modes(testbed):
 
     # 9. Verify traffic received on ports within the bond_2
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Port Statistics')
-    tx_packets = sum([int(row['Frames Tx.']) for row in stats.Rows if row['Port Name'] in tgen_lag_1[1]])
-    total_received = sum([int(row['Valid Frames Rx.']) for row in stats.Rows if row['Port Name'] in tgen_lag_2[1]])
-    assert isclose(total_received, tx_packets, rel_tol=0.05), f'Expected: {tx_packets}, actual: {total_received}'
+    tx_packets = sum([int(row['Frames Tx.'])
+                     for row in stats.Rows if row['Port Name'] in tgen_lag_1[1]])
+    total_received = sum([int(row['Valid Frames Rx.'])
+                         for row in stats.Rows if row['Port Name'] in tgen_lag_2[1]])
+    assert isclose(total_received, tx_packets,
+                   rel_tol=0.05), f'Expected: {tx_packets}, actual: {total_received}'

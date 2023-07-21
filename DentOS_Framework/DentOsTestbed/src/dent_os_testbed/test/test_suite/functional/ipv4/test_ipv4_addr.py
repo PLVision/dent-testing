@@ -16,7 +16,8 @@ from dent_os_testbed.utils.test_utils.tb_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv4,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
     pytest.mark.asyncio,
 ]
 
@@ -35,7 +36,8 @@ async def test_ipv4_addr(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0]
@@ -64,7 +66,7 @@ async def test_ipv4_addr(testbed):
 
     # 3. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'}
+        {'dev': port, 'operstate': 'up'}
         for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'

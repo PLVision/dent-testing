@@ -60,13 +60,14 @@ async def test_dentv2_vlan_port_isolation_bonding(testbed):
     # Setup bond interfaces
     for dd in infra_devices:
         # Create bridge br0 and put tgen ports on it
-        await IpLink.delete(input_data=[{dd.host_name: [{'device': 'bridge'}]}])
-        await IpLink.delete(input_data=[{dd.host_name: [{'device': 'br0'}]}])
+        await IpLink.delete(input_data=[{dd.host_name: [{'dev': 'bridge'}]}])
+        await IpLink.delete(input_data=[{dd.host_name: [{'dev': 'br0'}]}])
         out = await IpLink.add(
-            input_data=[{dd.host_name: [{'device': 'br0', 'type': 'bridge', 'vlan_filtering': 1}]}]
+            input_data=[
+                {dd.host_name: [{'dev': 'br0', 'type': 'bridge', 'vlan_filtering': 1}]}]
         )
         assert out[0][dd.host_name]['rc'] == 0, out
-        out = await IpLink.set(input_data=[{dd.host_name: [{'device': 'br0', 'operstate': 'up'}]}])
+        out = await IpLink.set(input_data=[{dd.host_name: [{'dev': 'br0', 'operstate': 'up'}]}])
         assert out[0][dd.host_name]['rc'] == 0, out
 
         for cmd in [
@@ -77,11 +78,14 @@ async def test_dentv2_vlan_port_isolation_bonding(testbed):
             rc, out = await dd.run_cmd(cmd, sudo=True)
             assert rc == 0, f'failed to run {cmd} rc {rc} out {out}'
         for swp in tgen_dev.links_dict[dd.host_name][1][:2]:  # Get first 2 ports
-            await BridgeLink.set(input_data=[{dd.host_name: [{'device': swp, 'isolated': True}]}])
+            await BridgeLink.set(input_data=[{dd.host_name: [{'dev': swp, 'isolated': True}]}])
             for input in [
-                (IpLink.set, [{dd.host_name: [{'device': swp, 'operstate': 'down'}]}]),
-                (IpLink.set, [{dd.host_name: [{'device': swp, 'master': 'bond0'}]}]),
-                (IpLink.set, [{dd.host_name: [{'device': swp, 'operstate': 'up'}]}]),
+                (IpLink.set, [
+                 {dd.host_name: [{'dev': swp, 'operstate': 'down'}]}]),
+                (IpLink.set, [
+                 {dd.host_name: [{'dev': swp, 'master': 'bond0'}]}]),
+                (IpLink.set, [
+                 {dd.host_name: [{'dev': swp, 'operstate': 'up'}]}]),
             ]:
                 out = await input[0](input_data=input[1])
                 dd.applog.info(f'Ran {input[0]} with out {out}')
@@ -95,10 +99,11 @@ async def test_dentv2_vlan_port_isolation_bonding(testbed):
             rc, out = await dd.run_cmd(cmd, sudo=True)
             dd.applog.info(f'Ran {cmd} with rc {rc} {out}')
         out = await Service.restart(input_data=[{dd.host_name: [{'name': 'networking'}]}])
-        assert out[0][dd.host_name]['rc'] == 0, f'Failed to restart the service network {out}'
+        assert out[0][dd.host_name][
+            'rc'] == 0, f'Failed to restart the service network {out}'
 
         for swp in tgen_dev.links_dict[dd.host_name][1]:
-            await BridgeLink.set(input_data=[{dd.host_name: [{'device': swp, 'isolated': True}]}])
+            await BridgeLink.set(input_data=[{dd.host_name: [{'dev': swp, 'isolated': True}]}])
 
     streams = {
         'tcp_ssh_mgmt_flow': {
@@ -112,7 +117,8 @@ async def test_dentv2_vlan_port_isolation_bonding(testbed):
     }
     await tgen_utils_setup_streams(
         tgen_dev,
-        pytest._args.config_dir + f'/{tgen_dev.host_name}/tgen_port_isolation_bonding',
+        pytest._args.config_dir +
+        f'/{tgen_dev.host_name}/tgen_port_isolation_bonding',
         streams,
         force_update=True,
     )
@@ -125,6 +131,7 @@ async def test_dentv2_vlan_port_isolation_bonding(testbed):
 
     # Traffic Verification
     for row in stats.Rows:
-        assert float(row['Loss %']) == 100.000, f'Failed>Loss percent {row["Loss %"]}'
+        assert float(
+            row['Loss %']) == 100.000, f'Failed>Loss percent {row["Loss %"]}'
 
     await tgen_utils_stop_protocols(tgen_dev)

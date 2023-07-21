@@ -46,8 +46,10 @@ pytestmark = [
 
 async def verify_cpu_rate(dent_dev, exp_rate_pps):
     await asyncio.gather(
-        verify_cpu_traps_rate_code_avg(dent_dev, CPU_STAT_CODE_ACL_CODE_3, exp_rate_pps),
-        verify_devlink_cpu_traps_rate_avg(dent_dev, 'acl_code_3', exp_rate_pps),
+        verify_cpu_traps_rate_code_avg(
+            dent_dev, CPU_STAT_CODE_ACL_CODE_3, exp_rate_pps),
+        verify_devlink_cpu_traps_rate_avg(
+            dent_dev, 'acl_code_3', exp_rate_pps),
     )
 
 
@@ -77,7 +79,8 @@ async def test_devlink_interact_acl_with_dyn_traps(testbed):
     num_of_ports = 2
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
@@ -100,10 +103,10 @@ async def test_devlink_interact_acl_with_dyn_traps(testbed):
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge}
+        {'dev': port, 'operstate': 'up', 'master': bridge}
         for port in ports
     ] + [
-        {'device': bridge, 'operstate': 'up'}
+        {'dev': bridge, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to enslave ports'
 
@@ -118,7 +121,8 @@ async def test_devlink_interact_acl_with_dyn_traps(testbed):
         'want_mac': True, 'want_ip': True, 'want_port': True,
         'want_tcp': random.randint(0, 1), 'skip_sw': True, 'pref': pref,
         'action': {'trap': '', 'police': {'rate': f'{rate_bps}bps', 'burst': rate_bps + 1000}}}
-    police_rule = tcutil_generate_rule_with_random_selectors(ingress_port, **selectors)
+    police_rule = tcutil_generate_rule_with_random_selectors(
+        ingress_port, **selectors)
 
     drop_rule = deepcopy(police_rule)
     drop_rule['action'] = 'drop'
@@ -220,7 +224,8 @@ async def test_devlink_interact_dyn_traps_lag(testbed):
     num_of_ports = 4
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
@@ -242,13 +247,13 @@ async def test_devlink_interact_dyn_traps_lag(testbed):
 
     # Enslave ports
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'down'}
+        {'dev': port, 'operstate': 'down'}
         for port in ports
     ] + [
-        {'device': port, 'master': bond}
+        {'dev': port, 'master': bond}
         for port in ports
     ] + [
-        {'device': bond, 'operstate': 'up'}
+        {'dev': bond, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to enslave ports'
 
@@ -319,7 +324,8 @@ async def test_devlink_interact_static_traps_disabled(testbed):
     num_of_ports = 2
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
@@ -337,7 +343,7 @@ async def test_devlink_interact_static_traps_disabled(testbed):
 
     # 2. Set link up on interfaces on all participant ports
     out = await IpLink.set(input_data=[{dent: [
-        {'device': ingress_port, 'operstate': 'up'}
+        {'dev': ingress_port, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to enslave ports'
 
@@ -352,7 +358,8 @@ async def test_devlink_interact_static_traps_disabled(testbed):
         'want_mac': True, 'want_ip': True, 'want_port': True,
         'want_tcp': random.randint(0, 1), 'skip_sw': True,
         'action': {'trap': '', 'police': {'rate': f'{rate_bps}bps', 'burst': rate_bps + 1000}}}
-    police_rule = tcutil_generate_rule_with_random_selectors(ingress_port, **selectors)
+    police_rule = tcutil_generate_rule_with_random_selectors(
+        ingress_port, **selectors)
 
     out = await TcFilter.add(input_data=[{dent: [police_rule]}])
     assert out[0][dent]['rc'] == 0, 'Failed to create tc rule'
@@ -403,7 +410,8 @@ async def test_devlink_interact_sct_lag(testbed):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -419,7 +427,7 @@ async def test_devlink_interact_sct_lag(testbed):
     # 1.Create a bond, set link up on it and enslave the first port connected to Ixia to it
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': dut_ports[0], 'operstate': 'down'}]}])
+            {'dev': dut_ports[0], 'operstate': 'down'}]}])
     err_msg = f"Verify that {dut_ports[0]} set to 'DOWN' state.\n{out}"
     assert not out[0][dev_name]['rc'], err_msg
 
@@ -431,13 +439,13 @@ async def test_devlink_interact_sct_lag(testbed):
 
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': bond, 'operstate': 'up'}]}])
+            {'dev': bond, 'operstate': 'up'}]}])
     err_msg = f"Verify that {bond} set to 'UP' state.\n{out}"
     assert not out[0][dev_name]['rc'], err_msg
 
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': dut_ports[0], 'master': bond}]}])
+            {'dev': dut_ports[0], 'master': bond}]}])
     err_msg = f'Verify that {dut_ports[0]} set to master {bond}.\n{out}'
     assert not out[0][dev_name]['rc'], err_msg
 
@@ -461,7 +469,8 @@ async def test_devlink_interact_sct_lag(testbed):
                       'want_tcp': random.choice([True, False]) if want_port else False,
                       'want_vlan_ethtype': want_ip and want_vlan}
 
-    tc_rule = tcutil_generate_rule_with_random_selectors(dut_ports[0], **rule_selectors)
+    tc_rule = tcutil_generate_rule_with_random_selectors(
+        dut_ports[0], **rule_selectors)
     original_rule = deepcopy(tc_rule)
     randomize_rule_by_src_dst_field(tc_rule, rule_selectors)
 
@@ -470,16 +479,17 @@ async def test_devlink_interact_sct_lag(testbed):
     stream = await get_sct_streams(dent_dev, dev_groups, tg_ports[:2], bond)
     streams.update(stream)
     custom_stream = {f'custom_stream_{bond}': {
-                    'type': 'raw',
-                    'protocol': '802.1Q' if want_vlan else tc_rule['protocol'],
+        'type': 'raw',
+        'protocol': '802.1Q' if want_vlan else tc_rule['protocol'],
                     'ip_source': dev_groups[tg_ports[0]][0]['name'],
                     'ip_destination': dev_groups[tg_ports[1]][0]['name'],
                     'srcMac': original_rule['filtertype']['src_mac'],
                     'dstMac': original_rule['filtertype']['dst_mac'],
                     'frameSize': frame_size,
                     'rate': SCT_MAP['acl_code_3']['exp'] + 2000}
-                     }
-    overwrite_src_dst_stream_fields(custom_stream, original_rule, rule_selectors)
+    }
+    overwrite_src_dst_stream_fields(
+        custom_stream, original_rule, rule_selectors)
     streams.update(custom_stream)
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
     await tgen_utils_start_traffic(tgen_dev)
@@ -491,8 +501,10 @@ async def test_devlink_interact_sct_lag(testbed):
     for trap_name, sct in SCT_MAP.items():
         if trap_name == 'acl_code_3':
             continue
-        coroutines_cpu_stat.append(verify_cpu_traps_rate_code_avg(dent_dev, sct['cpu_code'], sct['exp'], logs=True))
-        coroutines_devlink.append(verify_devlink_cpu_traps_rate_avg(dent_dev, trap_name, sct['exp'], logs=True))
+        coroutines_cpu_stat.append(verify_cpu_traps_rate_code_avg(
+            dent_dev, sct['cpu_code'], sct['exp'], logs=True))
+        coroutines_devlink.append(verify_devlink_cpu_traps_rate_avg(
+            dent_dev, trap_name, sct['exp'], logs=True))
     # Asyncio may fail even with 15 tasks executed in parallel, separate coroutines into chunks of 7-8 tasks
     tasks_slice = len(coroutines_cpu_stat) // 2
     await asyncio.gather(*coroutines_cpu_stat[:tasks_slice])

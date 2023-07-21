@@ -22,7 +22,8 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv4,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
     pytest.mark.asyncio,
 ]
 
@@ -50,7 +51,8 @@ async def test_ipv4_icmp_disabled(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
@@ -66,7 +68,7 @@ async def test_ipv4_icmp_disabled(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'}
+        {'dev': port, 'operstate': 'up'}
         for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
@@ -152,7 +154,8 @@ async def test_ipv4_ping_stability(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0]
@@ -169,7 +172,7 @@ async def test_ipv4_ping_stability(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'}
+        {'dev': port, 'operstate': 'up'}
         for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
@@ -192,7 +195,8 @@ async def test_ipv4_ping_stability(testbed):
         'ipv4': {'ip_source': dev_groups[tg_ports[0]][0]['name'],
                  'ip_destination': dev_groups[tg_ports[1]][0]['name']}
     }
-    await tgen_utils_setup_streams(tgen_dev, None, streams)  # will send arps to all ports
+    # will send arps to all ports
+    await tgen_utils_setup_streams(tgen_dev, None, streams)
 
     # 5. Send pings from 4 ports for 2 mins
     cmd = 'ping -I {} -i 0.005 -w 120 {} | grep "bytes from" | wc -l'
@@ -207,8 +211,10 @@ async def test_ipv4_ping_stability(testbed):
     pings_received = sum(int(recv) for _, recv in out)
     total_time = end_time_s - start_time_s
     actual_rate_pps = pings_received / total_time
-    dent_dev.applog.info(f'Total run time: {total_time:.2f}s, pings received: {pings_received}')
-    dent_dev.applog.info(f'Actual icmp rate: {actual_rate_pps:.2f}pps, expected: {expected_rate_pps}pps')
+    dent_dev.applog.info(
+        f'Total run time: {total_time:.2f}s, pings received: {pings_received}')
+    dent_dev.applog.info(
+        f'Actual icmp rate: {actual_rate_pps:.2f}pps, expected: {expected_rate_pps}pps')
     assert expected_rate_pps * (1 - deviation) < actual_rate_pps < expected_rate_pps * (1 + deviation), \
         f'Expected rate: {expected_rate_pps}pps, actual: {actual_rate_pps:.2f}pps'
 
@@ -230,7 +236,8 @@ async def test_ipv4_ping_size(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0]
@@ -245,7 +252,7 @@ async def test_ipv4_ping_size(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'}
+        {'dev': port, 'operstate': 'up'}
         for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
@@ -268,7 +275,8 @@ async def test_ipv4_ping_size(testbed):
         'ipv4': {'ip_source': dev_groups[tg_ports[0]][0]['name'],
                  'ip_destination': dev_groups[tg_ports[1]][0]['name']}
     }
-    await tgen_utils_setup_streams(tgen_dev, None, streams)  # will send arps to all ports
+    # will send arps to all ports
+    await tgen_utils_setup_streams(tgen_dev, None, streams)
 
     # 5. Generate ping with size smaller than mru
     await asyncio.gather(*(do_ping(dent_dev, port, dst, size=100, timeout=15)
@@ -295,7 +303,8 @@ async def test_ipv4_ping_static_ip(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0]
@@ -310,7 +319,7 @@ async def test_ipv4_ping_static_ip(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'}
+        {'dev': port, 'operstate': 'up'}
         for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
@@ -333,7 +342,8 @@ async def test_ipv4_ping_static_ip(testbed):
         'ipv4': {'ip_source': dev_groups[tg_ports[0]][0]['name'],
                  'ip_destination': dev_groups[tg_ports[1]][0]['name']}
     }
-    await tgen_utils_setup_streams(tgen_dev, None, streams)  # will send arps to all ports
+    # will send arps to all ports
+    await tgen_utils_setup_streams(tgen_dev, None, streams)
 
     # 5. Ping DUT port
     out = await tgen_utils_send_ping(tgen_dev, ({'ixp': port, 'dst_ip': dst}
@@ -364,7 +374,8 @@ async def test_ipv4_fwd_disable(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
@@ -384,7 +395,7 @@ async def test_ipv4_fwd_disable(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'}
+        {'dev': port, 'operstate': 'up'}
         for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
@@ -411,7 +422,7 @@ async def test_ipv4_fwd_disable(testbed):
     # Flush neighbors because tgen_utils_setup_streams will by default
     # send arps to all ports
     out = await IpNeighbor.flush(input_data=[{dent: [
-        {'device': port} for port in ports
+        {'dev': port} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0
 
@@ -438,8 +449,10 @@ async def test_ipv4_fwd_disable(testbed):
         ({'ixp': port, 'dst_ip': peer_ip[port]}
          for port in tg_ports)
     )
-    assert all(status['success'] for status in out if status['port'] in (tg_ports[0], tg_ports[3]))
-    assert all(not status['success'] for status in out if status['port'] in (tg_ports[1], tg_ports[2]))
+    assert all(status['success']
+               for status in out if status['port'] in (tg_ports[0], tg_ports[3]))
+    assert all(not status['success'] for status in out if status['port'] in (
+        tg_ports[1], tg_ports[2]))
 
     # 7. Enable IPv4 forwarding
     out = await Sysctl.set(input_data=[{dent: [
@@ -449,7 +462,7 @@ async def test_ipv4_fwd_disable(testbed):
 
     # Flush all arp neighbors
     out = await IpNeighbor.flush(input_data=[{dent: [
-        {'device': port} for port in ports
+        {'dev': port} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0
 

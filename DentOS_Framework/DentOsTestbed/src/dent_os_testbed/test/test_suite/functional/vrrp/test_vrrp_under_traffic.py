@@ -90,7 +90,8 @@ async def test_vrrp_under_traffic(testbed, setup, configure_vrrp):
     # 1. Configure aggregation router
     config = await setup_topo_for_vrrp(testbed, use_bridge, use_vid=vlan, use_tgen=True, vrrp_ip=vrrp_ip)
     infra, tgen_dev, bridge, links, tg_links, dev_groups, vlan_dev = \
-        itemgetter('infra', 'tgen_dev', 'bridge', 'links', 'tg_links', 'dev_groups', 'vlan_dev')(config)
+        itemgetter('infra', 'tgen_dev', 'bridge', 'links',
+                   'tg_links', 'dev_groups', 'vlan_dev')(config)
 
     if setup == 'bridge':
         vrrp_ifaces = [bridge, bridge]
@@ -101,7 +102,8 @@ async def test_vrrp_under_traffic(testbed, setup, configure_vrrp):
 
     # 3. Configure VRRP on infra devices
     await asyncio.gather(*[
-        configure_vrrp(dent, state=state, prio=prio, vr_ip=vrrp_ip, vr_id=vr_id, dev=port)
+        configure_vrrp(dent, state=state, prio=prio,
+                       vr_ip=vrrp_ip, vr_id=vr_id, dev=port)
         for dent, port, state, prio
         in zip(infra, vrrp_ifaces, ['MASTER', 'BACKUP'], [200, 100])])
     await asyncio.sleep(wait_for_keepalived)
@@ -110,7 +112,8 @@ async def test_vrrp_under_traffic(testbed, setup, configure_vrrp):
         'data traffic': {
             'type': 'ipv4',
             'ip_source': dev_groups[tg_links[0][tgen_dev]][0]['name'],  # TG L0
-            'ip_destination': dev_groups[tg_links[1][tgen_dev]][0]['name'],  # TG L1
+            # TG L1
+            'ip_destination': dev_groups[tg_links[1][tgen_dev]][0]['name'],
             'frameSize': packet_size,
             'frame_rate_type': 'bps_rate',
             'rate': rate_bit,
@@ -125,7 +128,7 @@ async def test_vrrp_under_traffic(testbed, setup, configure_vrrp):
                             ('down', [0, rate_bps]),
                             ('up', [rate_bps, 0])]:
         out = await IpLink.set(input_data=[{
-            infra[0].host_name: [{'device': f'vrrp.{vr_id}', 'operstate': state}],
+            infra[0].host_name: [{'dev': f'vrrp.{vr_id}', 'operstate': state}],
         }])
         assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
             'Failed to enable/disable vrrp'

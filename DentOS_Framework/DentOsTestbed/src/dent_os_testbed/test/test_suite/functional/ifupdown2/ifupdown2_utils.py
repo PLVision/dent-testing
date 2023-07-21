@@ -271,11 +271,11 @@ async def verify_ip_address_routes(dev_name, address_map, ecmp_route):
         address_map (list): Address map list
         ecmp_route (str): Ipv4 route addresses used as ECMP
     """
-    out = await IpRoute.show(input_data=[{dev_name: [{'cmd_options': '-j -4'}]}], parse_output=True)
+    out = await IpRoute.show(input_data=[{dev_name: [{'options': '-j -4'}]}], parse_output=True)
     assert not out[0][dev_name]['rc'], 'Failed to get routes'
     routes = out[0][dev_name]['parsed_output']
 
-    out = await IpAddress.show(input_data=[{dev_name: [{'cmd_options': '-j -4'}]}], parse_output=True)
+    out = await IpAddress.show(input_data=[{dev_name: [{'options': '-j -4'}]}], parse_output=True)
     assert not out[0][dev_name]['rc'], 'Failed to get IPv4 addresses'
     ip_addrs = out[0][dev_name]['parsed_output']
 
@@ -321,7 +321,8 @@ def format_mac(port, vlan, offset=0):
         Formated Mac address
     """
     reg_exp = re.compile(r'(\d+)$')
-    port, vlan = (i if isinstance(i, int) else int(reg_exp.search(i).groups()[0]) for i in [port, vlan])
+    port, vlan = (i if isinstance(i, int) else int(
+        reg_exp.search(i).groups()[0]) for i in [port, vlan])
     mac_int = port * 0x100000000 + vlan * 0x10000 + offset
     mac_str = '{:012X}'.format(mac_int)
     return ':'.join(x + y for x, y in zip(mac_str[::2], mac_str[1::2]))
@@ -349,7 +350,7 @@ async def check_vlan_members(dev_name, dut_ports, vlans, pvid=1):
         vlans (list): List of vlans to check
         pvid (int): Expected pvid to check
     """
-    out = await BridgeVlan.show(input_data=[{dev_name: [{'cmd_options': '-j'}]}], parse_output=True)
+    out = await BridgeVlan.show(input_data=[{dev_name: [{'options': '-j'}]}], parse_output=True)
     assert not out[0][dev_name]['rc'], f'Failed show bridge vlans.\n{out}'
     parsed = out[0][dev_name]['parsed_output']
 
@@ -357,8 +358,10 @@ async def check_vlan_members(dev_name, dut_ports, vlans, pvid=1):
         if p_vlans['ifname'] in dut_ports:
             for vlan in p_vlans['vlans']:
                 if vlan['vlan'] == pvid:
-                    assert vlan['flags'] == ['PVID', 'Egress Untagged'], f'Unexpected vlan flags {vlan["flags"]}'
-                assert vlan['vlan'] in vlans + [pvid], f'Expected vlan {vlan["vlan"]} not in {vlans + [pvid]}'
+                    assert vlan['flags'] == [
+                        'PVID', 'Egress Untagged'], f'Unexpected vlan flags {vlan["flags"]}'
+                assert vlan['vlan'] in vlans + \
+                    [pvid], f'Expected vlan {vlan["vlan"]} not in {vlans + [pvid]}'
 
 
 async def check_member_devices(dev_name, device_members, status='UP'):
@@ -370,14 +373,15 @@ async def check_member_devices(dev_name, device_members, status='UP'):
         status (str): Expected status to check
     """
     for dev, members in device_members.items():
-        out = await IpLink.show(input_data=[{dev_name: [{'device': dev, 'cmd_options': '-j'}]}], parse_output=True)
+        out = await IpLink.show(input_data=[{dev_name: [{'dev': dev, 'options': '-j'}]}], parse_output=True)
         assert not out[0][dev_name]['rc'], 'Failed to get port info'
         parsed = out[0][dev_name]['parsed_output']
 
-        assert parsed[0]['ifname'] == dev and parsed[0]['operstate'] == status, f'Unexpected status for device {dev}'
+        assert parsed[0]['ifname'] == dev and parsed[0][
+            'operstate'] == status, f'Unexpected status for device {dev}'
 
         if members:
-            out = await IpLink.show(input_data=[{dev_name: [{'device': dev, 'master': '', 'cmd_options': '-j'}]}], parse_output=True)
+            out = await IpLink.show(input_data=[{dev_name: [{'dev': dev, 'master': '', 'options': '-j'}]}], parse_output=True)
             assert not out[0][dev_name]['rc'], 'Failed to get member ports info'
             parsed = out[0][dev_name]['parsed_output']
             for link in parsed:
@@ -456,16 +460,19 @@ async def verify_traffic_by_highest_prio(tgen_dev, dent_dev, rule, tx_port, rx_p
                 assert int(row['Valid Frames Rx. Rate']) <= 50, \
                     f'Current rate {row["Valid Frames Rx. Rate"]} exceeds expected rate 0'
     elif rule == 'pass':
-        tx_rate = [row['Frames Tx. Rate'] for row in stats.Rows if row['Port Name'] == tx_port]
+        tx_rate = [row['Frames Tx. Rate']
+                   for row in stats.Rows if row['Port Name'] == tx_port]
         for row in stats.Rows:
             if row['Port Name'] == rx_port:
-                res = isclose(int(tx_rate[0]), int(row['Valid Frames Rx. Rate']), rel_tol=deviation)
+                res = isclose(int(tx_rate[0]), int(
+                    row['Valid Frames Rx. Rate']), rel_tol=deviation)
                 assert res, f'Current rate {row["Valid Frames Rx. Rate"]} exceeds expected rate {tx_rate[0]}'
     else:
         try:
             await verify_cpu_traps_rate_code_avg(dent_dev, cpu_code, exp_rate_pps)
         except AssertionError:
-            await asyncio.sleep(10)  # Policer rate may be unstable, sleep and try again
+            # Policer rate may be unstable, sleep and try again
+            await asyncio.sleep(10)
             await verify_cpu_traps_rate_code_avg(dent_dev, cpu_code, exp_rate_pps)
 
 

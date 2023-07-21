@@ -67,7 +67,7 @@ async def get_illegal_drop_streams(dent_dev, dev_groups, tg_ports, dut_port, mac
             'ttl': '64',
             'rate': rate,
             'frame_rate_type': 'line_rate',
-            },
+        },
         f'illegal_ipv4_hdr_checksum_{dut_port}': {
             'type': 'raw',
             'protocol': 'ip',
@@ -85,7 +85,7 @@ async def get_illegal_drop_streams(dent_dev, dev_groups, tg_ports, dut_port, mac
             'ipv4Checksum': '0',
             'rate': rate,
             'frame_rate_type': 'line_rate',
-            },
+        },
         f'illegal_ipv4_hdr_length_{dut_port}': {
             'type': 'raw',
             'protocol': 'ip',
@@ -103,7 +103,7 @@ async def get_illegal_drop_streams(dent_dev, dev_groups, tg_ports, dut_port, mac
             'ipv4HeaderLength': choice(range(4)),
             'rate': rate,
             'frame_rate_type': 'line_rate',
-            },
+        },
         f'illegal_ip_addr_dip_zero_{dut_port}': {
             'type': 'raw',
             'protocol': 'ip',
@@ -117,7 +117,7 @@ async def get_illegal_drop_streams(dent_dev, dev_groups, tg_ports, dut_port, mac
             'ttl': '64',
             'rate': rate,
             'frame_rate_type': 'line_rate',
-            },
+        },
         f'illegal_ip_addr_host_sip_{dut_port}': {
             'type': 'raw',
             'protocol': 'ip',
@@ -131,7 +131,7 @@ async def get_illegal_drop_streams(dent_dev, dev_groups, tg_ports, dut_port, mac
             'ttl': '64',
             'rate': rate,
             'frame_rate_type': 'line_rate',
-            },
+        },
         f'illegal_ip_addr_host_dip_{dut_port}': {
             'type': 'raw',
             'protocol': 'ip',
@@ -145,7 +145,7 @@ async def get_illegal_drop_streams(dent_dev, dev_groups, tg_ports, dut_port, mac
             'ttl': '64',
             'rate': rate,
             'frame_rate_type': 'line_rate',
-            },
+        },
         f'ip_sip_is_zero_{dut_port}': {
             'type': 'raw',
             'protocol': 'ip',
@@ -159,7 +159,7 @@ async def get_illegal_drop_streams(dent_dev, dev_groups, tg_ports, dut_port, mac
             'ttl': '64',
             'rate': rate,
             'frame_rate_type': 'line_rate',
-            },
+        },
     }
 
 
@@ -181,7 +181,8 @@ async def verify_drop_rate_avg(dent_dev, cpu_stat_code, exp_rate, deviation=0.1,
     actual_rate = int(out.strip())
     res = isclose(exp_rate, actual_rate, rel_tol=deviation)
     if logs:
-        dent_dev.applog.info(f'Drop rate {actual_rate} expected {exp_rate} for stat_code {cpu_stat_code}')
+        dent_dev.applog.info(
+            f'Drop rate {actual_rate} expected {exp_rate} for stat_code {cpu_stat_code}')
     assert res, f'Current drop rate {actual_rate} exceeds expected rate {exp_rate} including deviation {deviation}'
 
 
@@ -214,14 +215,17 @@ def verify_expected_counters(counters_old, counters_new):
     for cpu_code, dropped in counters_new.items():
         if cpu_code in DROP_COUNTERS_MAP.values():
             if cpu_code in counters_old:
-                assert dropped > counters_old[cpu_code], f'Counetrs after {dropped} are not greater than counters before {counters_old[cpu_code]} for {dropped}'
+                assert dropped > counters_old[
+                    cpu_code], f'Counetrs after {dropped} are not greater than counters before {counters_old[cpu_code]} for {dropped}'
             else:
                 continue
         else:
             if cpu_code in counters_old:
-                assert dropped == counters_old[cpu_code], f'Unexpected counters were incremeneted, before {counters_old[cpu_code]} after {dropped} for {cpu_code}'
+                assert dropped == counters_old[
+                    cpu_code], f'Unexpected counters were incremeneted, before {counters_old[cpu_code]} after {dropped} for {cpu_code}'
             else:
-                pytest.fail(f'Unexpected counters were incremented {cpu_code}, {dropped}, counters before {counters_old}')
+                pytest.fail(
+                    f'Unexpected counters were incremented {cpu_code}, {dropped}, counters before {counters_old}')
 
 
 @pytest.mark.parametrize('ports_num', [1, 3])
@@ -240,7 +244,8 @@ async def test_hw_drop_l3(testbed, ports_num):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -252,7 +257,7 @@ async def test_hw_drop_l3(testbed, ports_num):
     # 1.Set link up on interfaces on all participant ports
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': port, 'operstate': 'up'} for port in dut_ports]}])
+            {'dev': port, 'operstate': 'up'} for port in dut_ports]}])
     err_msg = f"Verify that ports {dut_ports} set to 'UP' state.\n{out}"
     assert not out[0][dev_name]['rc'], err_msg
 
@@ -270,7 +275,8 @@ async def test_hw_drop_l3(testbed, ports_num):
             addr_map.append((
                 dut_ports[p_indx], tg_ports[p_indx], str(ip_addr + 1),
                 str(ip_addr), ip_network.prefixlen, str(ip_network.broadcast_address), macs[dut_ports[p_indx]]))
-        ip_network = IPv4Network(f'{ip_network[0] + 256}/{ip_network.prefixlen}')
+        ip_network = IPv4Network(
+            f'{ip_network[0] + 256}/{ip_network.prefixlen}')
 
     out = await IpAddress.add(input_data=[{dev_name: [
         {'dev': port, 'prefix': f'{ip}/{plen}', 'broadcast': broadcast}
@@ -307,7 +313,8 @@ async def test_hw_drop_l3(testbed, ports_num):
 
     # 5.Transmit traffic and verify drop counters updated according to the rate packets sent
     for stream_name in DROP_COUNTERS_MAP:
-        streams_to_apply = {name: streams[name] for name in streams if name.startswith(stream_name)}
+        streams_to_apply = {name: streams[name]
+                            for name in streams if name.startswith(stream_name)}
         await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams_to_apply)
         await tgen_utils_start_traffic(tgen_dev)
         await asyncio.sleep(15)
@@ -335,7 +342,8 @@ async def test_hw_drop_l3_exp_counters(testbed):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -349,7 +357,7 @@ async def test_hw_drop_l3_exp_counters(testbed):
     # 2.Set link up on interfaces on all participant ports
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': port, 'operstate': 'up'} for port in dut_ports]}])
+            {'dev': port, 'operstate': 'up'} for port in dut_ports]}])
     err_msg = f"Verify that ports {dut_ports} set to 'UP' state.\n{out}"
     assert not out[0][dev_name]['rc'], err_msg
 

@@ -44,7 +44,8 @@ async def test_bridging_static_entries(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -52,31 +53,35 @@ async def test_bridging_static_entries(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that bridge created.\n{out}'
+            {'dev': bridge, 'type': 'bridge'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that bridge created.\n{out}'
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'learning': False, 'flood': False} for port in ports]}])
+            {'dev': port, 'learning': False, 'flood': False} for port in ports]}])
     err_msg = f"Verify that entities set to learning 'OFF' and flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeFdb.add(
         input_data=[{device_host_name: [
-            {'device': ports[x], 'lladdr': f'aa:bb:cc:dd:ee:1{x+1}', 'master': True, 'static': True}
+            {'dev': ports[x], 'lladdr': f'aa:bb:cc:dd:ee:1{x+1}',
+                'master': True, 'static': True}
             for x in range(4)]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that FDB static entries added.\n{out}'
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that FDB static entries added.\n{out}'
 
     address_map = (
         # swp port, tg port,    tg ip,     gw,        plen

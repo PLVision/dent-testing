@@ -32,14 +32,14 @@ class LinuxIpNeighborImpl(LinuxIpNeighbor):
 
         """
         params = kwarg['params']
-        cmd = 'ip {} neigh {} '.format(params.get('cmd_options', ''), command)
+        cmd = 'ip {} neigh {} '.format(params.get('options', ''), command)
         # custom code here
         if 'proxy' in params:
             cmd += '{} '.format(params['proxy'])
         if 'address' in params:
             cmd += 'to {} '.format(params['address'])
-        if 'device' in params:
-            cmd += 'dev {} '.format(params['device'])
+        if 'dev' in params:
+            cmd += 'dev {} '.format(params['dev'])
         if 'nud' in params:
             cmd += 'nud {} '.format(params['nud'])
 

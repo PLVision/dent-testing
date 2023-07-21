@@ -12,7 +12,7 @@ pytestmark = [pytest.mark.suite_functional_lacp,
 
 async def get_all_device_ports(device, port):
     name_template = re.search(r'(.+?)\d{1,2}$', port).group(1)
-    out = await IpLink.show(input_data=[{device: [{'cmd_options': '-j'}]}], parse_output=True)
+    out = await IpLink.show(input_data=[{device: [{'options': '-j'}]}], parse_output=True)
     res = out[0][device]['parsed_output']
     ports = [el['ifname'] for el in res if name_template in el['ifname']]
     return ports
@@ -34,22 +34,22 @@ async def test_lacp_unsupported_modes(testbed):
                          'broadcast', 'balance-tlb', 'balance-alb']
     # 1. Create bond devices with unsupported modes : 'balance-rr', 'broadcast', 'balance-tlb', 'balance-alb'
     out = await IpLink.add(input_data=[{device: [
-        {'device': f'bond_{unsupported_modes.index(mode)}',
+        {'dev': f'bond_{unsupported_modes.index(mode)}',
          'type': 'bond',
          'mode': mode} for mode in unsupported_modes]}])
     assert out[0][device]['rc'] == 0, 'Fail to create bond(s)'
     # 2. Try to set created bond devices to `up` state
 
     out = await IpLink.set(input_data=[{device: [
-        {'device': f'bond_{unsupported_modes.index(mode)}',
+        {'dev': f'bond_{unsupported_modes.index(mode)}',
          'operstate': 'up'} for mode in unsupported_modes]}])
     assert out[0][device]['rc'] == 0, 'Fail to set bond(s) to up state'
 
     await asyncio.sleep(15)
     # 3. Verify bond(s) with unsupported modes are in `down` state
     for mode in unsupported_modes:
-        out = await IpLink.show(input_data=[{device: [{'device': f'bond_{unsupported_modes.index(mode)}',
-                                                       'cmd_options': '-j'}]}], parse_output=True)
+        out = await IpLink.show(input_data=[{device: [{'dev': f'bond_{unsupported_modes.index(mode)}',
+                                                       'options': '-j'}]}], parse_output=True)
         err_msg = f'Bond bond_{unsupported_modes.index(mode)} with unsupported mode {mode} is in `UP` state'
         assert out[0][device]['parsed_output'][0]['operstate'] == 'DOWN', err_msg
 
@@ -71,7 +71,7 @@ async def test_lacp_max_lags(testbed):
     device_ports = await get_all_device_ports(device, ports[0])
     max_bonds = 64
     # 1. Create max 'number of  bond devices
-    cmd = [{'device': f'bond_{idx}',
+    cmd = [{'dev': f'bond_{idx}',
             'type': 'bond',
             'mode': '802.3ad'} for idx in range(max_bonds)]
     out = await IpLink.add(input_data=[{device: cmd}])
@@ -84,19 +84,19 @@ async def test_lacp_max_lags(testbed):
     assert int(num_of_ports) >= 1, 'Fail getting port on devices'
 
     out = await IpLink.set(input_data=[{device: [
-        {'device': port,
+        {'dev': port,
          'operstate': 'down'} for port in device_ports]}])
     assert out[0][device]['rc'] == 0, 'Fail to set port(s) to down state'
     # 2. Enslave all ports to different bonds
     out = await IpLink.set(input_data=[{device: [
-        {'device': port,
+        {'dev': port,
          'master': f'bond_{idx}'} for idx, port in enumerate(device_ports)]}])
 
     # 3. Verify it is possible to enslave all ports to bond(s)
     assert out[0][device]['rc'] == 0, 'Fail to enslave port(s) to bond'
 
     out = await IpLink.set(input_data=[{device: [
-        {'device': port,
+        {'dev': port,
          'operstate': 'up'} for port in device_ports]}])
     assert out[0][device]['rc'] == 0, 'Fail to set ports to up state'
 
@@ -119,24 +119,24 @@ async def test_lacp_max_ports_in_lags(testbed):
     device_ports = await get_all_device_ports(device, ports[0])
 
     # 1. Create bond device
-    out = await IpLink.add(input_data=[{device: [{'device': bond,
+    out = await IpLink.add(input_data=[{device: [{'dev': bond,
                                                   'type': 'bond',
                                                   'mode': '802.3ad'}]}])
     assert out[0][device]['rc'] == 0, 'Fail to create bond'
 
     # 5. Add 9 ports to bond
     out = await IpLink.set(input_data=[{device: [
-        {'device': port,
+        {'dev': port,
          'operstate': 'down'} for port in device_ports[:max_ports_in_lag + 1]]}])
     assert out[0][device]['rc'] == 0, 'Fail to set port to down state'
 
     out = await IpLink.set(input_data=[{device: [
-        {'device': port,
+        {'dev': port,
          'master': bond} for port in device_ports[:max_ports_in_lag + 1]]}])
     assert 'RTNETLINK answers: No space left on device' in out[0][device]['result'],\
         f'Number of enslaved ports is about the limit of {max_ports_in_lag}'
 
     out = await IpLink.set(input_data=[{device: [
-        {'device': port,
+        {'dev': port,
          'operstate': 'up'} for port in device_ports[:max_ports_in_lag + 1]]}])
     assert out[0][device]['rc'] == 0, 'Fail setting port(s) to up state'

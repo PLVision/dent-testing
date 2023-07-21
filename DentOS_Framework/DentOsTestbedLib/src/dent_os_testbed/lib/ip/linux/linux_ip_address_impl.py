@@ -125,8 +125,8 @@ class LinuxIpAddressImpl(LinuxIpAddress):
         """
         params = kwarg['params']
         if params.get('dut_discovery', False):
-            params['cmd_options'] = '-j -d'
-        cmd = 'ip {} address {} '.format(params.get('cmd_options', ''), command)
+            params['options'] = '-j -d'
+        cmd = 'ip {} address {} '.format(params.get('options', ''), command)
         if 'dev' in params:
             cmd += '{} '.format(params['dev'])
         if 'scope' in params:

@@ -19,7 +19,8 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv4,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
     pytest.mark.asyncio,
 ]
 
@@ -45,7 +46,8 @@ async def test_ipv4_bm_traffic_forwarding(testbed):
     """
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:2]
@@ -67,7 +69,7 @@ async def test_ipv4_bm_traffic_forwarding(testbed):
     )
 
     # 1. Set link up on all participant ports
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'}
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'operstate': 'up'}
                                                for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -94,7 +96,7 @@ async def test_ipv4_bm_traffic_forwarding(testbed):
 
         # 3. Verify offload flag does not appear in the route of the first port connected to Ixia
         out = await IpRoute.show(input_data=[{dent: [
-            {'cmd_options': '-j'}
+            {'options': '-j'}
         ]}], parse_output=True)
         assert out[0][dent]['rc'] == 0, 'Failed to get list of route entries'
 
@@ -141,7 +143,7 @@ async def test_ipv4_bm_traffic_forwarding(testbed):
 
     # 8. Verify offload flag appear in the route of the first port connected to Ixia
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of route entries'
 

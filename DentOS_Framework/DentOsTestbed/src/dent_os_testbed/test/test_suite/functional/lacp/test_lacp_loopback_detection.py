@@ -47,39 +47,39 @@ async def test_lacp_loopback_detection(testbed, version):
     wait_time = 40 if version == 'stp' else 20
 
     # 1. Create bridge entities and 6 bonds and set link up on them
-    out = await IpLink.add(input_data=[{dent: [{'device': bond,
+    out = await IpLink.add(input_data=[{dent: [{'dev': bond,
                                                 'type': 'bond',
                                                 'mode': '802.3ad'} for bond in bonds]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bond'
 
     out = await IpLink.add(input_data=[{dent: [{
-        'device': bridge,
+        'dev': bridge,
         'type': 'bridge',
         'stp_state': 0}]}])  # stp not enabled
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2. Enslave ports according to the test's setup topology
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port_in_bond, 'operstate': 'down'} for port_in_bond in bonds.values()] +
-               [{'device': port, 'operstate': 'down'} for port in dut_ixia_ports] +
-               [{'device': bond, 'operstate': 'down'} for bond in bonds] +
-               [{'device': bridge, 'operstate': 'down'}]
+        {dent: [{'dev': port_in_bond, 'operstate': 'down'} for port_in_bond in bonds.values()] +
+               [{'dev': port, 'operstate': 'down'} for port in dut_ixia_ports] +
+               [{'dev': bond, 'operstate': 'down'} for bond in bonds] +
+               [{'dev': bridge, 'operstate': 'down'}]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces to down'
 
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'master': bond} for bond, port in bonds.items()] +
-         [{'device': bond, 'master': bridge} for bond in bonds] +
-         [{'device': port, 'master': bridge} for port in dut_ixia_ports]
+        {dent: [{'dev': port, 'master': bond} for bond, port in bonds.items()] +
+         [{'dev': bond, 'master': bridge} for bond in bonds] +
+         [{'dev': port, 'master': bridge} for port in dut_ixia_ports]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces to up'
 
     # 4. Set link up on all participant ports, bonds, bridges
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port_in_bond, 'operstate': 'up'} for port_in_bond in bonds.values()] +
-               [{'device': port, 'operstate': 'up'} for port in dut_ixia_ports] +
-               [{'device': bond, 'operstate': 'up'} for bond in bonds] +
-               [{'device': bridge, 'operstate': 'up'}]
+        {dent: [{'dev': port_in_bond, 'operstate': 'up'} for port_in_bond in bonds.values()] +
+               [{'dev': port, 'operstate': 'up'} for port in dut_ixia_ports] +
+               [{'dev': bond, 'operstate': 'up'} for bond in bonds] +
+               [{'dev': bridge, 'operstate': 'up'}]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces'
 
@@ -136,7 +136,7 @@ async def test_lacp_loopback_detection(testbed, version):
 
     # 8. Set bridge stp_state to 1.
     out = await IpLink.set(input_data=[{dent: [{
-        'device': bridge,
+        'dev': bridge,
         'type': 'bridge',
         'stp_state': 1}]}])  # stp enabled
     assert out[0][dent]['rc'] == 0, 'Failed to enable stp on bridge'
@@ -173,4 +173,5 @@ async def test_lacp_loopback_detection(testbed, version):
     for row in stats.Rows:
         if row['Port Name'] == tg_ports[0]:
             err_msg = f'Expected 0 got : {float(row["Rx. Rate (Mbps)"])}'
-            assert isclose(float(row['Rx. Rate (Mbps)']), 0.00, abs_tol=0.1), err_msg
+            assert isclose(float(row['Rx. Rate (Mbps)']),
+                           0.00, abs_tol=0.1), err_msg

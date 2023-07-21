@@ -29,7 +29,7 @@ async def restore_port_speed(testbed):
     dent = dent_devices[0].host_name
     ports = tgen_dev.links_dict[dent][1]
 
-    out = await IpLink.show(input_data=[{dent: [{'cmd_options': '-j'}]}], parse_output=True)
+    out = await IpLink.show(input_data=[{dent: [{'options': '-j'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port state'
 
     if not all(link['operstate'] == 'UP'
@@ -38,7 +38,7 @@ async def restore_port_speed(testbed):
         # not all ports are up
         # port hast to be UP to see current advertisement modes and/or speed
         out = await IpLink.set(input_data=[{dent: [
-            {'device': port, 'operstate': 'up'}
+            {'dev': port, 'operstate': 'up'}
             for port in ports
         ]}])
         assert out[0][dent]['rc'] == 0, 'Failed to set operstate up'
@@ -46,10 +46,12 @@ async def restore_port_speed(testbed):
         await asyncio.sleep(10)
 
     ethtool = await asyncio.gather(*[
-        Ethtool.show(input_data=[{dent: [{'devname': port}]}], parse_output=True)
+        Ethtool.show(
+            input_data=[{dent: [{'devname': port}]}], parse_output=True)
         for port in ports
     ])
-    assert all(out[0][dent]['rc'] == 0 for out in ethtool), 'Failed to get ports\' speed'
+    assert all(out[0][dent]['rc'] ==
+               0 for out in ethtool), 'Failed to get ports\' speed'
 
     yield  # Run the test
 

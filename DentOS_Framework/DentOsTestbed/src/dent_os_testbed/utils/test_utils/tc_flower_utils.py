@@ -90,7 +90,8 @@ async def tcutil_get_tc_rule_stats(dent_dev, swp_tgen_ports, swp_tc_rules):
                 line = '{}. {} Pref {} Chain {} protocol {} Key [ '.format(
                     count, swp, rule['pref'], chain, rule['protocol']
                 )
-                line += 'indev {} '.format(rule['options'].get('indev', 'swp+'))
+                line += 'indev {} '.format(
+                    rule['options'].get('indev', 'swp+'))
                 for k, v in rule['options']['keys'].items():
                     line += f'{k}=={v},'
                 line += '] Action ['
@@ -213,7 +214,8 @@ async def tcutil_get_iptables_rule_stats(dent_dev, swp_iptables_rules):
     dent = dent_dev.host_name
     out = await IpTables.list(
         input_data=[
-            {dent: [{'table': 'filter', 'chain': 'INPUT', 'cmd_options': '-n -v --line-numbers'}]}
+            {dent: [{'table': 'filter', 'chain': 'INPUT',
+                     'options': '-n -v --line-numbers'}]}
         ],
         parse_output=True,
     )
@@ -443,8 +445,10 @@ async def tcutil_verify_tgen_stats(dev, row, rule_action='pass',
         expected_loss = 100
     if rule_action == 'trap':
         traffic_duration = tx_packets / actual_pps
-        expected_loss = (1 - max_acl_pps / (tx_packets / traffic_duration)) * 100
-        expected_loss = max(min(expected_loss, 100), 0)  # limit values to 0..100
+        expected_loss = (1 - max_acl_pps /
+                         (tx_packets / traffic_duration)) * 100
+        # limit values to 0..100
+        expected_loss = max(min(expected_loss, 100), 0)
 
     dev.applog.info(f"Traffic item: {row['Traffic Item']}\n" +
                     f"Tx Frames: {tx_packets}, Rx Frames: {row['Rx Frames']}, " +

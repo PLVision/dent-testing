@@ -58,14 +58,17 @@ async def setup_topo_for_vrrp(testbed, use_bridge=False, use_vid=None, use_tgen=
         DeviceType.INFRA_SWITCH,
     ], 0)
     if not tgen_dev or not dent_devices or len(dent_devices) < 3:
-        pytest.skip('The testbed does not have enough devices (1 agg + 2 infra)')
+        pytest.skip(
+            'The testbed does not have enough devices (1 agg + 2 infra)')
 
-    infra = [dent for dent in dent_devices if dent.type == DeviceType.INFRA_SWITCH]
+    infra = [dent for dent in dent_devices if dent.type ==
+             DeviceType.INFRA_SWITCH]
     if len(infra) < 2:
         pytest.skip('The testbed does not have enough infra devices')
     infra = infra[:2]
 
-    agg = [dent for dent in dent_devices if dent.type == DeviceType.AGGREGATION_ROUTER]
+    agg = [dent for dent in dent_devices if dent.type ==
+           DeviceType.AGGREGATION_ROUTER]
     if len(agg) < 1:
         pytest.skip('The testbed does not have enough agg devices')
     agg = agg[0]
@@ -95,19 +98,21 @@ async def setup_topo_for_vrrp(testbed, use_bridge=False, use_vid=None, use_tgen=
     ]
 
     ip_link_config = {
-        agg.host_name: [{'device': links[0][agg], 'master': bridge, 'operstate': 'up'},
-                        {'device': links[1][agg], 'master': bridge, 'operstate': 'up'},
-                        {'device': bridge, 'operstate': 'up'}],
-        infra[0].host_name: [{'device': links[0][infra[0]], 'master': bridge, 'operstate': 'up'},
-                             {'device': links[2][infra[0]], 'operstate': 'up'},
-                             {'device': bridge, 'operstate': 'up'}],
-        infra[1].host_name: [{'device': links[1][infra[1]], 'master': bridge, 'operstate': 'up'},
-                             {'device': links[2][infra[1]], 'operstate': 'up'},
-                             {'device': bridge, 'operstate': 'up'}],
+        agg.host_name: [{'dev': links[0][agg], 'master': bridge, 'operstate': 'up'},
+                        {'dev': links[1][agg], 'master': bridge,
+                            'operstate': 'up'},
+                        {'dev': bridge, 'operstate': 'up'}],
+        infra[0].host_name: [{'dev': links[0][infra[0]], 'master': bridge, 'operstate': 'up'},
+                             {'dev': links[2][infra[0]], 'operstate': 'up'},
+                             {'dev': bridge, 'operstate': 'up'}],
+        infra[1].host_name: [{'dev': links[1][infra[1]], 'master': bridge, 'operstate': 'up'},
+                             {'dev': links[2][infra[1]], 'operstate': 'up'},
+                             {'dev': bridge, 'operstate': 'up'}],
     }
     if use_vid is not None:  # Q-bridge
         bridge_config = {
-            dent.host_name: [{'name': bridge, 'type': 'bridge', 'vlan_filtering': 1, 'vlan_default_pvid': 0}]
+            dent.host_name: [{'name': bridge, 'type': 'bridge',
+                              'vlan_filtering': 1, 'vlan_default_pvid': 0}]
             for dent in [agg, infra[0], infra[1]]
         }
     elif use_bridge:  # D-bridge
@@ -127,9 +132,9 @@ async def setup_topo_for_vrrp(testbed, use_bridge=False, use_vid=None, use_tgen=
         del ip_link_config[infra[1].host_name][-1]
 
     if use_tgen:
-        ip_link_config[agg.host_name].append({'device': tg_links[0][agg],
+        ip_link_config[agg.host_name].append({'dev': tg_links[0][agg],
                                               'master': bridge, 'operstate': 'up'})
-        ip_link_config[infra[1].host_name].append({'device': tg_links[1][infra[1]],
+        ip_link_config[infra[1].host_name].append({'dev': tg_links[1][infra[1]],
                                                    'operstate': 'up'})
 
     # Add bridges
@@ -145,19 +150,19 @@ async def setup_topo_for_vrrp(testbed, use_bridge=False, use_vid=None, use_tgen=
     # Add vlans and bridge vlan interfaces
     if use_vid is not None:
         agg_vlans = [
-            {'device': links[0][agg], 'vid': use_vid},
-            {'device': links[1][agg], 'vid': use_vid},
+            {'dev': links[0][agg], 'vid': use_vid},
+            {'dev': links[1][agg], 'vid': use_vid},
         ]
         if use_tgen:
-            agg_vlans.append({'device': tg_links[0][agg], 'vid': use_vid,
+            agg_vlans.append({'dev': tg_links[0][agg], 'vid': use_vid,
                               'untagged': True, 'pvid': True})
 
         out = await BridgeVlan.add(input_data=[{
             agg.host_name: agg_vlans,
-            infra[0].host_name: [{'device': links[0][infra[0]], 'vid': use_vid},
-                                 {'device': bridge, 'vid': use_vid, 'self': True}],
-            infra[1].host_name: [{'device': links[1][infra[1]], 'vid': use_vid},
-                                 {'device': bridge, 'vid': use_vid, 'self': True}],
+            infra[0].host_name: [{'dev': links[0][infra[0]], 'vid': use_vid},
+                                 {'dev': bridge, 'vid': use_vid, 'self': True}],
+            infra[1].host_name: [{'dev': links[1][infra[1]], 'vid': use_vid},
+                                 {'dev': bridge, 'vid': use_vid, 'self': True}],
         }])
         assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
             'Failed to add vlans'
@@ -175,8 +180,8 @@ async def setup_topo_for_vrrp(testbed, use_bridge=False, use_vid=None, use_tgen=
             'Failed to create bridge vlan devices'
 
         out = await IpLink.set(input_data=[{
-            infra[0].host_name: [{'device': vlan_dev, 'operstate': 'up'}],
-            infra[1].host_name: [{'device': vlan_dev, 'operstate': 'up'}],
+            infra[0].host_name: [{'dev': vlan_dev, 'operstate': 'up'}],
+            infra[1].host_name: [{'dev': vlan_dev, 'operstate': 'up'}],
         }])
         assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
             'Failed to set operstate'
@@ -198,12 +203,15 @@ async def setup_topo_for_vrrp(testbed, use_bridge=False, use_vid=None, use_tgen=
 
     # Add ip addrs
     if use_tgen:
-        ip_addr_config[infra[1].host_name].append({'dev': tg_links[1][infra[1]], 'prefix': '192.168.2.1/24'})
+        ip_addr_config[infra[1].host_name].append(
+            {'dev': tg_links[1][infra[1]], 'prefix': '192.168.2.1/24'})
     else:
         ip_addr_config[agg.host_name] = [{'dev': bridge, 'prefix': ep_ip}]
 
-    ip_addr_config[infra[0].host_name].append({'dev': links[2][infra[0]], 'prefix': '192.168.3.10/24'})
-    ip_addr_config[infra[1].host_name].append({'dev': links[2][infra[1]], 'prefix': '192.168.3.11/24'})
+    ip_addr_config[infra[0].host_name].append(
+        {'dev': links[2][infra[0]], 'prefix': '192.168.3.10/24'})
+    ip_addr_config[infra[1].host_name].append(
+        {'dev': links[2][infra[1]], 'prefix': '192.168.3.11/24'})
 
     out = await IpAddress.add(input_data=[ip_addr_config])
     assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
@@ -215,8 +223,10 @@ async def setup_topo_for_vrrp(testbed, use_bridge=False, use_vid=None, use_tgen=
         dut_ports = [tg_links[0][agg], tg_links[1][infra[1]]]
 
         dev_groups = tgen_utils_dev_groups_from_config([
-            {'ixp': tgen_ports[0], 'ip': ep_ip.split('/')[0], 'gw': vrrp_ip, 'plen': ep_ip.split('/')[1]},
-            {'ixp': tgen_ports[1], 'ip': '192.168.2.2', 'gw': '192.168.2.1', 'plen': 24},
+            {'ixp': tgen_ports[0], 'ip': ep_ip.split(
+                '/')[0], 'gw': vrrp_ip, 'plen': ep_ip.split('/')[1]},
+            {'ixp': tgen_ports[1], 'ip': '192.168.2.2',
+                'gw': '192.168.2.1', 'plen': 24},
         ])
         await tgen_utils_traffic_generator_connect(tgen_dev, tgen_ports, dut_ports, dev_groups)
 
@@ -234,7 +244,8 @@ async def setup_topo_for_vrrp(testbed, use_bridge=False, use_vid=None, use_tgen=
         # Add static arp because for some reason the neighbor is aged and becomes
         # invalid which causes traffic loss
         out = await IpAddress.show(input_data=[{
-            infra[1].host_name: [{'dev': links[2][infra[1]], 'cmd_options': '-j'}]
+            infra[1].host_name: [
+                {'dev': links[2][infra[1]], 'options': '-j'}]
         }], parse_output=True)
         assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
             'Failed to get infra1 mac addr'
@@ -242,7 +253,8 @@ async def setup_topo_for_vrrp(testbed, use_bridge=False, use_vid=None, use_tgen=
         mac = out[0][infra[1].host_name]['parsed_output'][0]['address']
         out = await IpNeighbor.replace(input_data=[{
             infra[0].host_name: [
-                {'dev': links[2][infra[0]], 'address': '192.168.3.11', 'lladdr': mac}
+                {'dev': links[2][infra[0]],
+                    'address': '192.168.3.11', 'lladdr': mac}
             ],
         }])
         assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
@@ -269,7 +281,8 @@ async def verify_vrrp_ping(agg, infra, ports, expected, dst=None, count=10, inte
                                               count_only=True, timeout=interval*3 * count + spinup_time))
         for dent, port in zip(infra, ports)
     ]
-    await asyncio.sleep(spinup_time)  # give tcpdump some time to start capturing packets
+    # give tcpdump some time to start capturing packets
+    await asyncio.sleep(spinup_time)
 
     if do_ping:
         rc = await tb_ping_device(agg, dst, dump=True, count=count, interval=interval)

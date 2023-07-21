@@ -17,7 +17,8 @@ async def check_and_restore_lldp_service(testbed):
     """
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 0)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dev_name = dent_devices[0].host_name
     dut_ports = tgen_dev.links_dict[dev_name][1]
@@ -34,7 +35,7 @@ async def check_and_restore_lldp_service(testbed):
     # Collect running LLDP configuration
     out = await Lldp.show_lldpcli(
         input_data=[{dev_name: [
-            {'running-configuration': '', 'cmd_options': '-f json'}]}], parse_output=True)
+            {'running-configuration': '', 'options': '-f json'}]}], parse_output=True)
     assert not out[0][dev_name]['rc'], f'Failed to show LLDP neighbors.\n{out}'
     default_lldp_setup = out[0][dev_name]['parsed_output']['configuration']['config']
     default_state = 'rx-and-tx'
@@ -45,11 +46,12 @@ async def check_and_restore_lldp_service(testbed):
     out = await Lldp.configure(
         input_data=[{dev_name: [
             {'interface': port, 'ports': '', 'lldp': '', 'status': default_state} for port in dut_ports]}])
-    assert not out[0][dev_name]['rc'], f'Failed to configure lldp status on port {dut_ports}.\n{out}'
+    assert not out[0][dev_name][
+        'rc'], f'Failed to configure lldp status on port {dut_ports}.\n{out}'
 
     out = await Lldp.show_lldpcli(
         input_data=[{dev_name: [
-            {'running-configuration': '', 'cmd_options': '-f json'}]}], parse_output=True)
+            {'running-configuration': '', 'options': '-f json'}]}], parse_output=True)
     assert not out[0][dev_name]['rc'], f'Failed to show LLDP neighbors.\n{out}'
     actual_lldp_setup = out[0][dev_name]['parsed_output']['configuration']['config']
 
@@ -57,7 +59,8 @@ async def check_and_restore_lldp_service(testbed):
         out = await Lldp.configure(
             input_data=[{dev_name: [
                 {'lldp': '', 'tx-interval': default_lldp_setup['tx-delay']}]}])
-        assert not out[0][dev_name]['rc'], f'Failed to configure LLDP tx-interval.\n{out}'
+        assert not out[0][dev_name][
+            'rc'], f'Failed to configure LLDP tx-interval.\n{out}'
 
     if actual_lldp_setup['tx-hold'] != default_lldp_setup['tx-hold']:
         out = await Lldp.configure(

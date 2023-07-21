@@ -56,12 +56,12 @@ async def test_lacp_routing_over_lacp(testbed):
 
     # 1. Create bridge and 2 bonds
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bond,
+        {'dev': bond,
          'type': 'bond',
          'mode': '802.3ad'} for bond in [bond_1, bond_2]]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bond'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': bond, 'operstate': 'up'} for bond in [bond_1, bond_2]]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': bond, 'operstate': 'up'} for bond in [bond_1, bond_2]]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bond to state up'
 
     # 2. Enslave DUT port <==> tgen port 1 to bond 1
@@ -69,10 +69,10 @@ async def test_lacp_routing_over_lacp(testbed):
     # DUT port <==> tgen port 3 to bond 2
     # DUT port <==>  tgen port 4 to bond 2
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'down'} for port in ports] +
-               [{'device': ports[0], 'master': bond_1}] +
-               [{'device': port, 'master': bond_2} for port in ports[1:]] +
-               [{'device': port, 'operstate': 'up'} for port in ports]
+        {dent: [{'dev': port, 'operstate': 'down'} for port in ports] +
+               [{'dev': ports[0], 'master': bond_1}] +
+               [{'dev': port, 'master': bond_2} for port in ports[1:]] +
+               [{'dev': port, 'operstate': 'up'} for port in ports]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed setting links to state down'
 

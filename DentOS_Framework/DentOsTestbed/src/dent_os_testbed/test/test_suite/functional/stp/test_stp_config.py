@@ -22,7 +22,8 @@ from dent_os_testbed.test.test_suite.functional.stp.stp_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_stp,
-    pytest.mark.usefixtures('cleanup_bridges', 'cleanup_tgen', 'disable_mstpd'),
+    pytest.mark.usefixtures(
+        'cleanup_bridges', 'cleanup_tgen', 'disable_mstpd'),
     pytest.mark.asyncio,
 ]
 
@@ -38,7 +39,7 @@ async def get_topo_state(dent, bridge_members):
     ports = [port for members in bridge_members.values() for port in members]
     bridges = [bridge for bridge in bridge_members]
 
-    out = await IpLink.show(input_data=[{dent: [{'cmd_options': '-d -j'}]}], parse_output=True)
+    out = await IpLink.show(input_data=[{dent: [{'options': '-d -j'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
     port_state = {
@@ -61,7 +62,8 @@ async def get_topo_state(dent, bridge_members):
         else:
             root_port[bridge] = None
 
-    root_bridge = [bridge for bridge, port in root_port.items() if port is None]
+    root_bridge = [bridge for bridge,
+                   port in root_port.items() if port is None]
     assert len(root_bridge) == 1, 'Expected only 1 root bridge'
 
     return {
@@ -88,7 +90,8 @@ async def test_stp_bpdu_guard(testbed):
     num_ports = 1
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_device = dent_devices[0]
     dent = dent_device.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_ports]
@@ -100,15 +103,15 @@ async def test_stp_bpdu_guard(testbed):
 
     # 1. Add bridge
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge', 'stp_state': 1}
+        {'dev': bridge, 'type': 'bridge', 'stp_state': 1}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2. Enslave ports
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge}
+        {'dev': port, 'operstate': 'up', 'master': bridge}
     ] + [
-        {'device': bridge, 'operstate': 'up', 'address': bridge_mac}
+        {'dev': bridge, 'operstate': 'up', 'address': bridge_mac}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -142,7 +145,7 @@ async def test_stp_bpdu_guard(testbed):
 
     # 4. Enable BDPU guard
     out = await BridgeLink.set(input_data=[{dent: [
-        {'guard': True, 'device': port}
+        {'guard': True, 'dev': port}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to enable bpdu guard'
 
@@ -153,7 +156,7 @@ async def test_stp_bpdu_guard(testbed):
 
     # 6. Verify the port becomes disabled/discarding
     out = await BridgeLink.show(input_data=[{dent: [
-        {'device': port, 'options': '-j'}
+        {'dev': port, 'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port detail'
 
@@ -182,16 +185,19 @@ async def test_stp_forward_delay(testbed):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 0)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_device = dent_devices[0]
     dent = dent_device.host_name
 
     # [[A0, B0, ...], [A1, B1, ...]]
     loopbacks = dent_device.links_dict.get(dent, [])[:2]
     # [(A0, A1), (B0, B1), ...]
-    loopbacks = list(zip(*[iter([port for link in zip(*loopbacks) for port in link])]*2))[:num_loopbacks]
+    loopbacks = list(zip(
+        *[iter([port for link in zip(*loopbacks) for port in link])]*2))[:num_loopbacks]
     if len(loopbacks) < num_loopbacks:
-        pytest.skip(f'Dent {dent_device} does not have enough loopback connections {loopbacks}')
+        pytest.skip(
+            f'Dent {dent_device} does not have enough loopback connections {loopbacks}')
 
     bridges = [f'br{idx}' for idx in range(num_loopbacks)]
     loopback_ports = [port for link in loopbacks for port in link]
@@ -204,7 +210,7 @@ async def test_stp_forward_delay(testbed):
 
     # 1. Add bridges
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge', 'stp_state': 1}
+        {'dev': bridge, 'type': 'bridge', 'stp_state': 1}
         for bridge in bridges
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
@@ -218,10 +224,10 @@ async def test_stp_forward_delay(testbed):
                 br2
     """
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge}
+        {'dev': port, 'operstate': 'up', 'master': bridge}
         for bridge, members in bridge_members.items() for port in members
     ] + [
-        {'device': bridge, 'operstate': 'up'}
+        {'dev': bridge, 'operstate': 'up'}
         for bridge in bridges
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
@@ -275,7 +281,7 @@ async def test_stp_forward_delay(testbed):
     ][0]
 
     out = await IpLink.set(input_data=[{dent: [
-        {'device': topo['root_port'][other_bridge], 'operstate': 'down'}
+        {'dev': topo['root_port'][other_bridge], 'operstate': 'down'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state DOWN'
 
@@ -293,10 +299,10 @@ async def test_stp_forward_delay(testbed):
 
     # 5. Set forward delay and bring back the indirect link
     out = await IpLink.set(input_data=[{dent: [
-        {'device': topo['root_bridge'],
+        {'dev': topo['root_bridge'],
          'forward_delay': forward_delay,
          'max_age': max_age},
-        {'device': topo['root_port'][other_bridge],
+        {'dev': topo['root_port'][other_bridge],
          'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to update bridge parameters'
@@ -305,7 +311,8 @@ async def test_stp_forward_delay(testbed):
     async def check_new_topo(dent, bridge_members, old_topo):
         new_topo = await get_topo_state(dent, bridge_members)
 
-        new_blocked_port = [port for port, state in new_topo['port_state'].items() if state['state'] == 'blocking']
+        new_blocked_port = [port for port, state in new_topo['port_state'].items(
+        ) if state['state'] == 'blocking']
         assert len(new_blocked_port) == 1, 'Expected only 1 blocked port'
         new_blocked_port = new_blocked_port[0]
         assert new_blocked_port == old_topo['blocked_port'], \
@@ -339,7 +346,8 @@ async def test_stp_max_age(testbed):
     num_ports = 3
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_device = dent_devices[0]
     dent = dent_device.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_ports]
@@ -353,16 +361,16 @@ async def test_stp_max_age(testbed):
 
     # 1. Add bridge
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge', 'stp_state': 1}
+        {'dev': bridge, 'type': 'bridge', 'stp_state': 1}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2. Enslave ports
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge}
+        {'dev': port, 'operstate': 'up', 'master': bridge}
         for port in ports
     ] + [
-        {'device': bridge, 'operstate': 'up', 'address': bridge_mac}
+        {'dev': bridge, 'operstate': 'up', 'address': bridge_mac}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -413,23 +421,25 @@ async def test_stp_max_age(testbed):
     # don't stop
 
     out = await IpLink.show(input_data=[{dent: [
-        {'cmd_options': '-j -d'}
+        {'options': '-j -d'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port detail'
     device_state = {
-        link['ifname']: link['linkinfo'].get('info_slave_data') or link['linkinfo'].get('info_data')
+        link['ifname']: link['linkinfo'].get(
+            'info_slave_data') or link['linkinfo'].get('info_data')
         for link in out[0][dent]['parsed_output']
         if link['ifname'] in ports + [bridge]
     }
     assert device_state[bridge]['root_port'] != 0, 'Bridge should not be root'
-    assert device_state[ports[1]]['state'] == 'blocking', 'Port should be blocking'
+    assert device_state[ports[1]
+                        ]['state'] == 'blocking', 'Port should be blocking'
 
     # 5. Verify port state becomes forwarding after 20s
     await tgen_utils_stop_traffic(tgen_dev)
 
     async def check_that_port_is_not_blocking(dent, port):
         out = await IpLink.show(input_data=[{dent: [
-            {'device': port, 'cmd_options': '-j -d'}
+            {'dev': port, 'options': '-j -d'}
         ]}], parse_output=True)
         assert out[0][dent]['rc'] == 0, 'Failed to get port detail'
         assert out[0][dent]['parsed_output'][0]['linkinfo']['info_slave_data']['state'] != 'blocking', \
@@ -448,16 +458,18 @@ async def test_stp_max_age(testbed):
     await asyncio.sleep(20)
 
     out = await IpLink.show(input_data=[{dent: [
-        {'cmd_options': '-j -d'}
+        {'options': '-j -d'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port detail'
     device_state = {
-        link['ifname']: link['linkinfo'].get('info_slave_data') or link['linkinfo'].get('info_data')
+        link['ifname']: link['linkinfo'].get(
+            'info_slave_data') or link['linkinfo'].get('info_data')
         for link in out[0][dent]['parsed_output']
         if link['ifname'] in ports + [bridge]
     }
     assert device_state[bridge]['root_port'] != 0, 'Bridge should not be root'
-    assert device_state[ports[1]]['state'] == 'blocking', 'Port should be blocking'
+    assert device_state[ports[1]
+                        ]['state'] == 'blocking', 'Port should be blocking'
 
     # 7. Verify port state becomes forwarding after 6s
     await tgen_utils_stop_traffic(tgen_dev)
@@ -483,7 +495,8 @@ async def test_stp_root_guard(testbed):
     num_ports = 1
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_device = dent_devices[0]
     dent = dent_device.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_ports]
@@ -495,15 +508,15 @@ async def test_stp_root_guard(testbed):
 
     # 1. Add bridge
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge', 'stp_state': 1}
+        {'dev': bridge, 'type': 'bridge', 'stp_state': 1}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2. Enslave ports
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge}
+        {'dev': port, 'operstate': 'up', 'master': bridge}
     ] + [
-        {'device': bridge, 'operstate': 'up', 'address': bridge_mac}
+        {'dev': bridge, 'operstate': 'up', 'address': bridge_mac}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -542,7 +555,7 @@ async def test_stp_root_guard(testbed):
 
     # 5. Verify port is root
     out = await IpLink.show(input_data=[{dent: [
-        {'device': bridge, 'cmd_options': '-j -d'}
+        {'dev': bridge, 'options': '-j -d'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port detail'
 
@@ -551,14 +564,14 @@ async def test_stp_root_guard(testbed):
 
     # 6. Enable root guard (restrict port role)
     out = await BridgeLink.set(input_data=[{dent: [
-        {'device': port, 'root_block': True}
+        {'dev': port, 'root_block': True}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to get enable root guard'
     await asyncio.sleep(convergence_time_s)
 
     # 7. Verify port is no longer root
     out = await IpLink.show(input_data=[{dent: [
-        {'device': bridge, 'cmd_options': '-j -d'}
+        {'dev': bridge, 'options': '-j -d'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port detail'
 

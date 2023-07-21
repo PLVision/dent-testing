@@ -38,7 +38,8 @@ class IpNeighbor(TestLibObject):
                 if device_obj.os in ['dentos', 'cumulus']:
                     impl_obj = LinuxIpNeighborImpl()
                     for command in device[device_name]:
-                        commands += impl_obj.format_command(command=api, params=command)
+                        commands += impl_obj.format_command(
+                            command=api, params=command)
                         commands += '&& '
                     commands = commands[:-3]
 
@@ -53,7 +54,8 @@ class IpNeighbor(TestLibObject):
                     device_result[device_name]['rc'] = rc
                     device_result[device_name]['result'] = output
                     if 'parse_output' in kwarg:
-                        parse_output = impl_obj.parse_output(command=api, output=output, commands=commands)
+                        parse_output = impl_obj.parse_output(
+                            command=api, output=output, commands=commands)
                         device_result[device_name]['parsed_output'] = parse_output
                 except Exception as e:
                     device_result[device_name]['rc'] = -1
@@ -74,7 +76,7 @@ class IpNeighbor(TestLibObject):
                         'lladdr':'undefined',
                         'nud':'undefined',
                         'proxy':'undefined',
-                        'device':'undefined',
+                        'dev':'undefined',
                         'options':'string',
                 }],
             }],
@@ -99,7 +101,7 @@ class IpNeighbor(TestLibObject):
                         'lladdr':'undefined',
                         'nud':'undefined',
                         'proxy':'undefined',
-                        'device':'undefined',
+                        'dev':'undefined',
                         'options':'string',
                 }],
             }],
@@ -124,7 +126,7 @@ class IpNeighbor(TestLibObject):
                         'lladdr':'undefined',
                         'nud':'undefined',
                         'proxy':'undefined',
-                        'device':'undefined',
+                        'dev':'undefined',
                         'options':'string',
                 }],
             }],
@@ -149,7 +151,7 @@ class IpNeighbor(TestLibObject):
                         'lladdr':'undefined',
                         'nud':'undefined',
                         'proxy':'undefined',
-                        'device':'undefined',
+                        'dev':'undefined',
                         'options':'string',
                 }],
             }],
@@ -172,7 +174,7 @@ class IpNeighbor(TestLibObject):
                     # command 1
                         'proxy':'undefined',
                         'address':'undefined',
-                        'device':'undefined',
+                        'dev':'undefined',
                         'nud':'undefined',
                         'options':'string',
                 }],
@@ -195,7 +197,7 @@ class IpNeighbor(TestLibObject):
                     # command 1
                         'proxy':'undefined',
                         'address':'undefined',
-                        'device':'undefined',
+                        'dev':'undefined',
                         'nud':'undefined',
                         'options':'string',
                 }],

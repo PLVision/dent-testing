@@ -31,7 +31,8 @@ from dent_os_testbed.utils.test_utils.data.tgen_constants import (
 
 pytestmark = [
     pytest.mark.suite_functional_qos,
-    pytest.mark.usefixtures('cleanup_qdiscs', 'cleanup_bridges', 'cleanup_dscp_prio'),
+    pytest.mark.usefixtures(
+        'cleanup_qdiscs', 'cleanup_bridges', 'cleanup_dscp_prio'),
     pytest.mark.asyncio,
 ]
 
@@ -58,7 +59,8 @@ async def test_qos_class_precedence(testbed, trust_mode):
     num_of_ports = 3
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
@@ -78,9 +80,9 @@ async def test_qos_class_precedence(testbed, trust_mode):
 
     # 3. Set all interfaces to up state
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge} for port in ports
+        {'dev': port, 'operstate': 'up', 'master': bridge} for port in ports
     ] + [
-        {'device': bridge, 'operstate': 'up'}
+        {'dev': bridge, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to enslave ports to bridge'
 
@@ -95,12 +97,12 @@ async def test_qos_class_precedence(testbed, trust_mode):
         dscp_prio_map = {}
         vlan = random.randint(2, 4094)
         out = await BridgeVlan.delete(input_data=[{dent: [
-            {'device': port, 'vid': 1} for port in ports
+            {'dev': port, 'vid': 1} for port in ports
         ]}])
         assert out[0][dent]['rc'] == 0, 'Failed to remove default vlan'
 
         out = await BridgeVlan.add(input_data=[{dent: [
-            {'device': port, 'vid': vlan} for port in ports
+            {'dev': port, 'vid': vlan} for port in ports
         ]}])
         assert out[0][dent]['rc'] == 0, f'Failed to add ports {ports} to vlan {vlan}'
 
@@ -115,7 +117,8 @@ async def test_qos_class_precedence(testbed, trust_mode):
     ))
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 
-    low_prio, med_prio, high_prio = sorted(random.sample(range(1, num_of_bands), 3))
+    low_prio, med_prio, high_prio = sorted(
+        random.sample(range(1, num_of_bands), 3))
     streams = {
         'high priority traffic': {
             'type': 'ethernet',
@@ -137,8 +140,10 @@ async def test_qos_class_precedence(testbed, trust_mode):
         },
     }
     if trust_mode == 'L3':
-        streams['high priority traffic']['dscp_ecn'] = dscp_to_raw(prio_dscp_map[high_prio])
-        streams['low priority traffic']['dscp_ecn'] = dscp_to_raw(prio_dscp_map[low_prio])
+        streams['high priority traffic']['dscp_ecn'] = dscp_to_raw(
+            prio_dscp_map[high_prio])
+        streams['low priority traffic']['dscp_ecn'] = dscp_to_raw(
+            prio_dscp_map[low_prio])
     else:
         streams['high priority traffic']['vlanID'] = vlan
         streams['high priority traffic']['vlanPriority'] = high_prio
@@ -181,7 +186,8 @@ async def test_qos_class_precedence(testbed, trust_mode):
         },
     }
     if trust_mode == 'L3':
-        streams['medium priority traffic']['dscp_ecn'] = dscp_to_raw(prio_dscp_map[med_prio])
+        streams['medium priority traffic']['dscp_ecn'] = dscp_to_raw(
+            prio_dscp_map[med_prio])
     else:
         streams['medium priority traffic']['vlanID'] = vlan
         streams['medium priority traffic']['vlanPriority'] = med_prio

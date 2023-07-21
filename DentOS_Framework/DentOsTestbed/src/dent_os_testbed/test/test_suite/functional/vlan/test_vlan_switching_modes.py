@@ -63,10 +63,13 @@ async def test_vlan_switching_vlan_modes_via_cli(testbed):
 
     packet_vids = ['X', 1, 2, 3, 4]
     port_map = ({'port': 0, 'settings': [{'vlan': 2, 'untagged': False, 'pvid': False},
-                                         {'vlan': 3, 'untagged': True, 'pvid': False},
+                                         {'vlan': 3, 'untagged': True,
+                                             'pvid': False},
                                          {'vlan': 4, 'untagged': True, 'pvid': True}]},
-                {'port': 1, 'settings': [{'vlan': 2, 'untagged': False, 'pvid': False}]},
-                {'port': 2, 'settings': [{'vlan': 3, 'untagged': True, 'pvid': True}]},
+                {'port': 1, 'settings': [
+                    {'vlan': 2, 'untagged': False, 'pvid': False}]},
+                {'port': 2, 'settings': [
+                    {'vlan': 3, 'untagged': True, 'pvid': True}]},
                 {'port': 3, 'settings': [{'vlan': 4, 'untagged': True, 'pvid': True}]})
 
     await configure_bridge_setup(device, dut_ports)
@@ -76,8 +79,10 @@ async def test_vlan_switching_vlan_modes_via_cli(testbed):
 
     dev_groups = tgen_utils_dev_groups_from_config(
         [{'ixp': tg_ports[0], 'ip': '100.1.1.2', 'gw': '100.1.1.6', 'plen': 24, },
-         {'ixp': tg_ports[1], 'ip': '100.1.1.3', 'gw': '100.1.1.6', 'plen': 24, },
-         {'ixp': tg_ports[2], 'ip': '100.1.1.4', 'gw': '100.1.1.6', 'plen': 24, },
+         {'ixp': tg_ports[1], 'ip': '100.1.1.3',
+             'gw': '100.1.1.6', 'plen': 24, },
+         {'ixp': tg_ports[2], 'ip': '100.1.1.4',
+             'gw': '100.1.1.6', 'plen': 24, },
          {'ixp': tg_ports[3], 'ip': '100.1.1.5', 'gw': '100.1.1.6', 'plen': 24, }])
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, dut_ports, dev_groups)
 
@@ -114,7 +119,8 @@ async def test_vlan_switching_vlan_modes_via_cli(testbed):
 
     # 5. Verify traffic per first configuration of VLAN modes.
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-    ti_to_rx_port_map = get_traffic_port_vlan_mapping(streams, port_map, tg_ports)
+    ti_to_rx_port_map = get_traffic_port_vlan_mapping(
+        streams, port_map, tg_ports)
     for row in stats.Rows:
         if row['Rx Port'] in ti_to_rx_port_map[row['Traffic Item']]:
             assert tgen_utils_get_loss(row) == 0.000, \
@@ -126,7 +132,7 @@ async def test_vlan_switching_vlan_modes_via_cli(testbed):
     # 6. Remove dut ports from the VLAN's of the first configuration.
     for port in port_map:
         out = await BridgeVlan.delete(input_data=[{device: [{
-            'device': dut_ports[port['port']],
+            'dev': dut_ports[port['port']],
             'vid': settings['vlan']
         }] for settings in port['settings']}])
         assert out[0][device]['rc'] == 0, f'Failed removing vlan from {port}'
@@ -134,10 +140,13 @@ async def test_vlan_switching_vlan_modes_via_cli(testbed):
     # 7. Set links to new vlans per second configuration of vlan modes
     second_packet_vids = ['X', 0, 5, 101, 500, 4094]
     second_conf_port_map = ({'port': 0, 'settings': [{'vlan': 5, 'untagged': True, 'pvid': True},
-                                                     {'vlan': 101, 'untagged': False, 'pvid': False},
+                                                     {'vlan': 101, 'untagged': False,
+                                                         'pvid': False},
                                                      {'vlan': 4094, 'untagged': True, 'pvid': False}]},
-                            {'port': 1, 'settings': [{'vlan': 5, 'untagged': True, 'pvid': True}]},
-                            {'port': 2, 'settings': [{'vlan': 101, 'untagged': True, 'pvid': True}]},
+                            {'port': 1, 'settings': [
+                                {'vlan': 5, 'untagged': True, 'pvid': True}]},
+                            {'port': 2, 'settings': [
+                                {'vlan': 101, 'untagged': True, 'pvid': True}]},
                             {'port': 3, 'settings': [{'vlan': 4094, 'untagged': True, 'pvid': True}]})
     await configure_vlan_setup(device, second_conf_port_map, dut_ports)
 
@@ -169,7 +178,8 @@ async def test_vlan_switching_vlan_modes_via_cli(testbed):
 
     # 10. Verify traffic.
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-    ti_to_rx_port_map_second_conf = get_traffic_port_vlan_mapping(second_conf_streams, second_conf_port_map, tg_ports)
+    ti_to_rx_port_map_second_conf = get_traffic_port_vlan_mapping(
+        second_conf_streams, second_conf_port_map, tg_ports)
 
     for row in stats.Rows:
         # Skipping traffic items of the first configuration

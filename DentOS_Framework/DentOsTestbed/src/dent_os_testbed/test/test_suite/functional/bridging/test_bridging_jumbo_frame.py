@@ -44,7 +44,8 @@ async def test_bridging_jumbo_frame_size(testbed, mtu):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
@@ -53,15 +54,15 @@ async def test_bridging_jumbo_frame_size(testbed, mtu):
 
     # 1. Add bridge
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge'}
+        {'dev': bridge, 'type': 'bridge'}
     ]}])
     assert out[0][dent]['rc'] == 0, f'Verify that bridge created.\n{out}'
 
     # 2. Enslave ports
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports
+        {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports
     ] + [
-        {'device': bridge, 'operstate': 'up'}
+        {'dev': bridge, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, \
         f'Verify that bridge is set to UP and ports are enslaved.\n{out}'
@@ -69,7 +70,7 @@ async def test_bridging_jumbo_frame_size(testbed, mtu):
     # 3. Set jumbo frame MTU size (1510|8998|9000|9002) on ports
     # (only MTU with even size is supported)
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'mtu': mtu} for port in ports
+        {'dev': port, 'mtu': mtu} for port in ports
     ]}])
     if should_fail:
         assert out[0][dent]['rc'] != 0, \
@@ -124,7 +125,8 @@ async def test_bridging_jumbo_frame_size(testbed, mtu):
                                parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get fdb entry.'
 
-    learned_macs = [entry['mac'] for entry in out[0][dent]['parsed_output'] if 'mac' in entry]
+    learned_macs = [entry['mac']
+                    for entry in out[0][dent]['parsed_output'] if 'mac' in entry]
     if should_fail:
         assert all(mac not in learned_macs for mac in list_macs), \
             'Verify that source macs have not been learned'

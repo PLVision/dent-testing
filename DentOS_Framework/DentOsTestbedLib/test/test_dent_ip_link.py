@@ -155,13 +155,13 @@ def test_that_ip_link_delete(capfd):
                     'test_dev1': [
                         {
                             # command 1
-                            'device': 'vvinuqwr',
+                            'dev': 'vvinuqwr',
                             'group': 'pqtytqgi',
                             'options': 'jvdvsgvo',
                         },
                         {
                             # command 2
-                            'device': 'eluwsgrx',
+                            'dev': 'eluwsgrx',
                             'group': 'axjolzed',
                             'options': 'mgpzsmri',
                         },
@@ -187,7 +187,7 @@ def test_that_ip_link_delete(capfd):
                     # device 1
                     'test_dev1': [
                         {
-                            'device': 'vvinuqwr',
+                            'dev': 'vvinuqwr',
                             'group': 'pqtytqgi',
                             'options': 'jvdvsgvo',
                         }
@@ -195,7 +195,7 @@ def test_that_ip_link_delete(capfd):
                     # device 2
                     'test_dev2': [
                         {
-                            'device': 'eluwsgrx',
+                            'dev': 'eluwsgrx',
                             'group': 'axjolzed',
                             'options': 'mgpzsmri',
                         }
@@ -248,7 +248,7 @@ def test_that_ip_link_set(capfd):
                     'test_dev1': [
                         {
                             # command 1
-                            'device': 'lphstpnf',
+                            'dev': 'lphstpnf',
                             'group': 'chcypcvk',
                             'arp': True,
                             'dynamic': False,
@@ -275,7 +275,7 @@ def test_that_ip_link_set(capfd):
                         },
                         {
                             # command 2
-                            'device': 'gxhdwzlx',
+                            'dev': 'gxhdwzlx',
                             'group': 'urexidnq',
                             'arp': True,
                             'dynamic': False,
@@ -322,7 +322,7 @@ def test_that_ip_link_set(capfd):
                     # device 1
                     'test_dev1': [
                         {
-                            'device': 'lphstpnf',
+                            'dev': 'lphstpnf',
                             'group': 'chcypcvk',
                             'arp': True,
                             'dynamic': False,
@@ -351,7 +351,7 @@ def test_that_ip_link_set(capfd):
                     # device 2
                     'test_dev2': [
                         {
-                            'device': 'gxhdwzlx',
+                            'dev': 'gxhdwzlx',
                             'group': 'urexidnq',
                             'arp': True,
                             'dynamic': False,
@@ -425,13 +425,13 @@ def test_that_ip_link_show(capfd):
                     'test_dev1': [
                         {
                             # command 1
-                            'device': 'vddezuwe',
+                            'dev': 'vddezuwe',
                             'group': 'sumbzdlo',
                             'options': 'gtamvyob',
                         },
                         {
                             # command 2
-                            'device': 'roytjska',
+                            'dev': 'roytjska',
                             'group': 'fxncoyvf',
                             'options': 'vdvxqurp',
                         },
@@ -457,7 +457,7 @@ def test_that_ip_link_show(capfd):
                     # device 1
                     'test_dev1': [
                         {
-                            'device': 'vddezuwe',
+                            'dev': 'vddezuwe',
                             'group': 'sumbzdlo',
                             'options': 'gtamvyob',
                         }
@@ -465,7 +465,7 @@ def test_that_ip_link_show(capfd):
                     # device 2
                     'test_dev2': [
                         {
-                            'device': 'roytjska',
+                            'dev': 'roytjska',
                             'group': 'fxncoyvf',
                             'options': 'vdvxqurp',
                         }
@@ -518,13 +518,13 @@ def test_that_ip_link_xstats(capfd):
                     'test_dev1': [
                         {
                             # command 1
-                            'device': 'uhrfpysw',
+                            'dev': 'uhrfpysw',
                             'group': 'xsizssnp',
                             'options': 'xupyobhu',
                         },
                         {
                             # command 2
-                            'device': 'unaucrbb',
+                            'dev': 'unaucrbb',
                             'group': 'ewnqrvvd',
                             'options': 'kuvdtmhw',
                         },
@@ -550,7 +550,7 @@ def test_that_ip_link_xstats(capfd):
                     # device 1
                     'test_dev1': [
                         {
-                            'device': 'uhrfpysw',
+                            'dev': 'uhrfpysw',
                             'group': 'xsizssnp',
                             'options': 'xupyobhu',
                         }
@@ -558,7 +558,7 @@ def test_that_ip_link_xstats(capfd):
                     # device 2
                     'test_dev2': [
                         {
-                            'device': 'unaucrbb',
+                            'dev': 'unaucrbb',
                             'group': 'ewnqrvvd',
                             'options': 'kuvdtmhw',
                         }
@@ -611,13 +611,13 @@ def test_that_ip_link_afstats(capfd):
                     'test_dev1': [
                         {
                             # command 1
-                            'device': 'gdadpsfl',
+                            'dev': 'gdadpsfl',
                             'group': 'gvkmnxqd',
                             'options': 'ijhlpnbt',
                         },
                         {
                             # command 2
-                            'device': 'rsaszsyr',
+                            'dev': 'rsaszsyr',
                             'group': 'bezevcls',
                             'options': 'skabowpn',
                         },
@@ -643,7 +643,7 @@ def test_that_ip_link_afstats(capfd):
                     # device 1
                     'test_dev1': [
                         {
-                            'device': 'gdadpsfl',
+                            'dev': 'gdadpsfl',
                             'group': 'gvkmnxqd',
                             'options': 'ijhlpnbt',
                         }
@@ -651,7 +651,7 @@ def test_that_ip_link_afstats(capfd):
                     # device 2
                     'test_dev2': [
                         {
-                            'device': 'rsaszsyr',
+                            'dev': 'rsaszsyr',
                             'group': 'bezevcls',
                             'options': 'skabowpn',
                         }

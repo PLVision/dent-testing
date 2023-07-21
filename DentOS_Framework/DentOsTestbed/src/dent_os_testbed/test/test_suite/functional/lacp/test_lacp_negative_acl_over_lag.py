@@ -38,11 +38,11 @@ async def test_lacp_acl_negative(testbed):
         'name': bond,
         'type': 'bond',
         'mode': '802.3ad'
-        }]
+    }]
     }])
     assert out[0][dent]['rc'] == 0, 'Failed creating bond entity.'
 
-    await IpLink.set(input_data=[{dent: [{'device': bond, 'operstate': 'up'}]}])
+    await IpLink.set(input_data=[{dent: [{'dev': bond, 'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bond to state UP.'
 
     # 3. Create an ingress qdisc on the LAG
@@ -56,7 +56,7 @@ async def test_lacp_acl_negative(testbed):
         'direction': 'ingress',
         'filtertype': {},
         'action': 'drop'
-        }
+    }
 
     # 4. Add a rule to bond entity
     out = await TcFilter.add(input_data=[{dent: [tc_rule]}])
@@ -66,5 +66,6 @@ async def test_lacp_acl_negative(testbed):
     out = await TcFilter.show(input_data=[{dent: [
         {'dev': bond, 'direction': 'ingress', 'options': '-j'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Fail retrieving rules'
-    not_offloaded = out[0][dent]['parsed_output'][1]['options'].get('not_in_hw')
+    not_offloaded = out[0][dent]['parsed_output'][1]['options'].get(
+        'not_in_hw')
     assert not_offloaded, 'Verify the rule is not offloaded'

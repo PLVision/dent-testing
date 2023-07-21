@@ -34,7 +34,8 @@ from dent_os_testbed.utils.test_utils.data.tgen_constants import (
 
 pytestmark = [
     pytest.mark.suite_functional_qos,
-    pytest.mark.usefixtures('cleanup_qdiscs', 'cleanup_bridges', 'cleanup_dscp_prio'),
+    pytest.mark.usefixtures(
+        'cleanup_qdiscs', 'cleanup_bridges', 'cleanup_dscp_prio'),
     pytest.mark.asyncio,
 ]
 
@@ -60,7 +61,8 @@ async def test_qos_shaper(testbed, trust_mode):
     num_of_ports = 2
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
@@ -82,9 +84,9 @@ async def test_qos_shaper(testbed, trust_mode):
 
     # 3. Set all interfaces to up state
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge} for port in ports
+        {'dev': port, 'operstate': 'up', 'master': bridge} for port in ports
     ] + [
-        {'device': bridge, 'operstate': 'up'}
+        {'dev': bridge, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to enslave ports to bridge'
 
@@ -98,12 +100,12 @@ async def test_qos_shaper(testbed, trust_mode):
         dscp_prio_map = {}
         vlan = random.randint(2, 4094)
         out = await BridgeVlan.delete(input_data=[{dent: [
-            {'device': port, 'vid': 1} for port in ports
+            {'dev': port, 'vid': 1} for port in ports
         ]}])
         assert out[0][dent]['rc'] == 0, 'Failed to remove default vlan'
 
         out = await BridgeVlan.add(input_data=[{dent: [
-            {'device': port, 'vid': vlan} for port in ports
+            {'dev': port, 'vid': vlan} for port in ports
         ]}])
         assert out[0][dent]['rc'] == 0, f'Failed to add ports {ports} to vlan {vlan}'
 
@@ -115,8 +117,10 @@ async def test_qos_shaper(testbed, trust_mode):
     tg1_ip = '1.1.1.2'
     plen = 24
     dev_groups = tgen_utils_dev_groups_from_config((
-        {'ixp': tg_ports[0], 'ip': tg0_ip, 'gw': tg1_ip, 'plen': plen, 'vlan': vlan},
-        {'ixp': tg_ports[1], 'ip': tg1_ip, 'gw': tg0_ip, 'plen': plen, 'vlan': vlan},
+        {'ixp': tg_ports[0], 'ip': tg0_ip,
+            'gw': tg1_ip, 'plen': plen, 'vlan': vlan},
+        {'ixp': tg_ports[1], 'ip': tg1_ip,
+            'gw': tg0_ip, 'plen': plen, 'vlan': vlan},
     ))
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 

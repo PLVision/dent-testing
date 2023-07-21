@@ -48,32 +48,33 @@ async def test_stp_loopback_detection(testbed, version):
 
     # 1. Create bridge entity
     out = await IpLink.add(input_data=[{dent: [{
-        'device': bridge,
+        'dev': bridge,
         'type': 'bridge',
         'stp_state': 0}]}])  # stp not enabled
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2. Enslave ports according to the test's setup topology
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'down'} for port in dut_ixia_ports] +
-               [{'device': port, 'operstate': 'down'} for port in loopback_ports.values()] +
-               [{'device': bridge, 'operstate': 'down'}]
+        {dent: [{'dev': port, 'operstate': 'down'} for port in dut_ixia_ports] +
+               [{'dev': port, 'operstate': 'down'} for port in loopback_ports.values()] +
+               [{'dev': bridge, 'operstate': 'down'}]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces to down'
 
     out = await IpLink.set(input_data=[
         {dent:
-            [{'device': port, 'master': bridge} for port in dut_ixia_ports] +
-            [{'device': port, 'master': bridge} for port in loopback_ports.values()]
+            [{'dev': port, 'master': bridge} for port in dut_ixia_ports] +
+            [{'dev': port, 'master': bridge}
+                for port in loopback_ports.values()]
 
          }])
     assert out[0][dent]['rc'] == 0, 'Failed to enslave ports'
 
     # 4. Set link up on all participant ports, bridges
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'up'} for port in dut_ixia_ports] +
-               [{'device': port, 'operstate': 'up'} for port in loopback_ports.values()] +
-               [{'device': bridge, 'operstate': 'up'}]
+        {dent: [{'dev': port, 'operstate': 'up'} for port in dut_ixia_ports] +
+               [{'dev': port, 'operstate': 'up'} for port in loopback_ports.values()] +
+               [{'dev': bridge, 'operstate': 'up'}]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces'
 
@@ -123,7 +124,7 @@ async def test_stp_loopback_detection(testbed, version):
 
     # 8. Set bridge stp_state to 1.
     out = await IpLink.set(input_data=[{dent: [{
-        'device': bridge,
+        'dev': bridge,
         'type': 'bridge',
         'stp_state': 1}]}])  # stp enabled
     assert out[0][dent]['rc'] == 0, 'Failed to enable stp on bridge'
@@ -160,4 +161,5 @@ async def test_stp_loopback_detection(testbed, version):
     for row in stats.Rows:
         if row['Port Name'] == tg_ports[0]:
             err_msg = f'Expected 0 got : {float(row["Rx. Rate (Mbps)"])}'
-            assert isclose(float(row['Rx. Rate (Mbps)']), 0.00, abs_tol=0.1), err_msg
+            assert isclose(float(row['Rx. Rate (Mbps)']),
+                           0.00, abs_tol=0.1), err_msg

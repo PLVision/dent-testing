@@ -13,13 +13,13 @@
     - name: modify
       apis: ['add', 'delete', 'change', 'replace']
       cmd: ['ip neigh']
-      params: ['address', 'lladdr', 'nud', 'proxy', 'device', 'options']
+      params: ['address', 'lladdr', 'nud', 'proxy', 'dev', 'options']
       desc: |
         ip neigh { add | del | change | replace } { ADDR [ lladdr LLADDR ]
                  [ nud { permanent | noarp | stale | reachable } ] | proxy ADDR } [ dev DEV ]
     - name: show
       apis: ['show', 'flush']
       cmd: ['ip neigh']
-      params: ['proxy', 'address', 'device', 'nud', 'options']
+      params: ['proxy', 'address', 'dev', 'nud', 'options']
       desc: |
         ip neigh { show | flush } [ proxy ] [ to PREFIX ] [ dev DEV ] [ nud STATE ]

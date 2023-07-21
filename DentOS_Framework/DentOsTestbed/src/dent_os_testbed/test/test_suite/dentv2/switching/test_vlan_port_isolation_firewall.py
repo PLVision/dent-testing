@@ -73,21 +73,22 @@ async def test_dentv2_vlan_port_isolation_firewall(testbed):
     }
 
     # Create bridge br0 and put tgen ports on it
-    await IpLink.delete(input_data=[{infra: [{'device': 'bridge'}]}])
-    await IpLink.delete(input_data=[{infra: [{'device': 'br0'}]}])
+    await IpLink.delete(input_data=[{infra: [{'dev': 'bridge'}]}])
+    await IpLink.delete(input_data=[{infra: [{'dev': 'br0'}]}])
     out = await IpLink.add(
-        input_data=[{infra: [{'device': 'br0', 'type': 'bridge', 'vlan_filtering': 1}]}]
+        input_data=[
+            {infra: [{'dev': 'br0', 'type': 'bridge', 'vlan_filtering': 1}]}]
     )
     assert out[0][infra]['rc'] == 0, out
-    out = await IpLink.set(input_data=[{infra: [{'device': 'br0', 'operstate': 'up'}]}])
+    out = await IpLink.set(input_data=[{infra: [{'dev': 'br0', 'operstate': 'up'}]}])
     assert out[0][infra]['rc'] == 0, out
 
     iptable_rules = {}
     for swp in swp_tgen_ports:
-        await IpLink.set(input_data=[{infra: [{'device': swp, 'nomaster': ''}]}])
-        out = await IpLink.set(input_data=[{infra: [{'device': swp, 'master': 'br0'}]}])
+        await IpLink.set(input_data=[{infra: [{'dev': swp, 'nomaster': ''}]}])
+        out = await IpLink.set(input_data=[{infra: [{'dev': swp, 'master': 'br0'}]}])
         assert out[0][infra]['rc'] == 0, out
-        await BridgeLink.set(input_data=[{infra: [{'device': swp, 'isolated': True}]}])
+        await BridgeLink.set(input_data=[{infra: [{'dev': swp, 'isolated': True}]}])
         iptable_rules[swp] = [
             {
                 'table': 'filter',
@@ -103,7 +104,8 @@ async def test_dentv2_vlan_port_isolation_firewall(testbed):
 
     await tgen_utils_setup_streams(
         tgen_dev,
-        pytest._args.config_dir + f'/{tgen_dev.host_name}/tgen_port_isolation_firewall',
+        pytest._args.config_dir +
+        f'/{tgen_dev.host_name}/tgen_port_isolation_firewall',
         streams,
         force_update=True,
     )
@@ -120,7 +122,8 @@ async def test_dentv2_vlan_port_isolation_firewall(testbed):
 
     # Traffic Verification
     for row in stats.Rows:
-        assert float(row['Loss %']) == 100.000, f'Failed>Loss percent {row["Loss %"]}'
+        assert float(
+            row['Loss %']) == 100.000, f'Failed>Loss percent {row["Loss %"]}'
 
     swp_tc_rules = {}
     await tcutil_get_tc_rule_stats(infra_dev, swp_tgen_ports, swp_tc_rules)

@@ -24,7 +24,8 @@ from dent_os_testbed.utils.test_utils.tc_flower_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_policer,
-    pytest.mark.usefixtures('cleanup_qdiscs', 'cleanup_bridges', 'cleanup_tgen'),
+    pytest.mark.usefixtures(
+        'cleanup_qdiscs', 'cleanup_bridges', 'cleanup_tgen'),
     pytest.mark.asyncio,
 ]
 
@@ -66,19 +67,20 @@ async def test_policer_basic_functionality(testbed, traffic_type, qdisc_type):
     }])
     assert out[0][dent]['rc'] == 0, 'Failed creating bridge.'
 
-    await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'}]}])
+    await IpLink.set(input_data=[{dent: [{'dev': bridge, 'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state UP.'
 
     # 2. Set link up on interfaces on all participant ports. Enslave all participant ports to the bridge.
     out = await IpLink.set(input_data=[{dent: [{
-        'device': port,
+        'dev': port,
         'operstate': 'up',
         'master': bridge
     } for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting link to state UP'
 
     # 3. Create an ingress qdisc on first port connected to Tgen port/shared block and add a rule with random selectors
-    config = [{'dev': port, 'ingress_block': block, 'direction': 'ingress'} for port in ports_with_rule]
+    config = [{'dev': port, 'ingress_block': block, 'direction': 'ingress'}
+              for port in ports_with_rule]
     if qdisc_type == 'port':
         for item in config:
             del item['ingress_block']
@@ -97,7 +99,8 @@ async def test_policer_basic_functionality(testbed, traffic_type, qdisc_type):
         'want_vlan_ethtype': False,
     }
 
-    tc_rule = tcutil_generate_rule_with_random_selectors(ports_with_rule[0], **rule_config)
+    tc_rule = tcutil_generate_rule_with_random_selectors(
+        ports_with_rule[0], **rule_config)
 
     # Update tc rule protocol based on traffic type
     if traffic_type == 'ipv4':  # forcibly select ipv4
@@ -146,7 +149,8 @@ async def test_policer_basic_functionality(testbed, traffic_type, qdisc_type):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Port Statistics')
     for row in stats.Rows:
 
-        is_correct_rate = isclose(float(row['Rx. Rate (bps)']), frame_rate, rel_tol=tolerance)
+        is_correct_rate = isclose(
+            float(row['Rx. Rate (bps)']), frame_rate, rel_tol=tolerance)
         err_msg = f'Expected rate between {(frame_rate - (frame_rate * tolerance))} and ' \
                   f"{float(frame_rate + (frame_rate * tolerance))} got: { float(row['Rx. Rate (bps)'])}"
         if qdisc_type == 'port':

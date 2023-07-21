@@ -42,7 +42,7 @@ async def tgen_utils_get_dent_devices_with_tgen(testbed, device_types, min_links
 async def _get_iface_addr_info(dd, iface, info):
     # get the n/w ip address
     out = await IpAddress.show(
-        input_data=[{dd.host_name: [{'dev': iface, 'cmd_options': '-j'}]}],
+        input_data=[{dd.host_name: [{'dev': iface, 'options': '-j'}]}],
     )
     dd.applog.info(out)
     if out[0][dd.host_name]['rc'] != 0:
@@ -73,8 +73,8 @@ async def tgen_utils_get_swp_info(dent_dev, swp, swp_info):
             {
                 dent: [
                     {
-                        'device': swp,
-                        'cmd_options': '-j',
+                        'dev': swp,
+                        'options': '-j',
                     }
                 ]
             }
@@ -267,8 +267,8 @@ async def tgen_utils_create_bgp_devices_and_connect(tgen_dev, dent_devices, bgp_
                     {
                         dd.host_name: [
                             {
-                                'device': swp,
-                                'cmd_options': '-j',
+                                'dev': swp,
+                                'options': '-j',
                             }
                         ]
                     }
@@ -305,7 +305,8 @@ async def tgen_utils_create_bgp_devices_and_connect(tgen_dev, dent_devices, bgp_
                 if dev_gw != '.'.join(swp_info['ip']):
                     # Add the address
                     out = await IpAddress.add(
-                        input_data=[{dd.host_name: [{'dev': swp, 'prefix': dev_gw + '/24'}]}],
+                        input_data=[
+                            {dd.host_name: [{'dev': swp, 'prefix': dev_gw + '/24'}]}],
                     )
 
             out = await Bgp.show(input_data=[{dd.host_name: [{'options': 'json'}]}])
@@ -359,7 +360,8 @@ async def tgen_utils_create_bgp_devices_and_connect(tgen_dev, dent_devices, bgp_
                     [
                         {
                             dd.host_name: [
-                                {'asn': d1_as, 'ip': dev_ip, 'neighbor': {}, 'group': 'IXIA'}
+                                {'asn': d1_as, 'ip': dev_ip,
+                                    'neighbor': {}, 'group': 'IXIA'}
                             ]
                         }
                     ],
@@ -406,20 +408,24 @@ async def tgen_utils_setup_streams(device, config_file_name, streams, force_upda
     if not force_update and os.path.exists(config_file_name):
         device.applog.info(f'Loading Tgen config file {config_file_name}')
         out = await TrafficGen.load_config(
-            input_data=[{device.host_name: [{'config_file_name': config_file_name}]}]
+            input_data=[
+                {device.host_name: [{'config_file_name': config_file_name}]}]
         )
         res = out[0][device.host_name]['rc']
     if res != 0:
         for s in streams.keys():
             device.applog.info(f'Setting up Tgen traffic for {s}')
             out = await TrafficGen.set_traffic(
-                input_data=[{device.host_name: [{'name': s, 'pkt_data': streams[s]}]}]
+                input_data=[
+                    {device.host_name: [{'name': s, 'pkt_data': streams[s]}]}]
             )
             device.applog.info(out)
-            assert out[0][device.host_name]['rc'] == 0, f'Setting tgen traffic failed.\n{out}'
+            assert out[0][device.host_name][
+                'rc'] == 0, f'Setting tgen traffic failed.\n{out}'
         device.applog.info(f'Saving Tgen config file {config_file_name}')
         out = await TrafficGen.save_config(
-            input_data=[{device.host_name: [{'config_file_name': config_file_name}]}]
+            input_data=[
+                {device.host_name: [{'config_file_name': config_file_name}]}]
         )
     device.applog.info('Starting Protocols')
     out = await TrafficGen.start_protocols(input_data=[{device.host_name: [{}]}])
@@ -542,7 +548,8 @@ async def tgen_utils_get_egress_stats(device, stats_row, num_of_rows=None, do_lo
          'row': stats_row,
          'num_of_rows': num_of_rows}
     ]}])
-    assert out[0][device.host_name]['rc'] == 0, f'Failed to get egress stats\n{out[0][device.host_name]}'
+    assert out[0][device.host_name][
+        'rc'] == 0, f'Failed to get egress stats\n{out[0][device.host_name]}'
     stats = out[0][device.host_name]['result']
     if not do_log:
         return stats
@@ -558,7 +565,8 @@ async def tgen_utils_get_egress_stats(device, stats_row, num_of_rows=None, do_lo
 
     for idx, row in enumerate(stats.Rows):
         if idx == 0:
-            egress_tracking_cols = [(col, row[col]) for col in row.Columns if 'Egress Tracking' in col]
+            egress_tracking_cols = [(col, row[col])
+                                    for col in row.Columns if 'Egress Tracking' in col]
             device.applog.info('Traffic Item {} Tx {} Rx {} Loss {}'.format(
                 row['Traffic Item'],
                 row['Tx Frames'],
@@ -585,7 +593,8 @@ async def tgen_utils_clear_traffic_stats(device):
 
 async def tgen_utils_clear_traffic_items(device, traffic_names=None):
     traffic_names = traffic_names or []
-    device.applog.info(f'Removing Traffic Items from the device: {device.host_name}')
+    device.applog.info(
+        f'Removing Traffic Items from the device: {device.host_name}')
     out = await TrafficGen.clear_traffic(input_data=[{device.host_name: [{'traffic_names': traffic_names}]}])
     device.applog.info(out)
 
@@ -606,7 +615,8 @@ async def tgen_util_flap_bgp_peer(device, ixp, skip_down=False, skip_up=False):
     if not skip_down:
         device.applog.info(f'flapping bgp protocol peer {ixp} DOWN')
         out = await TrafficGen.set_protocol(
-            input_data=[{device.host_name: [{'bgp_peer': ixp, 'enable': False}]}]
+            input_data=[
+                {device.host_name: [{'bgp_peer': ixp, 'enable': False}]}]
         )
         device.applog.info(out)
         assert out[0][device.host_name]['rc'] == 0
@@ -614,7 +624,8 @@ async def tgen_util_flap_bgp_peer(device, ixp, skip_down=False, skip_up=False):
     if not skip_up:
         device.applog.info(f'flapping bgp protocol peer {ixp} UP')
         out = await TrafficGen.set_protocol(
-            input_data=[{device.host_name: [{'bgp_peer': ixp, 'enable': True}]}]
+            input_data=[
+                {device.host_name: [{'bgp_peer': ixp, 'enable': True}]}]
         )
         device.applog.info(out)
         assert out[0][device.host_name]['rc'] == 0
@@ -656,7 +667,8 @@ def tgen_util_convert_aws_logs_to_streams():
                     stream[conversion[key]] = value
                 if skip:
                     continue
-                raw_streams['_'.join([k + '_' + v for k, v in stream.items()])] = stream
+                raw_streams['_'.join(
+                    [k + '_' + v for k, v in stream.items()])] = stream
     # optimize the raw_streams now.
     streams = {}
     dpt_streams = {}
@@ -676,9 +688,11 @@ def tgen_util_convert_aws_logs_to_streams():
                 dip_streams[msb_ip].append(rval)
             r_data = {}
             for dip, dip_data in dip_streams.items():
-                dip_data = random.sample(dip_data, 10) if len(dip_data) > 10 else dip_data
+                dip_data = random.sample(dip_data, 10) if len(
+                    dip_data) > 10 else dip_data
                 for rval in dip_data:
-                    r_data['_'.join([k + '_' + v for k, v in rval.items()])] = rval
+                    r_data['_'.join(
+                        [k + '_' + v for k, v in rval.items()])] = rval
             data = r_data
         streams.update(data)
 
@@ -725,7 +739,8 @@ async def tgen_utils_send_ping(device, config):
         for ping in config
     ]}])
     if out[0][device.host_name]['rc'] != 0:
-        device.applog.warning(f'Some pings did not reach their destination\n{out}')
+        device.applog.warning(
+            f'Some pings did not reach their destination\n{out}')
     return out[0][device.host_name]['result']
 
 
@@ -751,11 +766,13 @@ async def tgen_utils_send_arp(device, config):
     ]
     """
     out = await TrafficGen.send_arp(input_data=[{device.host_name: [
-        {'port': arp['ixp'], 'src_ip': arp['src_ip'] if 'src_ip' in arp else None}
+        {'port': arp['ixp'], 'src_ip': arp['src_ip']
+            if 'src_ip' in arp else None}
         for arp in config
     ]}])
     if out[0][device.host_name]['rc'] != 0:
-        device.applog.warning(f'Some arps did not reach their destination\n{out}')
+        device.applog.warning(
+            f'Some arps did not reach their destination\n{out}')
     return out[0][device.host_name]['result']
 
 
@@ -785,7 +802,8 @@ async def tgen_utils_send_ns(device, config):
         for ns in config
     ]}])
     if out[0][device.host_name]['rc'] != 0:
-        device.applog.warning(f'Some NSs did not reach their destination\n{out}')
+        device.applog.warning(
+            f'Some NSs did not reach their destination\n{out}')
     return out[0][device.host_name]['result']
 
 
@@ -806,7 +824,8 @@ async def tgen_utils_update_l1_config(device, tgen_ports, speed=None, autoneg=Tr
          'tgen_ports': tgen_ports,
          'duplex': duplex}]}])
     device.applog.info(out)
-    assert out[0][device.host_name]['rc'] == 0, f'Failed updating L1 config: {out[0][device.host_name]["result"]}'
+    assert out[0][device.host_name][
+        'rc'] == 0, f'Failed updating L1 config: {out[0][device.host_name]["result"]}'
 
 
 async def tgen_utils_switch_min_frame_size(device, enable=False):
@@ -816,7 +835,8 @@ async def tgen_utils_switch_min_frame_size(device, enable=False):
         device (DeviceType): Ixia device
         enable (bool): Enable/disable smaller frame size
     """
-    device.applog.info(f"{'En' if enable else 'Dis'}abling smaller frame size (4 Byte Signature)")
+    device.applog.info(
+        f"{'En' if enable else 'Dis'}abling smaller frame size (4 Byte Signature)")
     out = await TrafficGen.switch_min_frame_size(input_data=[{device.host_name: [{'enable_min_size': enable}]}])
     device.applog.info(out)
     assert out[0][device.host_name]['rc'] == 0, 'Failed to enable/disable min frame sizes'
@@ -839,10 +859,12 @@ async def tgen_utils_poll(dent_dev, fn, *args, timeout=60, interval=10, **kwargs
         try:
             await fn(*args, **kwargs)
         except AssertionError as e:
-            dent_dev.applog.info(f'Polling failed. Trying again in {interval}s\n{e}')
+            dent_dev.applog.info(
+                f'Polling failed. Trying again in {interval}s\n{e}')
             await asyncio.sleep(interval)
         else:
-            dent_dev.applog.info(f'Poll successful after {int(time.time() - start)}s')
+            dent_dev.applog.info(
+                f'Poll successful after {int(time.time() - start)}s')
             break
     else:
         raise TimeoutError(f'Polling failed after {int(time.time() - start)}s')

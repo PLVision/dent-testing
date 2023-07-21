@@ -49,7 +49,8 @@ async def test_bridging_backward_forwarding(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -57,23 +58,25 @@ async def test_bridging_backward_forwarding(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that bridge created.\n{out}'
+            {'dev': bridge, 'type': 'bridge'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that bridge created.\n{out}'
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'learning': True, 'flood': False} for port in ports]}])
+            {'dev': port, 'learning': True, 'flood': False} for port in ports]}])
     err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
@@ -151,7 +154,8 @@ async def test_bridging_forward_block_different_packets(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -160,17 +164,19 @@ async def test_bridging_forward_block_different_packets(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that bridge created.\n{out}'
+            {'dev': bridge, 'type': 'bridge'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that bridge created.\n{out}'
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
@@ -344,7 +350,8 @@ async def test_bridging_fdb_flush_on_down(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -352,23 +359,25 @@ async def test_bridging_fdb_flush_on_down(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that bridge created.\n{out}'
+            {'dev': bridge, 'type': 'bridge'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that bridge created.\n{out}'
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'learning': True, 'flood': False} for port in ports]}])
+            {'dev': port, 'learning': True, 'flood': False} for port in ports]}])
     err_msg = f"Verify that entities set to learning 'ON' and flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
@@ -419,7 +428,7 @@ async def test_bridging_fdb_flush_on_down(testbed):
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': ports[1], 'operstate': 'down'}]}])
+            {'dev': ports[1], 'operstate': 'down'}]}])
     err_msg = f"Verify that swp2 entity set to 'DOWN' state.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
@@ -455,7 +464,8 @@ async def test_bridging_traffic_from_nomaster(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -463,35 +473,40 @@ async def test_bridging_traffic_from_nomaster(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that bridge created.\n{out}'
+            {'dev': bridge, 'type': 'bridge'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that bridge created.\n{out}'
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge, bridge entities set to 'UP' state.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'learning': False, 'flood': False} for port in ports]}])
+            {'dev': port, 'learning': False, 'flood': False} for port in ports]}])
     err_msg = f"Verify that entities set to learning 'OFF' and flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeFdb.add(
         input_data=[{device_host_name: [
-            {'device': ports[x], 'lladdr': f'aa:bb:cc:dd:ee:1{x+1}', 'master': True, 'static': True}
+            {'dev': ports[x], 'lladdr': f'aa:bb:cc:dd:ee:1{x+1}',
+                'master': True, 'static': True}
             for x in range(4)]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that FDB static entries added.\n{out}'
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that FDB static entries added.\n{out}'
 
     out = await IpLink.set(
-        input_data=[{device_host_name: [{'device': ports[0], 'nomaster': True}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that swp1 entity set to 'nomaster'.\n{out}"
+        input_data=[{device_host_name: [{'dev': ports[0], 'nomaster': True}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that swp1 entity set to 'nomaster'.\n{out}"
 
     address_map = (
         # swp port, tg port,    tg ip,     gw,        plen
@@ -569,7 +584,8 @@ async def test_bridging_unregistered_traffic(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -580,17 +596,19 @@ async def test_bridging_unregistered_traffic(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that bridge created.\n{out}'
+            {'dev': bridge, 'type': 'bridge'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that bridge created.\n{out}'
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
@@ -663,7 +681,7 @@ async def test_bridging_unregistered_traffic(testbed):
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'flood': False} for port in ports]}])
+            {'dev': port, 'flood': False} for port in ports]}])
     err_msg = f"Verify that entities set to flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
@@ -680,7 +698,7 @@ async def test_bridging_unregistered_traffic(testbed):
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'flood': True} for port in ports]}])
+            {'dev': port, 'flood': True} for port in ports]}])
     err_msg = f"Verify that entities set to flooding 'ON' state.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
@@ -716,7 +734,8 @@ async def test_bridging_wrong_fcs(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -724,23 +743,25 @@ async def test_bridging_wrong_fcs(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that bridge created.\n{out}'
+            {'dev': bridge, 'type': 'bridge'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that bridge created.\n{out}'
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': 'br0', 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': 'br0', 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'learning': True, 'flood': True} for port in ports]}])
+            {'dev': port, 'learning': True, 'flood': True} for port in ports]}])
     err_msg = f"Verify that entities set to learning 'ON' and flooding 'ON' state.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
@@ -778,7 +799,8 @@ async def test_bridging_wrong_fcs(testbed):
     # check the traffic stats
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
     for row in stats.Rows:
-        assert float(row['Tx Frames']) > 0.000, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
+        assert float(
+            row['Tx Frames']) > 0.000, f'Failed>Ixia should transmit traffic: {row["Tx Frames"]}'
         assert tgen_utils_get_loss(row) == 100.000, \
             f"Verify that traffic from {row['Tx Port']} to {row['Rx Port']} not forwarded.\n{out}"
 

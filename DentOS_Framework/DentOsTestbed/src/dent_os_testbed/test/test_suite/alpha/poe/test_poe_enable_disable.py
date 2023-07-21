@@ -21,7 +21,7 @@ async def test_alpha_lab_poe_enable_disable_ports(testbed):
     """
     for dev in await tb_get_all_devices(testbed):
         out = await Poectl.show(
-            input_data=[{dev.host_name: [{'cmd_options': '-j -a'}]}],
+            input_data=[{dev.host_name: [{'options': '-j -a'}]}],
             parse_output=True,
         )
         if out[0][dev.host_name]['rc'] != 0:
@@ -41,13 +41,16 @@ async def test_alpha_lab_poe_enable_disable_ports(testbed):
             out = await Poectl.disable(
                 input_data=[{dev.host_name: [{'port': data['swp']}]}],
             )
-            assert out[0][dev.host_name]['rc'] == 0, f'Failed to disable POE port {dev.host_name}'
+            assert out[0][dev.host_name][
+                'rc'] == 0, f'Failed to disable POE port {dev.host_name}'
             time.sleep(2)
             out = await Poectl.show(
-                input_data=[{dev.host_name: [{'port': data['swp'], 'cmd_options': '-j'}]}],
+                input_data=[
+                    {dev.host_name: [{'port': data['swp'], 'options': '-j'}]}],
                 parse_output=True,
             )
-            assert out[0][dev.host_name]['rc'] == 0, f'Failed to show POE port {dev.host_name}'
+            assert out[0][dev.host_name][
+                'rc'] == 0, f'Failed to show POE port {dev.host_name}'
             new_info = out[0][dev.host_name]['parsed_output']
             assert (
                 new_info[0]['status'] == 'disabled'
@@ -56,7 +59,8 @@ async def test_alpha_lab_poe_enable_disable_ports(testbed):
             out = await Poectl.enable(
                 input_data=[{dev.host_name: [{'port': data['swp']}]}],
             )
-            assert out[0][dev.host_name]['rc'] == 0, f'Failed to enable POE port {dev.host_name}'
+            assert out[0][dev.host_name][
+                'rc'] == 0, f'Failed to enable POE port {dev.host_name}'
             time.sleep(2)
 
 
@@ -73,7 +77,7 @@ async def test_alpha_lab_poe_enable_disable_all_ports(testbed):
 
     for dev in await tb_get_all_devices(testbed):
         out = await Poectl.show(
-            input_data=[{dev.host_name: [{'cmd_options': '-j -a'}]}],
+            input_data=[{dev.host_name: [{'options': '-j -a'}]}],
             parse_output=True,
         )
         if out[0][dev.host_name]['rc'] != 0:
@@ -85,9 +89,11 @@ async def test_alpha_lab_poe_enable_disable_all_ports(testbed):
         out = await Poectl.disable(
             input_data=[{dev.host_name: [{'port': f'{first}-{last}'}]}],
         )
-        assert out[0][dev.host_name]['rc'] == 0, f'Failed to disable POE port {dev.host_name}'
+        assert out[0][dev.host_name][
+            'rc'] == 0, f'Failed to disable POE port {dev.host_name}'
         out = await Poectl.show(
-            input_data=[{dev.host_name: [{'port': f'{first}-{last}', 'cmd_options': '-j'}]}],
+            input_data=[
+                {dev.host_name: [{'port': f'{first}-{last}', 'options': '-j'}]}],
             parse_output=True,
         )
         assert out[0][dev.host_name]['rc'] == 0, f'Failed to show {dev.host_name}'
@@ -99,9 +105,11 @@ async def test_alpha_lab_poe_enable_disable_all_ports(testbed):
         out = await Poectl.enable(
             input_data=[{dev.host_name: [{'port': f'{first}-{last}'}]}],
         )
-        assert out[0][dev.host_name]['rc'] == 0, f'Failed to enable POE port {dev.host_name}'
+        assert out[0][dev.host_name][
+            'rc'] == 0, f'Failed to enable POE port {dev.host_name}'
         out = await Poectl.show(
-            input_data=[{dev.host_name: [{'port': f'{first}-{last}', 'cmd_options': '-j'}]}],
+            input_data=[
+                {dev.host_name: [{'port': f'{first}-{last}', 'options': '-j'}]}],
             parse_output=True,
         )
         assert out[0][dev.host_name]['rc'] == 0, f'Failed to show {dev.host_name}'
@@ -128,7 +136,7 @@ async def test_alpha_lab_poe_enable_disable_connected_ports(testbed):
 
     for dev in await tb_get_all_devices(testbed):
         out = await Poectl.show(
-            input_data=[{dev.host_name: [{'cmd_options': '-j -a'}]}],
+            input_data=[{dev.host_name: [{'options': '-j -a'}]}],
             parse_output=True,
         )
         if out[0][dev.host_name]['rc'] != 0:
@@ -139,7 +147,8 @@ async def test_alpha_lab_poe_enable_disable_connected_ports(testbed):
             if port['status'] != 'connected':
                 continue
             out = await IpLink.show(
-                input_data=[{dev.host_name: [{'device': port['swp'], 'cmd_options': '-j'}]}],
+                input_data=[
+                    {dev.host_name: [{'dev': port['swp'], 'options': '-j'}]}],
                 parse_output=True,
             )
             assert out[0][dev.host_name]['rc'] == 0
@@ -149,10 +158,12 @@ async def test_alpha_lab_poe_enable_disable_connected_ports(testbed):
             out = await Poectl.disable(
                 input_data=[{dev.host_name: [{'port': port['swp']}]}],
             )
-            assert out[0][dev.host_name]['rc'] == 0, f'Failed to disable POE port {dev.host_name}'
+            assert out[0][dev.host_name][
+                'rc'] == 0, f'Failed to disable POE port {dev.host_name}'
             time.sleep(5)
             out = await IpLink.show(
-                input_data=[{dev.host_name: [{'device': port['swp'], 'cmd_options': '-j'}]}],
+                input_data=[
+                    {dev.host_name: [{'dev': port['swp'], 'options': '-j'}]}],
                 parse_output=True,
             )
             assert out[0][dev.host_name]['rc'] == 0
@@ -162,11 +173,13 @@ async def test_alpha_lab_poe_enable_disable_connected_ports(testbed):
             out = await Poectl.enable(
                 input_data=[{dev.host_name: [{'port': port['swp']}]}],
             )
-            assert out[0][dev.host_name]['rc'] == 0, f'Failed to disable POE port {dev.host_name}'
+            assert out[0][dev.host_name][
+                'rc'] == 0, f'Failed to disable POE port {dev.host_name}'
             time.sleep(5)
 
             out = await IpLink.show(
-                input_data=[{dev.host_name: [{'device': port['swp'], 'cmd_options': '-j'}]}],
+                input_data=[
+                    {dev.host_name: [{'dev': port['swp'], 'options': '-j'}]}],
                 parse_output=True,
             )
             assert out[0][dev.host_name]['rc'] == 0

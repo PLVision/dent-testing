@@ -47,7 +47,8 @@ async def test_devlink_same_rule_pref(testbed, block_type):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -64,7 +65,7 @@ async def test_devlink_same_rule_pref(testbed, block_type):
     # 1.Set link up on interfaces and connect devices
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': port, 'operstate': 'up'} for port in dut_ports]}])
+            {'dev': port, 'operstate': 'up'} for port in dut_ports]}])
     err_msg = f"Verify that ports set to 'UP' state.\n{out}"
     assert out[0][dev_name]['rc'] == 0, err_msg
 
@@ -98,7 +99,8 @@ async def test_devlink_same_rule_pref(testbed, block_type):
                       'want_vlan': True,
                       'want_vlan_ethtype': False,
                       'pref': pref}
-    tc_rule = tcutil_generate_rule_with_random_selectors(dut_ports[0], **rule_selectors)
+    tc_rule = tcutil_generate_rule_with_random_selectors(
+        dut_ports[0], **rule_selectors)
 
     tc_rule['protocol'] = '0x8100'
     if shared_block:
@@ -118,16 +120,16 @@ async def test_devlink_same_rule_pref(testbed, block_type):
 
     # 4.Prepare matching traffic and transmit
     streams = {f'stream_{idx + 1}': {
-            'type': 'raw',
-            'protocol': '802.1Q',
-            'ip_source': dev_groups[tg_ports[idx]][0]['name'],
-            'ip_destination': dev_groups[tg_ports[3]][0]['name'],
-            'srcMac': tc_rule_copy['filtertype']['src_mac'],
-            'dstMac': tc_rule_copy['filtertype']['dst_mac'],
-            'vlanID': tc_rule_copy['filtertype']['vlan_id'],
-            'frame_rate_type': 'line_rate',
-            'frameSize': frame_size,
-            'rate': 100
+        'type': 'raw',
+        'protocol': '802.1Q',
+        'ip_source': dev_groups[tg_ports[idx]][0]['name'],
+        'ip_destination': dev_groups[tg_ports[3]][0]['name'],
+        'srcMac': tc_rule_copy['filtertype']['src_mac'],
+        'dstMac': tc_rule_copy['filtertype']['dst_mac'],
+        'vlanID': tc_rule_copy['filtertype']['vlan_id'],
+        'frame_rate_type': 'line_rate',
+        'frameSize': frame_size,
+        'rate': 100
     } for idx in range(3 if shared_block else 1)}
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
     await tgen_utils_start_traffic(tgen_dev)
@@ -184,7 +186,8 @@ async def test_devlink_rule_priority(testbed, block_type):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -204,7 +207,7 @@ async def test_devlink_rule_priority(testbed, block_type):
     # 1.Set link up on interfaces and connect devices
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': port, 'operstate': 'up'} for port in dut_ports]}])
+            {'dev': port, 'operstate': 'up'} for port in dut_ports]}])
     err_msg = f"Verify that ports set to 'UP' state.\n{out}"
     assert out[0][dev_name]['rc'] == 0, err_msg
 
@@ -243,7 +246,8 @@ async def test_devlink_rule_priority(testbed, block_type):
                       'want_vlan_ethtype': want_ip and want_vlan,
                       'pref': pref}
 
-    tc_rule = tcutil_generate_rule_with_random_selectors(dut_ports[0], **rule_selectors)
+    tc_rule = tcutil_generate_rule_with_random_selectors(
+        dut_ports[0], **rule_selectors)
     if shared_block:
         tc_rule['block'] = block
         del tc_rule['dev']
@@ -264,15 +268,15 @@ async def test_devlink_rule_priority(testbed, block_type):
 
     # 4.Prepare matching traffic and transmit
     streams = {f'stream_{idx + 1}': {
-            'type': 'raw',
-            'protocol': '802.1Q' if want_vlan else tc_rule['protocol'],
-            'ip_source': dev_groups[tg_ports[idx]][0]['name'],
-            'ip_destination': dev_groups[tg_ports[3]][0]['name'],
-            'srcMac': original_rule['filtertype']['src_mac'],
-            'dstMac': original_rule['filtertype']['dst_mac'],
-            'frame_rate_type': 'line_rate',
-            'frameSize': frame_size,
-            'rate': 100
+        'type': 'raw',
+        'protocol': '802.1Q' if want_vlan else tc_rule['protocol'],
+        'ip_source': dev_groups[tg_ports[idx]][0]['name'],
+        'ip_destination': dev_groups[tg_ports[3]][0]['name'],
+        'srcMac': original_rule['filtertype']['src_mac'],
+        'dstMac': original_rule['filtertype']['dst_mac'],
+        'frame_rate_type': 'line_rate',
+        'frameSize': frame_size,
+        'rate': 100
     } for idx in range(3 if shared_block else 1)}
 
     for name in list(streams.keys()):

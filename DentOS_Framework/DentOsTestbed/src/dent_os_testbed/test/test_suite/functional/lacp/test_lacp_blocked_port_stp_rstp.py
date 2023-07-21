@@ -51,11 +51,11 @@ async def test_lacp_root_port(testbed, version):
     time_to_wait = 40 if version == 'stp' else 20
 
     # 1. Create 2 bridge entities4  bonds and set link up on them
-    out = await IpLink.add(input_data=[{dent: [{'device': bond, 'type': 'bond', 'mode': '802.3ad'} for bond in bonds]}])
+    out = await IpLink.add(input_data=[{dent: [{'dev': bond, 'type': 'bond', 'mode': '802.3ad'} for bond in bonds]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bond'
 
     out = await IpLink.add(input_data=[{dent: [{
-        'device': bridge,
+        'dev': bridge,
         'type': 'bridge',
         'stp_state': 1} for bridge in bridges]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
@@ -70,14 +70,14 @@ async def test_lacp_root_port(testbed, version):
     assert out[0][dent]['rc'] == 0, 'Failed to set stp/rstp version'
 
     # 2. Enslave ports to bonds, bonds to bridges
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'down'} for port in bonds.values()]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'operstate': 'down'} for port in bonds.values()]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting links to state down'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bond}]} for bond, port in bonds.items()])
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'master': bond}]} for bond, port in bonds.items()])
     assert out[0][dent]['rc'] == 0, 'Failed enslaving port to bond'
 
     for bridge, lags in bridges.items():
-        out = await IpLink.set(input_data=[{dent: [{'device': lag, 'master': bridge} for lag in lags]}])
+        out = await IpLink.set(input_data=[{dent: [{'dev': lag, 'master': bridge} for lag in lags]}])
         assert out[0][dent]['rc'] == 0, f'Failed enslaving lag to {bridge}'
 
     # 3. Change the MAC addresses for all bridges
@@ -87,9 +87,9 @@ async def test_lacp_root_port(testbed, version):
 
     # 4. Set link up on all participant ports, bonds, bridges
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'up'} for port in bonds.values()] +
-               [{'device': bond, 'operstate': 'up'} for bond in bonds] +
-               [{'device': bridge, 'operstate': 'up'} for bridge in bridges]
+        {dent: [{'dev': port, 'operstate': 'up'} for port in bonds.values()] +
+               [{'dev': bond, 'operstate': 'up'} for bond in bonds] +
+               [{'dev': bridge, 'operstate': 'up'} for bridge in bridges]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces'
 
@@ -110,7 +110,8 @@ async def test_lacp_root_port(testbed, version):
          'bridge': bridge_names[1],
          'options': '-f json'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get bridge detail'
-    assert out[0][dent]['parsed_output'][0]['root-port'] != '', f'Bridge { bridge_names[1]} is a root bridge'
+    assert out[0][dent]['parsed_output'][0][
+        'root-port'] != '', f'Bridge { bridge_names[1]} is a root bridge'
 
     # 7. Verify bridge_2 has a blocking port
     out = await Mstpctl.show(input_data=[{dent: [

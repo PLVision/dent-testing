@@ -47,7 +47,8 @@ async def test_storm_control_unregistered_multicast_traffic(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
@@ -57,18 +58,19 @@ async def test_storm_control_unregistered_multicast_traffic(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'vlan_filtering': 1, 'type': 'bridge'}]}])
+            {'dev': bridge, 'vlan_filtering': 1, 'type': 'bridge'}]}])
     err_msg = f"Verify that bridge created and vlan filtering set to 'ON'.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 

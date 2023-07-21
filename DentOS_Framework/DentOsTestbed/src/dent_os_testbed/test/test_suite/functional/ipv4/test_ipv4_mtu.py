@@ -18,7 +18,8 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv4,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
     pytest.mark.asyncio,
 ]
 
@@ -51,7 +52,8 @@ async def test_ipv4_oversized_mtu(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
@@ -72,7 +74,7 @@ async def test_ipv4_oversized_mtu(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'}
+        {'dev': port, 'operstate': 'up'}
         for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
@@ -105,7 +107,7 @@ async def test_ipv4_oversized_mtu(testbed):
 
     # 4. Configure interfaces MTU to 1000
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'mtu': mtu} for port in ports
+        {'dev': port, 'mtu': mtu} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port mtu'
 
@@ -116,7 +118,8 @@ async def test_ipv4_oversized_mtu(testbed):
     await asyncio.sleep(traffic_duration)
     await tgen_utils_stop_traffic(tgen_dev)
 
-    await asyncio.sleep(delayed_stats_update_time)  # wait for delayed stats to update
+    # wait for delayed stats to update
+    await asyncio.sleep(delayed_stats_update_time)
     new_stats = await get_port_stats(dent, (port for port, *_ in address_map))
 
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
@@ -127,7 +130,8 @@ async def test_ipv4_oversized_mtu(testbed):
 
         # 6. Verify oversized counter been incremented in port statistics
         port = tg_to_swp_map[row['Tx Port']]
-        oversized = int(new_stats[port]['oversize']) - int(old_stats[port]['oversize'])
+        oversized = int(new_stats[port]['oversize']) - \
+            int(old_stats[port]['oversize'])
         assert oversized == int(row['Tx Frames'])
 
 
@@ -146,7 +150,8 @@ async def test_ipv4_fragmentation(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
@@ -163,7 +168,7 @@ async def test_ipv4_fragmentation(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'}
+        {'dev': port, 'operstate': 'up'}
         for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'

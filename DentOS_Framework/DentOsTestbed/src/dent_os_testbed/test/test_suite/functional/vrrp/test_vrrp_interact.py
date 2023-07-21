@@ -31,7 +31,8 @@ from dent_os_testbed.test.test_suite.functional.vrrp.vrrp_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_vrrp,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'enable_ipv4_forwarding', 'cleanup_bridges'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'enable_ipv4_forwarding', 'cleanup_bridges'),
     pytest.mark.asyncio,
 ]
 
@@ -81,14 +82,17 @@ async def test_vrrp_and_stp(testbed, configure_vrrp):
         DeviceType.INFRA_SWITCH,
     ], 0)
     if not tgen_dev or not dent_devices or len(dent_devices) < 3:
-        pytest.skip('The testbed does not have enough devices (1 agg + 2 infra)')
+        pytest.skip(
+            'The testbed does not have enough devices (1 agg + 2 infra)')
 
-    infra = [dent for dent in dent_devices if dent.type == DeviceType.INFRA_SWITCH]
+    infra = [dent for dent in dent_devices if dent.type ==
+             DeviceType.INFRA_SWITCH]
     if len(infra) < 2:
         pytest.skip('The testbed does not have enough infra devices')
     infra = infra[:2]
 
-    agg = [dent for dent in dent_devices if dent.type == DeviceType.AGGREGATION_ROUTER]
+    agg = [dent for dent in dent_devices if dent.type ==
+           DeviceType.AGGREGATION_ROUTER]
     if len(agg) < 1:
         pytest.skip('The testbed does not have enough agg devices')
     agg = agg[0]
@@ -128,13 +132,14 @@ async def test_vrrp_and_stp(testbed, configure_vrrp):
     # 2. Enslave ports
     out = await IpLink.set(input_data=[
         {
-            dent.host_name: [{'device': port, 'master': bridge, 'operstate': 'up'}]
+            dent.host_name: [
+                {'dev': port, 'master': bridge, 'operstate': 'up'}]
             for dent, port in link.items()
         }
         for link in links
     ] + [
         {
-            dent.host_name: [{'device': bridge, 'operstate': 'up'}]
+            dent.host_name: [{'dev': bridge, 'operstate': 'up'}]
         }
         for dent in infra + [agg]
     ])
@@ -159,7 +164,8 @@ async def test_vrrp_and_stp(testbed, configure_vrrp):
         'Failed to add IP addr'
 
     await asyncio.gather(*[
-        configure_vrrp(dent, state=state, prio=prio, vr_ip=vrrp_ip, vr_id=vr_id, dev=bridge)
+        configure_vrrp(dent, state=state, prio=prio,
+                       vr_ip=vrrp_ip, vr_id=vr_id, dev=bridge)
         for dent, state, prio
         in zip(infra, ['MASTER', 'BACKUP'], [200, 100])])
     await asyncio.sleep(wait_for_keepalived)
@@ -183,7 +189,7 @@ async def test_vrrp_and_stp(testbed, configure_vrrp):
                             ('down', [0, count]),
                             ('up', [count, 0])]:
         out = await IpLink.set(input_data=[{
-            infra[0].host_name: [{'device': f'vrrp.{vr_id}', 'operstate': state}],
+            infra[0].host_name: [{'dev': f'vrrp.{vr_id}', 'operstate': state}],
         }])
         assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
             'Failed to enable/disable vrrp'
@@ -253,12 +259,14 @@ async def test_vrrp_and_acl(testbed, configure_vrrp):
     # 2. Configure infra devices
     config = await setup_topo_for_vrrp(testbed, use_bridge=True, use_tgen=True, vrrp_ip=vrrp_ip)
     infra, tgen_dev, bridge, links, tg_links, dev_groups, ep_ip = \
-        itemgetter('infra', 'tgen_dev', 'bridge', 'links', 'tg_links', 'dev_groups', 'ep_ip')(config)
+        itemgetter('infra', 'tgen_dev', 'bridge', 'links',
+                   'tg_links', 'dev_groups', 'ep_ip')(config)
     tg_ip = ep_ip.split('/')[0]
 
     # 3. Configure VRRP on infra devices
     await asyncio.gather(*[
-        configure_vrrp(dent, state=state, prio=prio, vr_ip=vrrp_ip, vr_id=vr_id, dev=bridge)
+        configure_vrrp(dent, state=state, prio=prio,
+                       vr_ip=vrrp_ip, vr_id=vr_id, dev=bridge)
         for dent, state, prio
         in zip(infra, ['MASTER', 'BACKUP'], [200, 100])])
     await asyncio.sleep(wait_for_keepalived)

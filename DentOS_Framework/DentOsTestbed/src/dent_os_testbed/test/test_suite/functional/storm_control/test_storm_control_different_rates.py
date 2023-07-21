@@ -27,12 +27,18 @@ pytestmark = [
 
 async def set_rates(kbyte_value_stream, ports, device_host_name):
     params = [
-        {'port': ports[0], 'name': 'bc_kbyte_per_sec_rate', 'value': kbyte_value_stream[0]},
-        {'port': ports[0], 'name': 'unreg_mc_kbyte_per_sec_rate', 'value': kbyte_value_stream[1]},
-        {'port': ports[0], 'name': 'unk_uc_kbyte_per_sec_rate', 'value': kbyte_value_stream[2]},
-        {'port': ports[1], 'name': 'bc_kbyte_per_sec_rate', 'value': kbyte_value_stream[3]},
-        {'port': ports[2], 'name': 'unreg_mc_kbyte_per_sec_rate', 'value': kbyte_value_stream[4]},
-        {'port': ports[3], 'name': 'unk_uc_kbyte_per_sec_rate', 'value': kbyte_value_stream[5]}
+        {'port': ports[0], 'name': 'bc_kbyte_per_sec_rate',
+            'value': kbyte_value_stream[0]},
+        {'port': ports[0], 'name': 'unreg_mc_kbyte_per_sec_rate',
+            'value': kbyte_value_stream[1]},
+        {'port': ports[0], 'name': 'unk_uc_kbyte_per_sec_rate',
+            'value': kbyte_value_stream[2]},
+        {'port': ports[1], 'name': 'bc_kbyte_per_sec_rate',
+            'value': kbyte_value_stream[3]},
+        {'port': ports[2], 'name': 'unreg_mc_kbyte_per_sec_rate',
+            'value': kbyte_value_stream[4]},
+        {'port': ports[3], 'name': 'unk_uc_kbyte_per_sec_rate',
+            'value': kbyte_value_stream[5]}
     ]
     for value in params:
         await devlink_rate_value(dev=f'pci/0000:01:00.0/{value["port"].replace("swp","")}',
@@ -89,7 +95,8 @@ async def test_storm_control_different_rates(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
@@ -102,31 +109,35 @@ async def test_storm_control_different_rates(testbed):
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'operstate': 'up'} for port in ports]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
+            {'dev': port, 'operstate': 'up'} for port in ports]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'vlan_filtering': 1, 'vlan_default_pvid': 0, 'type': 'bridge'}]}])
+            {'dev': bridge, 'vlan_filtering': 1, 'vlan_default_pvid': 0, 'type': 'bridge'}]}])
     err_msg = f"Verify that bridge created, vlan filtering set to 'ON' and vlan_default_pvid set to '0'.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge} for port in ports]}])
+            {'dev': port, 'master': bridge} for port in ports]}])
     err_msg = f'Verify that bridge entities enslaved to bridge.\n{out}'
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeVlan.add(
         input_data=[{device_host_name: [
-            {'device': ports[x], 'vid': f'{1 if x<2 else 2}', 'untagged': True, 'pvid': True}
+            {'dev': ports[x], 'vid': f'{1 if x<2 else 2}',
+                'untagged': True, 'pvid': True}
             for x in range(4)]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that entities added to vid '1' and '2'.\n{out}"
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that entities added to vid '1' and '2'.\n{out}"
 
     # set a storm control rate limits
     await set_rates(kbyte_value_stream, ports, device_host_name)
@@ -271,7 +282,8 @@ async def test_storm_control_different_rates(testbed):
                 tx_rate = float(rates['tx_rate'])
                 rx_rate = float(rates['rx_rate'])
                 err_msg = 'Failed: the rate is limited by storm control.'
-                assert math.isclose(tx_rate, rx_rate, rel_tol=deviation), err_msg
+                assert math.isclose(
+                    tx_rate, rx_rate, rel_tol=deviation), err_msg
     finally:
         await tgen_utils_stop_traffic(tgen_dev)
         await cleanup_kbyte_per_sec_rate_value(dent_dev, tgen_dev, all_values=True)

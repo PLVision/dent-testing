@@ -47,7 +47,7 @@ async def test_alpha_lab_static_routing_basic_static_route(testbed):
     swp = swp_tgen_ports[1]
 
     out = await IpLink.show(
-        input_data=[{dent: [{'device': swp, 'cmd_options': '-j'}]}],
+        input_data=[{dent: [{'dev': swp, 'options': '-j'}]}],
     )
 
     swp_info = {}
@@ -73,7 +73,8 @@ async def test_alpha_lab_static_routing_basic_static_route(testbed):
 
     # start from a clean state
     out = await FrrIpRoute.add(
-        input_data=[{dent_dev.host_name: [{'network': '100.0.0.0/24', 'gateway': sip}]}]
+        input_data=[{dent_dev.host_name: [
+            {'network': '100.0.0.0/24', 'gateway': sip}]}]
     )
     dent_dev.applog.info(f'Ran command FrrIpRoute.add out {out}')
 

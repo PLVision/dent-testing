@@ -16,7 +16,7 @@ async def get_link_operstate(host_name, link):
     if host_name == 'tgen':
         return 'UP'
     out = await IpLink.show(
-        input_data=[{host_name: [{'device': link, 'cmd_options': '-j'}]}],
+        input_data=[{host_name: [{'dev': link, 'options': '-j'}]}],
         parse_output=True,
     )
     assert out[0][host_name]['rc'] == 0
@@ -66,14 +66,16 @@ async def check_and_validate_switch_links(testbed):
             # cannot be brought down.
             if not testbed.args.is_provisioned and operstate == 'UP' and other_end[0] in devices:
                 out = await IpLink.set(
-                    input_data=[{dev.host_name: [{'device': link, 'operstate': 'down'}]}],
+                    input_data=[
+                        {dev.host_name: [{'dev': link, 'operstate': 'down'}]}],
                 )
                 assert out[0][dev.host_name]['rc'] == 0
                 time.sleep(5)
                 other_operstate = await get_link_operstate(other_end[0], other_end[1])
                 verified = 'YES' if other_operstate != 'UP' else 'NO'
                 out = await IpLink.set(
-                    input_data=[{dev.host_name: [{'device': link, 'operstate': 'up'}]}],
+                    input_data=[
+                        {dev.host_name: [{'dev': link, 'operstate': 'up'}]}],
                 )
             links_dict[dev.host_name][link] = [links[1], operstate, verified]
 
@@ -93,7 +95,8 @@ async def check_and_validate_switch_links(testbed):
                     f'{dev:>10}:{link:<10}<-->{other:>20} {CGREEN}[{operstate} - {verified}]{CEND}'
                 )
             else:
-                print(f'{dev:>10}:{link:<10}<-->{other:>20} {CRED}[DOWN!!]{CEND}')
+                print(
+                    f'{dev:>10}:{link:<10}<-->{other:>20} {CRED}[DOWN!!]{CEND}')
                 all_links_up = False
 
     assert all_links_up is True, 'One or more links down'

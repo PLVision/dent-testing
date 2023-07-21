@@ -23,12 +23,14 @@ async def cleanup_qdiscs(dev):
     for qdisc_obj in qdiscs_info:
         if qdisc_obj.get('root'):
             await TcQdisc.delete(
-                input_data=[{dev.host_name: [{'dev': qdisc_obj['dev'], 'root': True}]}]
+                input_data=[
+                    {dev.host_name: [{'dev': qdisc_obj['dev'], 'root': True}]}]
             )
             continue
         if qdisc_obj['kind'] != 'noqueue':
             await TcQdisc.delete(
-                input_data=[{dev.host_name: [{'dev': qdisc_obj['dev'], 'direction': qdisc_obj['kind']}]}]
+                input_data=[
+                    {dev.host_name: [{'dev': qdisc_obj['dev'], 'direction': qdisc_obj['kind']}]}]
             )
 
 
@@ -40,13 +42,14 @@ async def cleanup_bridges(dev):
     logger = AppLogger(DEFAULT_LOGGER)
     logger.info('Clearing bridges')
     out = await IpLink.show(
-        input_data=[{dev.host_name: [{'link_type': 'bridge', 'cmd_options': '-j'}]}],
+        input_data=[
+            {dev.host_name: [{'link_type': 'bridge', 'options': '-j'}]}],
         parse_output=True
     )
     bridges_info = out[0][dev.host_name]['parsed_output']
     if bridges_info:
         await IpLink.delete(input_data=[{dev.host_name: [
-            {'device': bridge_obj['ifname']} for bridge_obj in bridges_info]}
+            {'dev': bridge_obj['ifname']} for bridge_obj in bridges_info]}
         ])
 
 
@@ -58,13 +61,14 @@ async def cleanup_vrfs(dev):
     logger = AppLogger(DEFAULT_LOGGER)
     logger.info('Deleting VRFs')
     out = await IpLink.show(
-        input_data=[{dev.host_name: [{'link_type': 'vrf',  'cmd_options': '-j'}]}],
+        input_data=[
+            {dev.host_name: [{'link_type': 'vrf',  'options': '-j'}]}],
         parse_output=True
     )
     vrfs_info = out[0][dev.host_name]['parsed_output']
     if vrfs_info:
         await IpLink.delete(input_data=[{dev.host_name: [
-            {'device': vrf_obj['ifname']} for vrf_obj in vrfs_info
+            {'dev': vrf_obj['ifname']} for vrf_obj in vrfs_info
         ]}])
 
 
@@ -77,14 +81,15 @@ async def cleanup_ip_addrs(dev, tgen_dev):
     logger = AppLogger(DEFAULT_LOGGER)
     logger.info('Deleting IP addresses from interfaces')
     # TG-DUT links + DUT-DUT links
-    ports = tgen_dev.links_dict[dev.host_name][1] + [port for port, _ in dev.links]
+    ports = tgen_dev.links_dict[dev.host_name][1] + \
+        [port for port, _ in dev.links]
 
     out = await IpAddress.flush(input_data=[{dev.host_name: [{'dev': port} for port in ports]}])
     if out[0][dev.host_name]['rc'] != 0:
         return
 
     out = await IpLink.show(input_data=[{dev.host_name: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     if out[0][dev.host_name]['rc'] != 0:
         return
@@ -95,17 +100,17 @@ async def cleanup_ip_addrs(dev, tgen_dev):
 
     await IpLink.set(input_data=[{dev.host_name: [
         # setting ports down will also clear their neighbors
-        {'device': port, 'operstate': 'down'} for port in ports
+        {'dev': port, 'operstate': 'down'} for port in ports
     ] + [
         # restore previous port operstate and restore ipv6 link local addr (fe80::/64)
-        {'device': port, 'operstate': state} for port, state in cur_state
+        {'dev': port, 'operstate': state} for port, state in cur_state
     ]}])
 
 
 async def get_initial_routes(dev):
     """Gets routes defined before test. Needed to cleanup routes configured during the test"""
     out = await IpRoute.show(
-        input_data=[{dev.host_name: [{'cmd_options': '-j'}]}],
+        input_data=[{dev.host_name: [{'options': '-j'}]}],
         parse_output=True
     )
     return out[0][dev.host_name]['parsed_output']
@@ -114,7 +119,7 @@ async def get_initial_routes(dev):
 async def get_initial_tables(dev):
     """Gets tables defined before test. Needed to cleanup tables configured during the test"""
     out = await IpRoute.show(
-        input_data=[{dev.host_name: [{'table': 'all', 'cmd_options': '-j'}]}],
+        input_data=[{dev.host_name: [{'table': 'all', 'options': '-j'}]}],
         parse_output=True
     )
     return out[0][dev.host_name]['parsed_output']
@@ -128,7 +133,7 @@ async def cleanup_routes(dev, initial_routes):
     logger = AppLogger(DEFAULT_LOGGER)
     logger.info('Deleting routes')
     out = await IpRoute.show(
-        input_data=[{dev.host_name: [{'cmd_options': '-j'}]}],
+        input_data=[{dev.host_name: [{'options': '-j'}]}],
         parse_output=True
     )
     new_routes = out[0][dev.host_name]['parsed_output']
@@ -147,7 +152,7 @@ async def cleanup_vrf_table_ids(dev, initial_tables):
     logger = AppLogger(DEFAULT_LOGGER)
     logger.info('Deleting tables')
     out = await IpRoute.show(
-        input_data=[{dev.host_name: [{'table': 'all', 'cmd_options': '-j'}]}],
+        input_data=[{dev.host_name: [{'table': 'all', 'options': '-j'}]}],
         parse_output=True
     )
     new_tables = out[0][dev.host_name]['parsed_output']
@@ -183,7 +188,8 @@ async def cleanup_kbyte_per_sec_rate_value(dev, tgen_dev, all_values=False, bc=F
         input_data=[{dev.host_name: [{'options': '-j'}]}],
         parse_output=True)
     devlink_entries = out[0][dev.host_name]['parsed_output']
-    rate_names = ['bc_kbyte_per_sec_rate', 'unk_uc_kbyte_per_sec_rate', 'unreg_mc_kbyte_per_sec_rate']
+    rate_names = ['bc_kbyte_per_sec_rate',
+                  'unk_uc_kbyte_per_sec_rate', 'unreg_mc_kbyte_per_sec_rate']
     device = '/'.join(list(devlink_entries['param'])[0].split('/')[:2]) + '/'
     ports_num = [num[3:] for num in tgen_dev.links_dict[dev.host_name][1]]
 
@@ -229,11 +235,11 @@ async def cleanup_bonds(dev):
     logger = AppLogger(DEFAULT_LOGGER)
     logger.info('Deleting bonds')
     out = await IpLink.show(
-        input_data=[{dev.host_name: [{'cmd_options': '-j -d'}]}],
+        input_data=[{dev.host_name: [{'options': '-j -d'}]}],
         parse_output=True
     )
     bonds_info = out[0][dev.host_name]['parsed_output']
     for name in bonds_info:
         if name.get('linkinfo', {}).get('info_kind') == 'bond':
             await IpLink.delete(input_data=[{dev.host_name: [
-                 {'device': f"{name['ifname']}"}]}])
+                {'dev': f"{name['ifname']}"}]}])

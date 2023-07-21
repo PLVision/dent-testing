@@ -3,7 +3,6 @@ import pytest
 import json
 
 from dent_os_testbed.lib.ip.ip_link import IpLink
-from dent_os_testbed.lib.onlp.onlp_system_info import OnlpSystemInfo
 from dent_os_testbed.constants import PLATFORMS_CONSTANTS
 from dent_os_testbed.utils.FileHandlers.LocalFileHandler import LocalFileHandler
 
@@ -65,10 +64,11 @@ async def test_vlan_with_increment_macs(testbed):
     dut_ports = tgen_dev.links_dict[device][1]
     tolerance = 0.7  # fdb learning tolerance
 
-    rc, model = await dent_devices[0].run_cmd(f'cat /etc/onl/platform')
+    rc, model = await dent_devices[0].run_cmd('cat /etc/onl/platform')
     model = model.strip('\n')
 
-    mac_table = LocalFileHandler(dent_devices[0].applog).read(PLATFORMS_CONSTANTS)
+    mac_table = LocalFileHandler(
+        dent_devices[0].applog).read(PLATFORMS_CONSTANTS)
     mac_count = json.loads(mac_table)
     mac_count = mac_count[model]['fdb_size']
     packet_vids = [5, 33, 20]
@@ -79,7 +79,7 @@ async def test_vlan_with_increment_macs(testbed):
     await configure_bridge_setup(device, dut_ports)
 
     out = await IpLink.set(
-        input_data=[{device: [{'device': 'br0', 'ageing_time': ageing_time*100, 'type': 'bridge'}]}])
+        input_data=[{device: [{'dev': 'br0', 'ageing_time': ageing_time*100, 'type': 'bridge'}]}])
     assert out[0][device]['rc'] == 0, f'Verify that ageing time set to {ageing_time}.'
 
     # 3. Insert interfaces to VLANs
@@ -104,8 +104,10 @@ async def test_vlan_with_increment_macs(testbed):
 
     dev_groups = tgen_utils_dev_groups_from_config(
         [{'ixp': tg_ports[0], 'ip': '100.1.1.2', 'gw': '100.1.1.6', 'plen': 24, },
-         {'ixp': tg_ports[1], 'ip': '100.1.1.3', 'gw': '100.1.1.6', 'plen': 24, },
-         {'ixp': tg_ports[2], 'ip': '100.1.1.4', 'gw': '100.1.1.6', 'plen': 24, },
+         {'ixp': tg_ports[1], 'ip': '100.1.1.3',
+             'gw': '100.1.1.6', 'plen': 24, },
+         {'ixp': tg_ports[2], 'ip': '100.1.1.4',
+             'gw': '100.1.1.6', 'plen': 24, },
          {'ixp': tg_ports[3], 'ip': '100.1.1.5', 'gw': '100.1.1.6', 'plen': 24, }])
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, dut_ports, dev_groups)
 
@@ -137,7 +139,8 @@ async def test_vlan_with_increment_macs(testbed):
         await asyncio.sleep(10)
         # 6. Verify no packet loss nor packet leak occurred and all transmitted traffic received
         stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-        ti_to_rx_port_map = get_traffic_port_vlan_mapping(streams, port_map, tg_ports)
+        ti_to_rx_port_map = get_traffic_port_vlan_mapping(
+            streams, port_map, tg_ports)
         for row in stats.Rows:
             if row['Rx Port'] in ti_to_rx_port_map[row['Traffic Item']]:
                 assert tgen_utils_get_loss(row) == 0.000, \
@@ -152,5 +155,6 @@ async def test_vlan_with_increment_macs(testbed):
         assert rc == 0, 'Failed getting learned vlans on the ports'
         assert int(number_of_macs.strip()) > (mac_count * tolerance),\
             f'Fail learning all macs with vlan: {vlan}expected {mac_count * tolerance} got {number_of_macs.strip()}'
-        await asyncio.sleep(5)  # in order tgen_utils_stop_traffic() to finish on TG
+        # in order tgen_utils_stop_traffic() to finish on TG
+        await asyncio.sleep(5)
         await tgen_utils_clear_traffic_items(tgen_dev)

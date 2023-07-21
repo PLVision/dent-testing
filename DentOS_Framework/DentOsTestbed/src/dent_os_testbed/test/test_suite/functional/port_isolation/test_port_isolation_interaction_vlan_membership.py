@@ -51,7 +51,8 @@ async def test_port_isolation_interaction_vlan_membership(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -61,38 +62,42 @@ async def test_port_isolation_interaction_vlan_membership(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'vlan_filtering': 1, 'type': 'bridge', 'vlan_default_pvid': 0}]}])
+            {'dev': bridge, 'vlan_filtering': 1, 'type': 'bridge', 'vlan_default_pvid': 0}]}])
     err_msg = f"Verify that bridge created, vlan filtering set to 'ON' and vlan_default_pvid set to '0'.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'isolated': True} for port in ports[:2]]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that entities set to isolated state 'ON'.\n{out}"
+            {'dev': port, 'isolated': True} for port in ports[:2]]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that entities set to isolated state 'ON'.\n{out}"
 
     for x in range(2):
         out = await BridgeVlan.add(
             input_data=[{device_host_name: [
-                {'device': port, 'vid': 22+x} for port in ports]}])
-        assert out[0][device_host_name]['rc'] == 0, f"Verify that interfaces added to vlans '22' and '23'.\n{out}"
+                {'dev': port, 'vid': 22+x} for port in ports]}])
+        assert out[0][device_host_name][
+            'rc'] == 0, f"Verify that interfaces added to vlans '22' and '23'.\n{out}"
 
     out = await BridgeVlan.add(
         input_data=[{device_host_name: [
-            {'device': port, 'vid': 24, 'pvid': True} for port in ports]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that interfaces added to vlans '24'.\n{out}"
+            {'dev': port, 'vid': 24, 'pvid': True} for port in ports]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that interfaces added to vlans '24'.\n{out}"
 
-    out = await BridgeVlan.show(input_data=[{device_host_name: [{'cmd_options': '-j'}]}],
+    out = await BridgeVlan.show(input_data=[{device_host_name: [{'options': '-j'}]}],
                                 parse_output=True)
     assert out[0][device_host_name]['rc'] == 0, 'Failed to show BridgeVlan detail.'
 

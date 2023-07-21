@@ -12,7 +12,8 @@ from dent_os_testbed.test.test_suite.functional.vrrp.vrrp_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_vrrp,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'enable_ipv4_forwarding', 'cleanup_bridges'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'enable_ipv4_forwarding', 'cleanup_bridges'),
     pytest.mark.asyncio,
 ]
 
@@ -64,12 +65,15 @@ async def test_vrrp_basic_on(testbed, setup, configure_vrrp):
     # 1. Configure aggregation router
     # 2. Configure infra devices
     config = await setup_topo_for_vrrp(testbed, use_bridge)
-    infra, agg, bridge, links = itemgetter('infra', 'agg', 'bridge', 'links')(config)
+    infra, agg, bridge, links = itemgetter(
+        'infra', 'agg', 'bridge', 'links')(config)
 
     # 3. Configure VRRP on infra devices
-    vrrp_ifaces = [bridge, bridge] if use_bridge else [links[0][infra[0]], links[1][infra[1]]]
+    vrrp_ifaces = [bridge, bridge] if use_bridge else [
+        links[0][infra[0]], links[1][infra[1]]]
     await asyncio.gather(*[
-        configure_vrrp(dent, state=state, prio=prio, vr_ip=vrrp_ip, vr_id=vr_id, dev=port)
+        configure_vrrp(dent, state=state, prio=prio,
+                       vr_ip=vrrp_ip, vr_id=vr_id, dev=port)
         for dent, port, state, prio
         in zip(infra, vrrp_ifaces, ['MASTER', 'BACKUP'], [254, 100])])
     await asyncio.sleep(wait_for_keepalived)
@@ -81,7 +85,7 @@ async def test_vrrp_basic_on(testbed, setup, configure_vrrp):
 
     # 5. Make infra[0] unavailable
     out = await IpLink.set(input_data=[{
-        infra[0].host_name: [{'device': f'vrrp.{vr_id}', 'operstate': 'down'}],
+        infra[0].host_name: [{'dev': f'vrrp.{vr_id}', 'operstate': 'down'}],
     }])
     assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
         'Failed to disable vrrp'
@@ -93,7 +97,7 @@ async def test_vrrp_basic_on(testbed, setup, configure_vrrp):
 
     # 7. Make infra[0] active again
     out = await IpLink.set(input_data=[{
-        infra[0].host_name: [{'device': f'vrrp.{vr_id}', 'operstate': 'up'}],
+        infra[0].host_name: [{'dev': f'vrrp.{vr_id}', 'operstate': 'up'}],
     }])
     assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
         'Failed to enable vrrp'
@@ -151,12 +155,15 @@ async def test_vrrp_basic_down_on(testbed, setup, configure_vrrp):
     # 1. Configure aggregation router
     # 2. Configure infra devices
     config = await setup_topo_for_vrrp(testbed, use_bridge)
-    infra, agg, bridge, links = itemgetter('infra', 'agg', 'bridge', 'links')(config)
+    infra, agg, bridge, links = itemgetter(
+        'infra', 'agg', 'bridge', 'links')(config)
 
     # 3. Configure VRRP on infra devices
-    vrrp_ifaces = [bridge, bridge] if use_bridge else [links[0][infra[0]], links[1][infra[1]]]
+    vrrp_ifaces = [bridge, bridge] if use_bridge else [
+        links[0][infra[0]], links[1][infra[1]]]
     await asyncio.gather(*[
-        configure_vrrp(dent, state=state, prio=prio, vr_ip=vrrp_ip, vr_id=vr_id, dev=port)
+        configure_vrrp(dent, state=state, prio=prio,
+                       vr_ip=vrrp_ip, vr_id=vr_id, dev=port)
         for dent, port, state, prio
         in zip(infra, vrrp_ifaces, ['MASTER', 'BACKUP'], [200, 100])])
     await asyncio.sleep(wait_for_keepalived)
@@ -168,7 +175,7 @@ async def test_vrrp_basic_down_on(testbed, setup, configure_vrrp):
 
     # 5. Make infra[0] unavailable
     out = await IpLink.set(input_data=[{
-        infra[0].host_name: [{'device': f'vrrp.{vr_id}', 'operstate': 'down'}],
+        infra[0].host_name: [{'dev': f'vrrp.{vr_id}', 'operstate': 'down'}],
     }])
     assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
         'Failed to disable vrrp'
@@ -180,7 +187,7 @@ async def test_vrrp_basic_down_on(testbed, setup, configure_vrrp):
 
     # 7. Make infra[1] also unavailable
     out = await IpLink.set(input_data=[{
-        infra[1].host_name: [{'device': f'vrrp.{vr_id}', 'operstate': 'down'}],
+        infra[1].host_name: [{'dev': f'vrrp.{vr_id}', 'operstate': 'down'}],
     }])
     assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
         'Failed to disable vrrp'

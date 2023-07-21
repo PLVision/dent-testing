@@ -61,36 +61,36 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
     tolerance = 0.15
     wait_time = 40 if 'version' == 'stp' else 20
     # 1. Create 3 bridge entities and 6 bonds and set link up on them
-    out = await IpLink.add(input_data=[{dent: [{'device': bond,
+    out = await IpLink.add(input_data=[{dent: [{'dev': bond,
                                                 'type': 'bond',
                                                 'mode': '802.3ad'} for bond in bonds]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bond'
 
     out = await IpLink.add(input_data=[{dent: [{
-        'device': bridge,
+        'dev': bridge,
         'type': 'bridge',
         'stp_state': 0} for bridge in bridges]}])  # stp not enabled
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2. Enslave ports to bonds, bonds to bridges
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'down'} for port in bonds.values()] +
-               [{'device': bond, 'operstate': 'down'} for bond in bonds] +
-               [{'device': bridge, 'operstate': 'down'} for bridge in bridges] +
-               [{'device': port, 'operstate': 'down'} for port in dut_tgen_ports]
+        {dent: [{'dev': port, 'operstate': 'down'} for port in bonds.values()] +
+               [{'dev': bond, 'operstate': 'down'} for bond in bonds] +
+               [{'dev': bridge, 'operstate': 'down'} for bridge in bridges] +
+               [{'dev': port, 'operstate': 'down'} for port in dut_tgen_ports]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces to down'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bond}]} for bond, port in bonds.items()])
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'master': bond}]} for bond, port in bonds.items()])
     assert out[0][dent]['rc'] == 0, 'Failed enslaving bonds'
 
     for bridge, lags in bridges.items():
-        out = await IpLink.set(input_data=[{dent: [{'device': lag, 'master': bridge} for lag in lags]}])
+        out = await IpLink.set(input_data=[{dent: [{'dev': lag, 'master': bridge} for lag in lags]}])
         assert out[0][dent]['rc'] == 0, f'Failed enslaving lag to {bridge}'
 
     out = await IpLink.set(input_data=[
-        {dent: [{'device': dut_tgen_ports[0], 'master': bridge_names[0]}] +
-               [{'device': dut_tgen_ports[1], 'master': bridge_names[1]}]
+        {dent: [{'dev': dut_tgen_ports[0], 'master': bridge_names[0]}] +
+               [{'dev': dut_tgen_ports[1], 'master': bridge_names[1]}]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed enslaving port'
 
@@ -101,10 +101,10 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
 
     # 4. Set link up on all participant ports, bonds, bridges
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'up'} for port in bonds.values()] +
-               [{'device': bond, 'operstate': 'up'} for bond in bonds] +
-               [{'device': bridge, 'operstate': 'up'} for bridge in bridges] +
-               [{'device': port, 'operstate': 'up'} for port in dut_tgen_ports]
+        {dent: [{'dev': port, 'operstate': 'up'} for port in bonds.values()] +
+               [{'dev': bond, 'operstate': 'up'} for bond in bonds] +
+               [{'dev': bridge, 'operstate': 'up'} for bridge in bridges] +
+               [{'dev': port, 'operstate': 'up'} for port in dut_tgen_ports]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed changing state of the interfaces to up'
 
@@ -157,7 +157,7 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
 
     # 8. Set bridge stp_state to 1.
     out = await IpLink.set(input_data=[{dent: [{
-        'device': bridge,
+        'dev': bridge,
         'type': 'bridge',
         'stp_state': 1} for bridge in bridge_names]}])
     assert out[0][dent]['rc'] == 0, 'Failed to enable stp on bridge'
@@ -218,7 +218,8 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
     for row in stats.Rows:
         if row['Port Name'] in [tg_ports[1], tg_ports[0]]:
             err_msg = f'Expected 0.0 got : {float(row["Rx. Rate (Mbps)"])}'
-            assert isclose(float(row['Rx. Rate (Mbps)']), 0.00, abs_tol=tolerance), err_msg
+            assert isclose(float(row['Rx. Rate (Mbps)']),
+                           0.00, abs_tol=tolerance), err_msg
 
     # 14. Send broadcast traffic for a random time between 30-60 seconds.
     await tgen_utils_start_traffic(tgen_dev)
@@ -229,7 +230,8 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
     for row in stats.Rows:
         if row['Port Name'] == tg_ports[1]:
             err_msg = 'Expected 1400 got : {float(row["Rx. Rate (Mbps)"])}'
-            assert isclose(float(row['Rx. Rate (Mbps)']), 1400, rel_tol=tolerance), err_msg
+            assert isclose(float(row['Rx. Rate (Mbps)']),
+                           1400, rel_tol=tolerance), err_msg
 
     # 16. Stop the traffic. Verify there is no storming
     await tgen_utils_stop_traffic(tgen_dev)
@@ -237,4 +239,5 @@ async def test_lacp_traffic_during_topology_convergence(testbed, version):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Port Statistics')
     for row in stats.Rows:
         err_msg = f'Expected 0 got : {float(row["Rx. Rate (Mbps)"])}'
-        assert isclose(float(row['Rx. Rate (Mbps)']), 0.00, abs_tol=tolerance), err_msg
+        assert isclose(float(row['Rx. Rate (Mbps)']),
+                       0.00, abs_tol=tolerance), err_msg

@@ -58,26 +58,26 @@ async def test_lacp_routing_over_vlan_device(testbed):
     # 1. Enable IPv4 forwarding
     # 2. Create bridge and 2 bonds
     out = await IpLink.add(input_data=[{dent: [{
-        'device': bridge,
+        'dev': bridge,
         'type': 'bridge',
         'vlan_filtering': 1,
         'vlan_default_pvid': vid,
     }]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'}]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': bridge, 'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state up'
 
-    out = await BridgeVlan.add(input_data=[{dent: [{'device': bridge, 'vid': vid, 'self': True}]}])
+    out = await BridgeVlan.add(input_data=[{dent: [{'dev': bridge, 'vid': vid, 'self': True}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add vlan on device'
 
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bond,
+        {'dev': bond,
          'type': 'bond',
          'mode': '802.3ad'} for bond in [bond_1, bond_2]]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bond'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': bond, 'operstate': 'up'} for bond in [bond_1, bond_2]]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': bond, 'operstate': 'up'} for bond in [bond_1, bond_2]]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bond to state up'
 
     # 3. Enslave DUT port <==> tgen port 1 to bond 1
@@ -85,11 +85,11 @@ async def test_lacp_routing_over_vlan_device(testbed):
     # DUT port <==> tgen port 3 to bond 2
     # DUT port <==>  tgen port 4 to bond 2
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'down'} for port in ports] +
-               [{'device': ports[0], 'master': bond_1}] +
-               [{'device': port, 'master': bond_2} for port in ports[1:]] +
-               [{'device': bond_2, 'master': bridge}] +
-               [{'device': port, 'operstate': 'up'} for port in ports]
+        {dent: [{'dev': port, 'operstate': 'down'} for port in ports] +
+               [{'dev': ports[0], 'master': bond_1}] +
+               [{'dev': port, 'master': bond_2} for port in ports[1:]] +
+               [{'dev': bond_2, 'master': bridge}] +
+               [{'dev': port, 'operstate': 'up'} for port in ports]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed setting links to state down'
 
@@ -100,7 +100,7 @@ async def test_lacp_routing_over_vlan_device(testbed):
          'id': vid}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add vlan device'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': vlan_device, 'operstate': 'up'}]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': vlan_device, 'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting vlan device to state up'
 
     # 6. Configure ip addresses in each LAG and configure route 10.1.1.0/24 via vlan device

@@ -27,7 +27,8 @@ from dent_os_testbed.test.test_suite.functional.qos.conftest import (
 
 pytestmark = [
     pytest.mark.suite_functional_qos,
-    pytest.mark.usefixtures('cleanup_qdiscs', 'cleanup_bridges', 'cleanup_dscp_prio'),
+    pytest.mark.usefixtures(
+        'cleanup_qdiscs', 'cleanup_bridges', 'cleanup_dscp_prio'),
     pytest.mark.asyncio,
 ]
 
@@ -52,7 +53,8 @@ async def test_qos_default_prio(testbed):
     num_of_ports = 4
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
@@ -70,21 +72,22 @@ async def test_qos_default_prio(testbed):
 
     # 1. Create 1Q bridge
     out = await IpLink.add(input_data=[{dent: [
-        {'name': bridge, 'type': 'bridge', 'vlan_filtering': 1, 'vlan_default_pvid': 0}
+        {'name': bridge, 'type': 'bridge',
+            'vlan_filtering': 1, 'vlan_default_pvid': 0}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to create bridge'
 
     # Add ports to bridge
     # Set ports and bridge up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge} for port in ports
+        {'dev': port, 'operstate': 'up', 'master': bridge} for port in ports
     ] + [
-        {'device': bridge, 'operstate': 'up'}
+        {'dev': bridge, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to enslave ports to bridge'
 
     out = await BridgeVlan.add(input_data=[{dent: [
-        {'device': port,
+        {'dev': port,
          'vid': vlan,
          'pvid': True,
          'untagged': port in ports[:2]}
@@ -146,7 +149,8 @@ async def test_qos_default_prio(testbed):
     # 5. Configure two DSCP for same PCP priority
     dscp_prio_map[dscp_not_in_map] = num_of_bands - 1
     out = await DcbApp.add(input_data=[{dent: [
-        {'dev': ingress_port, 'dscp_prio': [(dscp_not_in_map, dscp_prio_map[dscp_not_in_map])]}
+        {'dev': ingress_port, 'dscp_prio': [
+            (dscp_not_in_map, dscp_prio_map[dscp_not_in_map])]}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add dscp prio mapping'
 
@@ -174,7 +178,8 @@ async def test_qos_default_prio(testbed):
     await configure_dscp_map_and_verify(dent, {ingress_port: dscp_prio_map})
 
     # 6. Send packets
-    rand_l2_pcp, rand_l3_pcp = random.sample(range(1, 7), 2)  # get 2 random but different priorities
+    # get 2 random but different priorities
+    rand_l2_pcp, rand_l3_pcp = random.sample(range(1, 7), 2)
     streams = {
         'L2': {
             'type': 'ethernet',

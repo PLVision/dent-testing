@@ -22,13 +22,15 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv4,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
     pytest.mark.asyncio,
 ]
 
 
 def get_random_ip():
-    ip = [random.randint(11, 126), random.randint(1, 254), random.randint(1, 254), random.randint(1, 253)]
+    ip = [random.randint(11, 126), random.randint(
+        1, 254), random.randint(1, 254), random.randint(1, 253)]
     peer = ip[:-1] + [ip[-1] ^ 1]
     plen = random.randint(1, 31)
     return '.'.join(map(str, ip)), '.'.join(map(str, peer)), plen
@@ -48,7 +50,8 @@ async def test_ipv4_random_routing(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0]
@@ -56,7 +59,7 @@ async def test_ipv4_random_routing(testbed):
     traffic_duration = 10
 
     # 2. Configure ports up
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'}
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'operstate': 'up'}
                                                for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -116,7 +119,8 @@ async def test_ipv4_nexthop_route(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0]
@@ -124,7 +128,7 @@ async def test_ipv4_nexthop_route(testbed):
     traffic_duration = 10
 
     # 2. Configure ports up
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'}
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'operstate': 'up'}
                                                for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -154,15 +158,19 @@ async def test_ipv4_nexthop_route(testbed):
 
     # 4. Add static arp entries
     out = await IpNeighbor.add(input_data=[{dent: [
-        {'dev': ports[0], 'address': nei_address_map[0]['ip'], 'lladdr': nei_address_map[0]['mac']},
-        {'dev': ports[1], 'address': nei_address_map[1]['ip'], 'lladdr': nei_address_map[1]['mac']},
+        {'dev': ports[0], 'address': nei_address_map[0]
+            ['ip'], 'lladdr': nei_address_map[0]['mac']},
+        {'dev': ports[1], 'address': nei_address_map[1]
+            ['ip'], 'lladdr': nei_address_map[1]['mac']},
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add static arp entries'
 
     # 5. Add routes nexthops
     out = await IpRoute.add(input_data=[{dent: [
-        {'dst': f"{nei_address_map[0]['dst']}/24", 'nexthop': [{'via': nei_address_map[0]['ip']}]},
-        {'dst': f"{nei_address_map[1]['dst']}/24", 'nexthop': [{'via': nei_address_map[1]['ip']}]},
+        {'dst': f"{nei_address_map[0]['dst']}/24",
+            'nexthop': [{'via': nei_address_map[0]['ip']}]},
+        {'dst': f"{nei_address_map[1]['dst']}/24",
+            'nexthop': [{'via': nei_address_map[1]['ip']}]},
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add nexthop'
 
@@ -231,7 +239,8 @@ async def test_ipv4_route_between_vlan_devs(testbed):
     """
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:2]
@@ -249,22 +258,22 @@ async def test_ipv4_route_between_vlan_devs(testbed):
 
     # 1. Create a bridge entity
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge', 'vlan_filtering': 1, 'vlan_default_pvid': 0},
+        {'dev': bridge, 'type': 'bridge', 'vlan_filtering': 1, 'vlan_default_pvid': 0},
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to create bridge'
 
     # 2. Assign ports to bridge
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'master': bridge} for port in ports
+        {'dev': port, 'master': bridge} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to assign ports to bridge'
 
     # Add ports to VLAN, add bridge to VLANs
     out = await BridgeVlan.add(input_data=[{dent: [
-        {'device': port, 'vid': vid}
+        {'dev': port, 'vid': vid}
         for port, *_, vid in address_map
     ] + [
-        {'device': bridge, 'vid': vid, 'self': True}
+        {'dev': bridge, 'vid': vid, 'self': True}
         for *_, vid in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add vlan id to ports'
@@ -278,7 +287,7 @@ async def test_ipv4_route_between_vlan_devs(testbed):
 
     # 3. Set link up on all participant ports and VLAN-devices
     out = await IpLink.set(input_data=[{dent: [
-        {'device': dev, 'operstate': 'up'}
+        {'dev': dev, 'operstate': 'up'}
         for dev in ports + [bridge, vlan10, vlan20]
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
@@ -298,7 +307,7 @@ async def test_ipv4_route_between_vlan_devs(testbed):
 
     # 5. Verify offload flag appear in VLAN-devices default routes
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of route entries'
 
@@ -347,7 +356,7 @@ async def test_ipv4_route_between_vlan_devs(testbed):
 
     # 10. Verify offload flag appear in VLAN-devices default routes
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of route entries'
 
@@ -385,7 +394,8 @@ async def test_ipv4_nexthop_static_route(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0]
@@ -400,10 +410,14 @@ async def test_ipv4_nexthop_static_route(testbed):
 
     address_map = (
         # swp port, tg port,    swp ip,    tg ip,    plen, dst
-        (ports[0], tg_ports[0], '1.1.1.1', '1.1.1.2', 24, '100.0.0.1', port_mac[ports[0]]),
-        (ports[1], tg_ports[1], '2.2.2.1', '2.2.2.2', 24, '101.0.0.1', port_mac[ports[1]]),
-        (ports[2], tg_ports[2], '3.3.3.1', '3.3.3.2', 24, '102.0.0.1', port_mac[ports[2]]),
-        (ports[3], tg_ports[3], '4.4.4.1', '4.4.4.2', 24, '103.0.0.1', port_mac[ports[3]]),
+        (ports[0], tg_ports[0], '1.1.1.1', '1.1.1.2',
+         24, '100.0.0.1', port_mac[ports[0]]),
+        (ports[1], tg_ports[1], '2.2.2.1', '2.2.2.2',
+         24, '101.0.0.1', port_mac[ports[1]]),
+        (ports[2], tg_ports[2], '3.3.3.1', '3.3.3.2',
+         24, '102.0.0.1', port_mac[ports[2]]),
+        (ports[3], tg_ports[3], '4.4.4.1', '4.4.4.2',
+         24, '103.0.0.1', port_mac[ports[3]]),
     )
     nei_map = {
         # TODO add TG lladdr
@@ -416,7 +430,7 @@ async def test_ipv4_nexthop_static_route(testbed):
     }
 
     # 2. Configure ports up
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'}
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'operstate': 'up'}
                                                for port, *_ in address_map]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -456,7 +470,7 @@ async def test_ipv4_nexthop_static_route(testbed):
 
     # 5. Check added static routes
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of routes'
 
@@ -480,7 +494,7 @@ async def test_ipv4_nexthop_static_route(testbed):
 
     # 8. Check added arp entries
     out = await IpNeighbor.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of arp entries'
 
@@ -503,7 +517,7 @@ async def test_ipv4_nexthop_static_route(testbed):
 
     # 10. Check static routes have been removed
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of routes'
 
@@ -521,7 +535,7 @@ async def test_ipv4_nexthop_static_route(testbed):
 
     # 12. Check dynamic arp entries have been removed
     out = await IpNeighbor.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of arp entries'
     for nei in out[0][dent]['parsed_output']:
@@ -549,7 +563,8 @@ async def test_ipv4_two_routes_to_same_net(testbed):
     """
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0][:2]
     ports = tgen_dev.links_dict[dent][1][:2]
@@ -560,10 +575,11 @@ async def test_ipv4_two_routes_to_same_net(testbed):
         (ports[0], tx_port, '1.1.1.1', '1.1.1.2', 24),
         (ports[1], rx_port, '2.2.2.1', '2.2.2.2', 24),
     )
-    common_net_ip = f'{address_map[1][3][:-2]}.0/{address_map[1][-1]}'  # 2.2.2.0/24
+    # 2.2.2.0/24
+    common_net_ip = f'{address_map[1][3][:-2]}.0/{address_map[1][-1]}'
 
     # 1. Set link up on all participant ports
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'}
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'operstate': 'up'}
                                                for port, *_ in address_map]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -595,14 +611,15 @@ async def test_ipv4_two_routes_to_same_net(testbed):
     assert out[0][dent]['rc'] == 0, 'Failed to add IP addr to port'
 
     # 3. Verify offload flag appear in the directly connected route of the second port connected to Ixia
-    out = await IpRoute.show(input_data=[{dent: [{'cmd_options': '-j'}]}], parse_output=True)
+    out = await IpRoute.show(input_data=[{dent: [{'options': '-j'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of routes'
 
     for ro in out[0][dent]['parsed_output']:
         if 'dst' not in ro or ro['dst'] != common_net_ip:
             continue
         if ro['dev'] == ports[0]:
-            assert ro['gateway'] == address_map[0][3], f'Expected gateway to be {address_map[0][3]}'
+            assert ro['gateway'] == address_map[0][
+                3], f'Expected gateway to be {address_map[0][3]}'
             assert 'rt_offload' in ro['flags'], 'Route should be offloaded'
         else:
             assert 'rt_offload' not in ro['flags'], 'Route should not be offloaded'
@@ -639,13 +656,14 @@ async def test_ipv4_two_routes_to_same_net(testbed):
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add IP addr to port'
 
-    out = await IpRoute.show(input_data=[{dent: [{'cmd_options': '-j'}]}], parse_output=True)
+    out = await IpRoute.show(input_data=[{dent: [{'options': '-j'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of routes'
 
     for ro in out[0][dent]['parsed_output']:
         if 'dst' not in ro or ro['dst'] != common_net_ip:
             continue
-        assert ro['gateway'] == address_map[0][3], f'Expected gateway to be {address_map[0][3]}'
+        assert ro['gateway'] == address_map[0][
+            3], f'Expected gateway to be {address_map[0][3]}'
         assert 'rt_offload' in ro['flags'], 'Route should be offloaded'
         assert 'offload' in ro['flags'], 'Route should be offloaded'
         break

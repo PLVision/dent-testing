@@ -59,8 +59,8 @@ class IpLinkMod(Module):
                 dst[i].phys_port_name = ip_link.get('phys_port_name')
             if 'phys_switch_id' in ip_link:
                 dst[i].phys_switch_id = ip_link.get('phys_switch_id')
-            if 'device' in ip_link:
-                dst[i].device = ip_link.get('device')
+            if 'dev' in ip_link:
+                dst[i].device = ip_link.get('dev')
             if 'txqueuelen' in ip_link:
                 dst[i].txqueuelen = ip_link.get('txqueuelen')
             if 'name' in ip_link:
@@ -116,5 +116,7 @@ class IpLinkMod(Module):
                 print('Failed to get parsed_output ip_link')
                 print(out)
                 continue
-            self.set_ip_link(out[0][dev.host_name]['parsed_output'], self.report.duts[i].network.layer1.links)
-            print('Finished ip_link Discovery on {} with {} entries'.format(dev.host_name, len(self.report.duts[i].network.layer1.links)))
+            self.set_ip_link(out[0][dev.host_name]['parsed_output'],
+                             self.report.duts[i].network.layer1.links)
+            print('Finished ip_link Discovery on {} with {} entries'.format(
+                dev.host_name, len(self.report.duts[i].network.layer1.links)))

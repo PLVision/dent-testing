@@ -59,7 +59,8 @@ async def test_port_isolation_enable_disable_feature_under_ws_traffic(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -68,25 +69,27 @@ async def test_port_isolation_enable_disable_feature_under_ws_traffic(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'vlan_filtering': 1, 'type': 'bridge'}]}])
+            {'dev': bridge, 'vlan_filtering': 1, 'type': 'bridge'}]}])
     err_msg = f"Verify that bridge created and vlan filtering set to 'ON'.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'isolated': True} for port in ports[:3]]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that entities set to isolated state 'ON'.\n{out}"
+            {'dev': port, 'isolated': True} for port in ports[:3]]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that entities set to isolated state 'ON'.\n{out}"
 
     address_map = (
         # swp port, tg port,    tg ip,     gw,        plen
@@ -138,8 +141,9 @@ async def test_port_isolation_enable_disable_feature_under_ws_traffic(testbed):
 
         out = await BridgeLink.set(
             input_data=[{device_host_name: [
-                {'device': port, 'isolated': False} for port in ports[:3]]}])
-        assert out[0][device_host_name]['rc'] == 0, f"Verify that entities set to isolated state 'OFF'.\n{out}"
+                {'dev': port, 'isolated': False} for port in ports[:3]]}])
+        assert out[0][device_host_name][
+            'rc'] == 0, f"Verify that entities set to isolated state 'OFF'.\n{out}"
 
         await tgen_utils_clear_traffic_stats(tgen_dev)
         await asyncio.sleep(traffic_duration/2)
@@ -156,8 +160,9 @@ async def test_port_isolation_enable_disable_feature_under_ws_traffic(testbed):
         if x == 0:
             out = await BridgeLink.set(
                 input_data=[{device_host_name: [
-                    {'device': port, 'isolated': True} for port in ports[:3]]}])
-            assert out[0][device_host_name]['rc'] == 0, f"Verify that entities set to isolated state 'ON'.\n{out}"
+                    {'dev': port, 'isolated': True} for port in ports[:3]]}])
+            assert out[0][device_host_name][
+                'rc'] == 0, f"Verify that entities set to isolated state 'ON'.\n{out}"
 
             await tgen_utils_clear_traffic_stats(tgen_dev)
             await asyncio.sleep(traffic_duration/2)

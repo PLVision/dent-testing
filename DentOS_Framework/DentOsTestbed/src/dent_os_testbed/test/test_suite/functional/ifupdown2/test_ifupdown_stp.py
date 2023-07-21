@@ -59,7 +59,8 @@ async def test_ifupdown2_stp(testbed, modify_ifupdown_conf, version):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -96,7 +97,8 @@ async def test_ifupdown2_stp(testbed, modify_ifupdown_conf, version):
 
     # 2.Prepare ifupdown2 config: Add Bridge device, enable stp, add  bridge mac
     bridge_addr = get_rand_mac('22:XX:XX:XX:XX:XX')
-    full_config += config_bridge_temp(bridge, dut_ports, stp=True, hwaddress=bridge_addr)
+    full_config += config_bridge_temp(bridge,
+                                      dut_ports, stp=True, hwaddress=bridge_addr)
 
     # 3.Verify no errors in ifupdown2 config, apply config, compare running ifupdown2 config vs default config
     await write_reload_check_ifupdown_config(dent_dev, full_config, config['default_interfaces_configfile'])
@@ -104,8 +106,8 @@ async def test_ifupdown2_stp(testbed, modify_ifupdown_conf, version):
     # 4.Verify that bridge device added with 4 member ports and expected bridge mac address
     # 5.Verify MAC address of the bridge is as set by ifupdown2 configuration
     out = await IpLink.show(input_data=[{dev_name: [
-        {'device': bridge,
-         'cmd_options': '-j -d'}]}], parse_output=True)
+        {'dev': bridge,
+         'options': '-j -d'}]}], parse_output=True)
     assert out[0][dev_name]['rc'] == 0, 'Failed to get port detail'
     err_msg = f'Address of bridge is not as expected {bridge_addr}'
     assert out[0][dev_name]['parsed_output'][0]['address'] == bridge_addr, err_msg
@@ -116,8 +118,8 @@ async def test_ifupdown2_stp(testbed, modify_ifupdown_conf, version):
     # 6. Verify STP is running on the correct space
     # 6. Verify STP is running on the correct space
     out = await IpLink.show(input_data=[{dev_name: [
-        {'device': bridge,
-         'cmd_options': '-j -d'}]}], parse_output=True)
+        {'dev': bridge,
+         'options': '-j -d'}]}], parse_output=True)
     assert out[0][dev_name]['rc'] == 0, 'Failed to get bridge detail'
     space_id = out[0][dev_name]['parsed_output'][0]['linkinfo']['info_data']['stp_state']
     err_msg = f'Version: {version} should run on {"Kernal" if version == "stp" else "USER"} space'
@@ -188,8 +190,8 @@ async def test_ifupdown2_stp(testbed, modify_ifupdown_conf, version):
 
     # 10. Verify expected blocking port is in blocking state
     out = await IpLink.show(input_data=[{dev_name: [
-        {'device': dut_ports[1],
-         'cmd_options': '-j -d'}]}], parse_output=True)
+        {'dev': dut_ports[1],
+         'options': '-j -d'}]}], parse_output=True)
     assert out[0][dev_name]['rc'] == 0, 'Failed to get port detail'
     err_msg = f'Port : {dut_ports[1]} has to be in forwarding state'
     assert out[0][dev_name]['parsed_output'][0]['linkinfo']['info_slave_data']['state'] == 'blocking', err_msg
@@ -201,10 +203,12 @@ async def test_ifupdown2_stp(testbed, modify_ifupdown_conf, version):
     for row in stats.Rows:
         if row['Traffic Item'] == traffic and row['Rx Port'] == tg_ports[1]:
             err_msg = f'Expected 0.0 got : {float(row["Rx Rate (Mbps)"])}'
-            assert isclose(float(row['Rx Rate (Mbps)']), 0.0, abs_tol=0.1), err_msg
+            assert isclose(float(row['Rx Rate (Mbps)']),
+                           0.0, abs_tol=0.1), err_msg
         if row['Traffic Item'] == traffic and row['Rx Port'] in [tg_ports[0], tg_ports[3]]:
             err_msg = f'Expected 300 got : {float(row["Rx Rate (Mbps)"])}'
-            assert isclose(float(row['Rx Rate (Mbps)']), 300, rel_tol=0.1), err_msg
+            assert isclose(float(row['Rx Rate (Mbps)']),
+                           300, rel_tol=0.1), err_msg
 
     await tgen_utils_stop_traffic(tgen_dev)
     # 12.Reboot DUT
@@ -222,7 +226,9 @@ async def test_ifupdown2_stp(testbed, modify_ifupdown_conf, version):
     for row in stats.Rows:
         if row['Traffic Item'] == traffic and row['Rx Port'] == tg_ports[1]:
             err_msg = f'Expected 0.0 got : {float(row["Rx Rate (Mbps)"])}'
-            assert isclose(float(row['Rx Rate (Mbps)']), 0.0, abs_tol=0.1), err_msg
+            assert isclose(float(row['Rx Rate (Mbps)']),
+                           0.0, abs_tol=0.1), err_msg
         if row['Traffic Item'] == traffic and row['Rx Port'] in [tg_ports[0], tg_ports[3]]:
             err_msg = f'Expected 300 got : {float(row["Rx Rate (Mbps)"])}'
-            assert isclose(float(row['Rx Rate (Mbps)']), 300, rel_tol=0.1), err_msg
+            assert isclose(float(row['Rx Rate (Mbps)']),
+                           300, rel_tol=0.1), err_msg

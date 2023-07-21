@@ -25,7 +25,8 @@ from dent_os_testbed.test.test_suite.functional.ipv6.ipv6_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv6,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'enable_ipv6_forwarding', 'cleanup_bridges'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'enable_ipv6_forwarding', 'cleanup_bridges'),
     pytest.mark.asyncio,
 ]
 
@@ -45,12 +46,14 @@ async def test_ipv6_on_bridge(testbed):
     num_of_ports = 3
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     traffic_duration = 10
     wait_for_stats = 10
     plen = 64
@@ -61,26 +64,28 @@ async def test_ipv6_on_bridge(testbed):
         # primary
         addr_info(ports[0], tg_ports[0], '2001:1111::1', '2001:1111::2', plen),
         addr_info(bridge_d, tg_ports[1], '2001:2222::1', '2001:2222::2', plen),
-        addr_info(bridge_dot1q, tg_ports[2], '2001:3333::1', '2001:3333::2', plen),
+        addr_info(bridge_dot1q, tg_ports[2],
+                  '2001:3333::1', '2001:3333::2', plen),
         # secondary
         addr_info(ports[0], tg_ports[0], '2001:4444::1', '2001:4444::2', plen),
         addr_info(bridge_d, tg_ports[1], '2001:5555::1', '2001:5555::2', plen),
-        addr_info(bridge_dot1q, tg_ports[2], '2001:6666::1', '2001:6666::2', plen),
+        addr_info(bridge_dot1q, tg_ports[2],
+                  '2001:6666::1', '2001:6666::2', plen),
     )
 
     # 1. Add IP address for port, bridge 1D, bridge 1Q
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge_d, 'type': 'bridge', 'vlan_filtering': 0},
-        {'device': bridge_dot1q, 'type': 'bridge', 'vlan_filtering': 1},
+        {'dev': bridge_d, 'type': 'bridge', 'vlan_filtering': 0},
+        {'dev': bridge_dot1q, 'type': 'bridge', 'vlan_filtering': 1},
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to create bridges'
 
     out = await IpLink.set(input_data=[{dent: [
-        {'device': ports[0], 'operstate': 'up'},
-        {'device': ports[1], 'operstate': 'up', 'master': bridge_d},
-        {'device': ports[2], 'operstate': 'up', 'master': bridge_dot1q},
-        {'device': bridge_d, 'operstate': 'up'},
-        {'device': bridge_dot1q, 'operstate': 'up'},
+        {'dev': ports[0], 'operstate': 'up'},
+        {'dev': ports[1], 'operstate': 'up', 'master': bridge_d},
+        {'dev': ports[2], 'operstate': 'up', 'master': bridge_dot1q},
+        {'dev': bridge_d, 'operstate': 'up'},
+        {'dev': bridge_dot1q, 'operstate': 'up'},
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -159,12 +164,14 @@ async def test_ipv6_on_bridge_vlan(testbed):
     num_of_ports = 3
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen', 'vlan'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen', 'vlan'])
     traffic_duration = 10
     wait_for_stats = 10
     plen = 64
@@ -173,31 +180,33 @@ async def test_ipv6_on_bridge_vlan(testbed):
     vlan_ifs = [f'{bridge}.{vlan}' for vlan in vlans]
 
     address_map = [
-        addr_info(vlan_if, tg, f'2001:{idx}0::1', f'2001:{idx}0::2', plen, vlan)
+        addr_info(vlan_if, tg, f'2001:{idx}0::1',
+                  f'2001:{idx}0::2', plen, vlan)
         for idx, (vlan_if, vlan, tg) in enumerate(zip(vlan_ifs, vlans, tg_ports[1:]+tg_ports[1:]), start=1)
     ] + [
-        addr_info(ports[0], tg_ports[0], '2001:100::1', '2001:100::2', plen, None)
+        addr_info(ports[0], tg_ports[0], '2001:100::1',
+                  '2001:100::2', plen, None)
     ]
 
     # 1. Create 1Q bridge
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge', 'vlan_filtering': 1, 'vlan_default_pvid': 0},
+        {'dev': bridge, 'type': 'bridge', 'vlan_filtering': 1, 'vlan_default_pvid': 0},
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to create bridges'
 
     # Enslave ports
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'master': bridge}
+        {'dev': port, 'master': bridge}
         for port in ports[1:]
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
     # Add vlan interfaces
     out = await BridgeVlan.add(input_data=[{dent: [
-        {'device': bridge, 'vid': vlan, 'self': True}
+        {'dev': bridge, 'vid': vlan, 'self': True}
         for vlan in vlans
     ] + [
-        {'device': port, 'vid': vlan, 'untagged': False}
+        {'dev': port, 'vid': vlan, 'untagged': False}
         for port, vlan in zip(ports[1:]+ports[1:], vlans)
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add vlans'
@@ -210,7 +219,7 @@ async def test_ipv6_on_bridge_vlan(testbed):
 
     # Set all interfaces up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': dev, 'operstate': 'up'}
+        {'dev': dev, 'operstate': 'up'}
         for dev in [bridge] + ports + vlan_ifs
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
@@ -275,12 +284,14 @@ async def test_ipv6_move_host_on_bridge(testbed):
     num_of_ports = 3
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     traffic_duration = 10
     wait_for_stats = 10
     plen = 64
@@ -293,14 +304,14 @@ async def test_ipv6_move_host_on_bridge(testbed):
 
     # 1. Add IP address port and bridge
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge', 'vlan_filtering': 1},
+        {'dev': bridge, 'type': 'bridge', 'vlan_filtering': 1},
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to create bridges'
 
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge} for port in ports[1:]
+        {'dev': port, 'operstate': 'up', 'master': bridge} for port in ports[1:]
     ] + [
-        {'device': bridge, 'operstate': 'up'},
+        {'dev': bridge, 'operstate': 'up'},
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 

@@ -50,7 +50,8 @@ async def test_stp_select_root_bridge(testbed, version):
     """
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device = dent_devices[0]
     dent = device.host_name
     loopback_ports = {}
@@ -69,7 +70,7 @@ async def test_stp_select_root_bridge(testbed, version):
 
     # 1. Create 3 bridge entities4  bonds and set link up on them
     out = await IpLink.add(input_data=[{dent: [{
-        'device': bridge,
+        'dev': bridge,
         'type': 'bridge',
         'vlan_filstering': 0,
         'stp_state': 1} for bridge in bridges]}])
@@ -86,27 +87,27 @@ async def test_stp_select_root_bridge(testbed, version):
 
     # 2. Enslave ports to bridges
     out = await IpLink.set(input_data=[{dent: [{
-        'device': port,
+        'dev': port,
         'operstate': 'down'} for port in loopback_ports.values()]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting links to state down'
 
     for bridge, ports in bridges.items():
-        out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bridge} for port in ports]}])
+        out = await IpLink.set(input_data=[{dent: [{'dev': port, 'master': bridge} for port in ports]}])
         assert out[0][dent]['rc'] == 0, 'Failed enslaving ports'
 
     # 3. Change the MAC addresses for all bridges
     for bridge, mac in zip(bridge_names, hw_mac):
         out = await IpLink.set(input_data=[{dent: [
-            {'device': bridge,
+            {'dev': bridge,
              'address': mac}]}])
         assert out[0][dent]['rc'] == 0, 'Failed to change MAC address'
 
     # 4. Set link up on all participant ports, bridges
     out = await IpLink.set(input_data=[{dent: [{
-        'device': port,
+        'dev': port,
         'operstate': 'up'} for port in loopback_ports.values()]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting loopback links to state up'
-    out = await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'} for bridge in bridges]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': bridge, 'operstate': 'up'} for bridge in bridges]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state up'
 
     for bridge, priority in zip(bridge_names, bridges_priorities):
@@ -128,15 +129,17 @@ async def test_stp_select_root_bridge(testbed, version):
          'bridge': bridge_names[0],
          'options': '-f json'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get bridge detail'
-    assert out[0][dent]['parsed_output'][0]['root-port'] == '', f'Bridge { bridge_names[0]} is not a root bridge'
+    assert out[0][dent]['parsed_output'][0][
+        'root-port'] == '', f'Bridge { bridge_names[0]} is not a root bridge'
     # Other bridges do not consider themselves as root bridge
     for bridge in bridge_names[1:]:
         out = await Mstpctl.show(input_data=[{dent: [
-                {'parameter': 'bridge',
-                 'bridge': bridge,
-                 'options': '-f json'}]}], parse_output=True)
+            {'parameter': 'bridge',
+             'bridge': bridge,
+             'options': '-f json'}]}], parse_output=True)
         assert out[0][dent]['rc'] == 0, 'Failed to get bridge detail'
-        assert out[0][dent]['parsed_output'][0]['root-port'] != '', f'Bridge {bridge} is a root bridge'
+        assert out[0][dent]['parsed_output'][0][
+            'root-port'] != '', f'Bridge {bridge} is a root bridge'
 
     # 7. Verify bridge_3 has a blocking port
     out = await Mstpctl.show(input_data=[{dent: [
@@ -158,11 +161,11 @@ async def test_stp_select_root_bridge(testbed, version):
 
     # 9. Change the highest bridge priority to a priority with lower value then the root bridge.
     out = await Mstpctl.set(input_data=[{dent: [
-            {'parameter': 'treeprio',
-             'bridge': bridge_names[2],
-             'mstid': 0,
-             'priority': 1}
-        ]}])
+        {'parameter': 'treeprio',
+         'bridge': bridge_names[2],
+         'mstid': 0,
+         'priority': 1}
+    ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to change priority of the bridge'
 
     # 10. Wait for topology to re-build.
@@ -174,14 +177,16 @@ async def test_stp_select_root_bridge(testbed, version):
          'bridge': bridge_names[2],
          'options': '-f json'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get bridge detail'
-    assert out[0][dent]['parsed_output'][0]['root-port'] == '', f'Bridge { bridge_names[2]} is a root bridge'
+    assert out[0][dent]['parsed_output'][0][
+        'root-port'] == '', f'Bridge { bridge_names[2]} is a root bridge'
     # Bridge_1 is not a root bridge
     out = await Mstpctl.show(input_data=[{dent: [
         {'parameter': 'bridge',
          'bridge': bridge_names[0],
          'options': '-f json'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get bridge detail'
-    assert out[0][dent]['parsed_output'][0]['root-port'] != '', f'Bridge { bridge_names[0]} is not a root bridge'
+    assert out[0][dent]['parsed_output'][0][
+        'root-port'] != '', f'Bridge { bridge_names[0]} is not a root bridge'
 
     # 12.Verify bridge_2 has a blocking port
     out = await Mstpctl.show(input_data=[{dent: [
@@ -223,7 +228,8 @@ async def test_stp_select_root_port(testbed, version):
     """
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device = dent_devices[0]
 
     dent = device.host_name
@@ -241,7 +247,7 @@ async def test_stp_select_root_port(testbed, version):
 
     # 1. Create 2 bridge entities 4 ports and set link up on them
     out = await IpLink.add(input_data=[{dent: [{
-        'device': bridge,
+        'dev': bridge,
         'type': 'bridge',
         'stp_state': 1} for bridge in bridges]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
@@ -256,24 +262,24 @@ async def test_stp_select_root_port(testbed, version):
     assert out[0][dent]['rc'] == 0, 'Failed to set stp/rstp version'
 
     # 2. Enslave ports to bridges
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'down'} for port in loopback_ports.values()]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'operstate': 'down'} for port in loopback_ports.values()]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting links to state down'
 
     for bridge, ports in bridges.items():
-        out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bridge} for port in ports]}])
+        out = await IpLink.set(input_data=[{dent: [{'dev': port, 'master': bridge} for port in ports]}])
         assert out[0][dent]['rc'] == 0, 'Failed enslaving ports to bridge'
 
     # 3. Change the MAC addresses for all bridges
     for bridge, mac in zip(bridge_names, hw_mac):
         out = await IpLink.set(input_data=[{dent: [
-            {'device': bridge,
+            {'dev': bridge,
              'address': mac}]}])
         assert out[0][dent]['rc'] == 0, 'Failed to change MAC address'
 
     # 4. Set link up on all participant ports, bridges
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'} for port in loopback_ports.values()]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'operstate': 'up'} for port in loopback_ports.values()]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting loopback links to state up'
-    out = await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'} for bridge in bridges]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': bridge, 'operstate': 'up'} for bridge in bridges]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state up'
 
     # 5. Wait until topology converges
@@ -286,14 +292,16 @@ async def test_stp_select_root_port(testbed, version):
          'bridge': bridge_names[0],
          'options': '-f json'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get bridge detail'
-    assert out[0][dent]['parsed_output'][0]['root-port'] == '', f'Bridge { bridge_names[0]} is not a root bridge'
+    assert out[0][dent]['parsed_output'][0][
+        'root-port'] == '', f'Bridge { bridge_names[0]} is not a root bridge'
     # Other bridges do not consider themselves as root bridge
     out = await Mstpctl.show(input_data=[{dent: [
-            {'parameter': 'bridge',
-             'bridge': bridge_names[1],
-             'options': '-f json'}]}], parse_output=True)
+        {'parameter': 'bridge',
+         'bridge': bridge_names[1],
+         'options': '-f json'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get bridge detail'
-    assert out[0][dent]['parsed_output'][0]['root-port'] != '', f'Bridge {bridge_names[1]} is a root bridge'
+    assert out[0][dent]['parsed_output'][0][
+        'root-port'] != '', f'Bridge {bridge_names[1]} is a root bridge'
 
     # 7. Verify bridge_2 has a blocking port
     out = await Mstpctl.show(input_data=[{dent: [
@@ -315,7 +323,7 @@ async def test_stp_select_root_port(testbed, version):
          'port': list(loopback_ports.values())[1],
          'mstid': 0,
          'priority': 7}
-        ]}])
+    ]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bridge priority'
 
     # 9. Wait for topology to re-build.
@@ -355,7 +363,8 @@ async def test_stp_root_bridge_based_on_mac(testbed, version):
     num_ports = 4
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_device = dent_devices[0]
     dent = dent_device.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_ports]
@@ -365,19 +374,19 @@ async def test_stp_root_bridge_based_on_mac(testbed, version):
 
     # 1.  Create bridge entity with STP enabled
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge', 'stp_state': 1}
+        {'dev': bridge, 'type': 'bridge', 'stp_state': 1}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2.Enslave port to the bridge
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port,
+        {'dev': port,
          'master': bridge} for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
     # 3. Change the MAC addresses for all bridges
     out = await IpLink.set(input_data=[{dent: [
-        {'device': bridge,
+        {'dev': bridge,
          'address': '66:DA:78:12:DC:68'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to change MAC address'
 
@@ -391,12 +400,12 @@ async def test_stp_root_bridge_based_on_mac(testbed, version):
 
     # 4. Set link up on all participant ports
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port,
+        {'dev': port,
          'operstate': 'up'} for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
     out = await IpLink.set(input_data=[{dent: [
-        {'device': bridge,
+        {'dev': bridge,
          'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set bridge to state UP'
 
@@ -446,11 +455,12 @@ async def test_stp_root_bridge_based_on_mac(testbed, version):
          'bridge': bridge,
          'options': '-f json'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get bridge detail'
-    assert out[0][dent]['parsed_output'][0]['root-port'] != '', f'Bridge { bridge} is not a root bridge'
+    assert out[0][dent]['parsed_output'][0][
+        'root-port'] != '', f'Bridge { bridge} is not a root bridge'
 
     # 7. Change the highest MAC bridge to a MAC with lower value then the root bridge.
     out = await IpLink.set(input_data=[{dent: [
-        {'device': bridge,
+        {'dev': bridge,
          'address': get_rand_mac('00:22:XX:XX:XX:XX')}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to change MAC address'
 
@@ -460,7 +470,8 @@ async def test_stp_root_bridge_based_on_mac(testbed, version):
          'bridge': bridge,
          'options': '-f json'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get bridge detail'
-    assert out[0][dent]['parsed_output'][0]['root-port'] == '', f'Bridge { bridge} is not a root bridge'
+    assert out[0][dent]['parsed_output'][0][
+        'root-port'] == '', f'Bridge { bridge} is not a root bridge'
 
 
 async def test_stp_select_root_port_on_cost(testbed, version):
@@ -483,7 +494,8 @@ async def test_stp_select_root_port_on_cost(testbed, version):
     num_ports = 4
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_device = dent_devices[0]
     dent = dent_device.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_ports]
@@ -499,19 +511,19 @@ async def test_stp_select_root_port_on_cost(testbed, version):
 
     # 1. Create bridge entity with STP enabled
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge', 'stp_state': 1}
+        {'dev': bridge, 'type': 'bridge', 'stp_state': 1}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2. Enslave port to the bridge
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port,
+        {'dev': port,
          'master': bridge} for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
     # 3. Change the MAC addresses the bridge
     out = await IpLink.set(input_data=[{dent: [
-        {'device': bridge,
+        {'dev': bridge,
          'address': '22:BB:4D:85:E7:098'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to change MAC address'
 
@@ -525,12 +537,12 @@ async def test_stp_select_root_port_on_cost(testbed, version):
 
     # 4. Set link up on all participant ports, bridge
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port,
+        {'dev': port,
          'operstate': 'up'} for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
     out = await IpLink.set(input_data=[{dent: [
-        {'device': bridge,
+        {'dev': bridge,
          'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set bridge to state UP'
 
@@ -607,10 +619,12 @@ async def test_stp_select_root_port_on_cost(testbed, version):
     for row in stats.Rows:
         if row['Traffic Item'] == traffic and row['Rx Port'] == tg_ports[1]:
             err_msg = f'Expected 0.0 got : {float(row["Rx Rate (Mbps)"])}'
-            assert isclose(float(row['Rx Rate (Mbps)']), 0.0, abs_tol=tolerance), err_msg
+            assert isclose(float(row['Rx Rate (Mbps)']),
+                           0.0, abs_tol=tolerance), err_msg
         if row['Traffic Item'] == traffic and row['Rx Port'] == tg_ports[0]:
             err_msg = f'Expected 300 got : {float(row["Rx Rate (Mbps)"])}'
-            assert isclose(float(row['Rx Rate (Mbps)']), 300, rel_tol=tolerance), err_msg
+            assert isclose(float(row['Rx Rate (Mbps)']),
+                           300, rel_tol=tolerance), err_msg
     await tgen_utils_stop_traffic(tgen_dev)
 
     # 8. Change the cost of the blocked port to a cost less of the default set
@@ -641,7 +655,9 @@ async def test_stp_select_root_port_on_cost(testbed, version):
     for row in stats.Rows:
         if row['Traffic Item'] == traffic and row['Rx Port'] == tg_ports[0]:
             err_msg = f'Expected 0.0 got : {float(row["Rx Rate (Mbps)"])}'
-            assert isclose(float(row['Rx Rate (Mbps)']), 0.0, abs_tol=tolerance), err_msg
+            assert isclose(float(row['Rx Rate (Mbps)']),
+                           0.0, abs_tol=tolerance), err_msg
         if row['Traffic Item'] == traffic and row['Rx Port'] == tg_ports[1]:
             err_msg = f'Expected 300 got : {float(row["Rx Rate (Mbps)"])}'
-            assert isclose(float(row['Rx Rate (Mbps)']), 300, rel_tol=tolerance), err_msg
+            assert isclose(float(row['Rx Rate (Mbps)']),
+                           300, rel_tol=tolerance), err_msg

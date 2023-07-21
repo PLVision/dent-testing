@@ -29,7 +29,8 @@ from dent_os_testbed.utils.test_utils.tc_flower_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_acl,
-    pytest.mark.usefixtures('cleanup_qdiscs', 'cleanup_tgen', 'cleanup_bridges'),
+    pytest.mark.usefixtures(
+        'cleanup_qdiscs', 'cleanup_tgen', 'cleanup_bridges'),
     pytest.mark.asyncio,
 ]
 
@@ -116,7 +117,8 @@ async def test_acl_all_selectors(testbed, action, use_tagged_traffic, qdisc_type
     # 1. Initiate test params
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:2]
@@ -147,21 +149,22 @@ async def test_acl_all_selectors(testbed, action, use_tagged_traffic, qdisc_type
 
     # 3. Enslave interfaces and set link up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge} for port in ports
+        {'dev': port, 'operstate': 'up', 'master': bridge} for port in ports
     ] + [
-        {'device': bridge, 'operstate': 'up'}
+        {'dev': bridge, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
     # 4. Add vlans to DUT ports
     if is_vlan_aware:
         out = await BridgeVlan.add(input_data=[{dent: [
-            {'device': port, 'vid': vlan, 'untagged': False} for port in ports
+            {'dev': port, 'vid': vlan, 'untagged': False} for port in ports
         ]}])
         assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
     # 5. Create ingress qdisc (port or shared block)
-    config = {'dev': port_with_rule, 'ingress_block': block, 'direction': 'ingress'}
+    config = {'dev': port_with_rule,
+              'ingress_block': block, 'direction': 'ingress'}
     if use_shared_block:
         tc_target = 'block'
     else:
@@ -172,7 +175,8 @@ async def test_acl_all_selectors(testbed, action, use_tagged_traffic, qdisc_type
     assert out[0][dent]['rc'] == 0, 'Failed to create qdisc'
 
     # 6. Create rule-matched traffic
-    tc_rule = get_rule_with_all_selectors(name, pref, action, vlan, use_shared_block)
+    tc_rule = get_rule_with_all_selectors(
+        name, pref, action, vlan, use_shared_block)
     out = await TcFilter.add(input_data=[{dent: [tc_rule]}])
     assert out[0][dent]['rc'] == 0, 'Failed to create tc rules'
 
@@ -186,7 +190,8 @@ async def test_acl_all_selectors(testbed, action, use_tagged_traffic, qdisc_type
         frame_rate_pps=rate_pps)
 
     # 7. Prepare streams that do not match the rule (one unmatched stream for each selector)
-    rule_unmatched_streams = get_streams_that_do_not_match_rule(streams, list_of_selectors)
+    rule_unmatched_streams = get_streams_that_do_not_match_rule(
+        streams, list_of_selectors)
     streams.update(rule_unmatched_streams)
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -209,7 +214,8 @@ async def test_acl_all_selectors(testbed, action, use_tagged_traffic, qdisc_type
 
     for row in ixia_stats.Rows:
         act = action
-        if 'unmatch' not in row['Traffic Item']:  # there should be exactly 1 such traffic item
+        # there should be exactly 1 such traffic item
+        if 'unmatch' not in row['Traffic Item']:
             tx_frames = int(row['Tx Frames'])
         else:  # traffic items that should not be matched by any tc rule
             act = 'pass'

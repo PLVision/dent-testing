@@ -26,7 +26,8 @@ from dent_os_testbed.test.test_suite.functional.ipv6.ipv6_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv6,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'enable_ipv6_forwarding', 'cleanup_sysctl'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'enable_ipv6_forwarding', 'cleanup_sysctl'),
     pytest.mark.asyncio,
 ]
 
@@ -51,25 +52,30 @@ async def test_ipv6_basic_config(testbed):
     num_of_ports = 2
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     traffic_duration = 10
     wait_for_stats = 5
     plen = 64
 
     address_map = (
-        addr_info(ports[0], tg_ports[0], '2001:1111:10:1::1', '2001:1111:10:1::2', plen),
-        addr_info(ports[0], tg_ports[0], '2001:2222:20:2::1', '2001:2222:20:2::2', plen),
-        addr_info(ports[1], tg_ports[1], '2001:3333:30:3::1', '2001:3333:30:3::2', plen),
+        addr_info(ports[0], tg_ports[0], '2001:1111:10:1::1',
+                  '2001:1111:10:1::2', plen),
+        addr_info(ports[0], tg_ports[0], '2001:2222:20:2::1',
+                  '2001:2222:20:2::2', plen),
+        addr_info(ports[1], tg_ports[1], '2001:3333:30:3::1',
+                  '2001:3333:30:3::2', plen),
     )
 
     # 1. Add IP address for 2 interfaces: IP1 and IP2 in different subnets
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port in ports
+        {'dev': port, 'operstate': 'up'} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -91,9 +97,9 @@ async def test_ipv6_basic_config(testbed):
         {'ifname': info.swp,
          'should_exist': True,
          'addr_info': {
-            'family': 'inet6',
-            'local': info.swp_ip,
-            'prefixlen': info.plen}}
+             'family': 'inet6',
+             'local': info.swp_ip,
+             'prefixlen': info.plen}}
         for info in address_map
     ]
     await verify_dut_addrs(dent, expected_addrs)
@@ -180,12 +186,14 @@ async def test_ipv6_flags(testbed):
     num_of_ports = 2
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     traffic_duration = 10
     wait_for_stats = 5
 
@@ -198,7 +206,7 @@ async def test_ipv6_flags(testbed):
 
     # 1. Add IP addrs in different subnets using change/replace
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port in ports
+        {'dev': port, 'operstate': 'up'} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -228,10 +236,10 @@ async def test_ipv6_flags(testbed):
         {'ifname': info.swp,
          'should_exist': True,
          'addr_info': {
-            'family': 'inet6',
-            'local': info.swp_ip,
-            'dynamic': True if info == address_map[0] or info == address_map[3] else None,
-            'prefixlen': info.plen}}
+             'family': 'inet6',
+             'local': info.swp_ip,
+             'dynamic': True if info == address_map[0] or info == address_map[3] else None,
+             'prefixlen': info.plen}}
         for info in address_map
     ]
     await verify_dut_addrs(dent, expected_addrs)
@@ -306,11 +314,11 @@ async def test_ipv6_flags(testbed):
         {'ifname': info.swp,
          'should_exist': True,
          'addr_info': {
-            'family': 'inet6',
-            'local': info.swp_ip,
-            'dynamic': True if info == address_map[0] or info == address_map[3] else None,
-            'deprecated': True if info == address_map[0] or info == address_map[3] else None,
-            'prefixlen': info.plen}}
+             'family': 'inet6',
+             'local': info.swp_ip,
+             'dynamic': True if info == address_map[0] or info == address_map[3] else None,
+             'deprecated': True if info == address_map[0] or info == address_map[3] else None,
+             'prefixlen': info.plen}}
         for info in address_map
     ]
     await verify_dut_addrs(dent, expected_addrs)
@@ -340,16 +348,16 @@ async def test_ipv6_flags(testbed):
         {'ifname': info.swp,
          'should_exist': info == address_map[1] or info == address_map[2],
          'addr_info': {
-            'family': 'inet6',
-            'local': info.swp_ip,
-            'prefixlen': info.plen}}
+             'family': 'inet6',
+             'local': info.swp_ip,
+             'prefixlen': info.plen}}
         for info in address_map
     ]
     await verify_dut_addrs(dent, expected_addrs)
 
     # 7. Flush neighbor entries
     out = await IpNeighbor.flush(input_data=[{dent: [
-        {'device': port} for port in ports * 2  # flush twice
+        {'dev': port} for port in ports * 2  # flush twice
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to flush neighbors'
 
@@ -398,12 +406,14 @@ async def test_ipv6_secondary_addr(testbed):
     num_of_ports = 2
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     traffic_duration = 10
     wait_for_stats = 5
     base_reach_time_s = 150
@@ -433,7 +443,7 @@ async def test_ipv6_secondary_addr(testbed):
 
     # Set ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port in ports
+        {'dev': port, 'operstate': 'up'} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -456,9 +466,9 @@ async def test_ipv6_secondary_addr(testbed):
         {'ifname': info.swp,
          'should_exist': True,
          'addr_info': {
-            'family': 'inet6',
-            'local': info.swp_ip,
-            'prefixlen': info.plen}}
+             'family': 'inet6',
+             'local': info.swp_ip,
+             'prefixlen': info.plen}}
         for info in address_map
     ]
     await verify_dut_addrs(dent, expected_addrs)
@@ -492,7 +502,8 @@ async def test_ipv6_secondary_addr(testbed):
     # Verify clear traffic
     await asyncio.sleep(wait_for_stats)
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-    assert all(tgen_utils_get_loss(row) == 0 for row in stats.Rows), 'Unexpected traffic loss'
+    assert all(tgen_utils_get_loss(row) ==
+               0 for row in stats.Rows), 'Unexpected traffic loss'
 
     # Verify neighbor resolved
     expected_neis = [{'dev': info.swp,
@@ -522,7 +533,8 @@ async def test_ipv6_secondary_addr(testbed):
     # Verify traffic after secondary IP addresses are deleted
     await asyncio.sleep(wait_for_stats)
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-    assert all(tgen_utils_get_loss(row) == 0 for row in stats.Rows), 'Unexpected traffic loss'
+    assert all(tgen_utils_get_loss(row) ==
+               0 for row in stats.Rows), 'Unexpected traffic loss'
 
     # 6. Delete other secondary and primary (in this order) IP addresses on DUT
     out = await IpAddress.delete(input_data=[{dent: [
@@ -543,7 +555,8 @@ async def test_ipv6_secondary_addr(testbed):
     # Verify no traffic as IP addresses are deleted
     await asyncio.sleep(wait_for_stats)
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-    assert all(tgen_utils_get_loss(row) == 100 for row in stats.Rows), 'Unexpected traffic'
+    assert all(tgen_utils_get_loss(row) ==
+               100 for row in stats.Rows), 'Unexpected traffic'
 
     # 8. Add primary and secondary IPv4 addresses back for two DUT ports
     out = await IpAddress.add(input_data=[{dent: [
@@ -563,4 +576,5 @@ async def test_ipv6_secondary_addr(testbed):
 
     await asyncio.sleep(wait_for_stats)
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-    assert all(tgen_utils_get_loss(row) == 0 for row in stats.Rows), 'Unexpected traffic loss'
+    assert all(tgen_utils_get_loss(row) ==
+               0 for row in stats.Rows), 'Unexpected traffic loss'

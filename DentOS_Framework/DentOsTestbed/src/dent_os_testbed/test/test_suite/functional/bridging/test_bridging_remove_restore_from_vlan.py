@@ -49,7 +49,8 @@ async def test_bridging_remove_restore_from_vlan(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 3)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -57,40 +58,44 @@ async def test_bridging_remove_restore_from_vlan(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'vlan_filtering': 1, 'type': 'bridge'}]}])
+            {'dev': bridge, 'vlan_filtering': 1, 'type': 'bridge'}]}])
     err_msg = f"Verify that bridge created and vlan filtering set to 'ON'.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'learning': False, 'flood': False} for port in ports]}])
+            {'dev': port, 'learning': False, 'flood': False} for port in ports]}])
     err_msg = f"Verify that entities set to learning 'OFF' and flooding 'OFF' state.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeVlan.add(
         input_data=[{device_host_name: [
-            {'device': port, 'vid': 2} for port in ports]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that interfaces added to vlans '2'.\n{out}"
+            {'dev': port, 'vid': 2} for port in ports]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that interfaces added to vlans '2'.\n{out}"
 
     out = await BridgeFdb.add(
         input_data=[{device_host_name: [
-            {'device': ports[0], 'lladdr': 'aa:bb:cc:dd:ee:11', 'master': True, 'static': True, 'vlan': 2}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that FDB static entries added.\n{out}'
+            {'dev': ports[0], 'lladdr': 'aa:bb:cc:dd:ee:11', 'master': True, 'static': True, 'vlan': 2}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that FDB static entries added.\n{out}'
 
     out = await BridgeVlan.delete(
-        input_data=[{device_host_name: [{'device': ports[0], 'vid': 2}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that interface deleted from vlan '2'.\n{out}"
+        input_data=[{device_host_name: [{'dev': ports[0], 'vid': 2}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that interface deleted from vlan '2'.\n{out}"
 
     out = await BridgeFdb.show(input_data=[{device_host_name: [{'options': '-j'}]}],
                                parse_output=True)
@@ -102,8 +107,9 @@ async def test_bridging_remove_restore_from_vlan(testbed):
     assert 'aa:bb:cc:dd:ee:11' in learned_macs, err_msg
 
     out = await BridgeVlan.add(
-        input_data=[{device_host_name: [{'device': ports[0], 'vid': 2}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that interfaces added to vlans '2'.\n{out}"
+        input_data=[{device_host_name: [{'dev': ports[0], 'vid': 2}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that interfaces added to vlans '2'.\n{out}"
 
     address_map = (
         # swp port, tg port,    tg ip,     gw,        plen

@@ -18,7 +18,8 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv4,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
     pytest.mark.asyncio,
 ]
 
@@ -48,7 +49,8 @@ async def test_ipv4_checksum(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
@@ -66,7 +68,7 @@ async def test_ipv4_checksum(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'}
+        {'dev': port, 'operstate': 'up'}
         for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
@@ -121,6 +123,7 @@ async def test_ipv4_checksum(testbed):
                 'Bad CRC counter should not change for valid CRC traffic'
         else:  # bad crc
             assert loss == 100, f'Expected loss: 100%, actual: {loss}%'
-            counter = int(new_stats[port]['bad_crc']) - int(old_stats[port]['bad_crc'])
+            counter = int(new_stats[port]['bad_crc']) - \
+                int(old_stats[port]['bad_crc'])
             assert counter == int(row['Tx Frames']), \
                 f"Expected Bad CRC counter to be {row['Tx Frames']}, not {counter}"

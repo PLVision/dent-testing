@@ -82,7 +82,7 @@ async def tb_flap_links(dev, ports):
     - get a list of ports on the device
     """
     out = await IpLink.show(
-        input_data=[{dev.host_name: [{'cmd_options': '-j'}]}],
+        input_data=[{dev.host_name: [{'options': '-j'}]}],
     )
     assert out[0][dev.host_name]['rc'] == 0, f'Failed to get Links on {dev.host_name} {out}'
     links = json.loads(out[0][dev.host_name]['result'])
@@ -97,12 +97,14 @@ async def tb_flap_links(dev, ports):
             print('Not even single swp is UP')
             return
         out = await IpLink.set(
-            input_data=[{dev.host_name: [{'device': link_name, 'operstate': 'down'}]}],
+            input_data=[
+                {dev.host_name: [{'dev': link_name, 'operstate': 'down'}]}],
         )
         assert out[0][dev.host_name]['rc'] == 0, f'Failed to down the link {link_name} {out}'
         time.sleep(2)
         out = await IpLink.set(
-            input_data=[{dev.host_name: [{'device': link_name, 'operstate': 'up'}]}],
+            input_data=[
+                {dev.host_name: [{'dev': link_name, 'operstate': 'up'}]}],
         )
         assert out[0][dev.host_name]['rc'] == 0, f'Failed to down the link {link_name}'
 
@@ -160,7 +162,8 @@ async def tb_device_check_memory(dev, prev_state, check):
         input_data=[{dev.host_name: [{}]}],
         parse_output=True,
     )
-    assert out[0][dev.host_name]['rc'] == 0, f'Failed to get MemoryUsage on {dev.host_name} {out}'
+    assert out[0][dev.host_name][
+        'rc'] == 0, f'Failed to get MemoryUsage on {dev.host_name} {out}'
     mem_dict = out[0][dev.host_name]['parsed_output']
     if not check:
         return mem_dict
@@ -173,11 +176,13 @@ async def tb_device_check_memory(dev, prev_state, check):
         if k not in mem_to_check:
             dev.applog.info(f'skipping to check {k}')
             continue
-        old_v = (prev_state['memory'][k] * 1.0) if prev_state['memory'][k] else 1.0
+        old_v = (prev_state['memory'][k] *
+                 1.0) if prev_state['memory'][k] else 1.0
         diff_p = (abs(prev_state['memory'][k] - v) / old_v) * 100.0
         if diff_p > 15.0:
             dev.applog.info(
-                '{} Value not in range {} {} {}'.format(k, diff_p, v, prev_state['memory'][k])
+                '{} Value not in range {} {} {}'.format(
+                    k, diff_p, v, prev_state['memory'][k])
             )
             assert 0, f'Value out of range {k} {v} by {diff_p} {out}'
     return mem_dict
@@ -191,7 +196,8 @@ async def tb_device_check_cpu(dev, prev_state, check):
         input_data=[{dev.host_name: [{'dut_discovery': True}]}],
         parse_output=True,
     )
-    assert out[0][dev.host_name]['rc'] == 0, f'Failed to get CpuUsage on {dev.host_name} {out}'
+    assert out[0][dev.host_name][
+        'rc'] == 0, f'Failed to get CpuUsage on {dev.host_name} {out}'
     cpu_dict = out[0][dev.host_name]['parsed_output']
     if not check:
         return cpu_dict
@@ -211,7 +217,8 @@ async def tb_device_check_cpu(dev, prev_state, check):
                 continue
             diff_p = abs(ocpu[k] - v) * 100.0
             if diff_p > 15.0:
-                dev.applog.info('{} Value not in range {} {} {}'.format(k, diff_p, v, ocpu[k]))
+                dev.applog.info('{} Value not in range {} {} {}'.format(
+                    k, diff_p, v, ocpu[k]))
                 # assert 0, f"Value out of range {k} {v} by {diff_p}"
 
     return cpu_dict
@@ -222,7 +229,8 @@ async def tb_device_check_disk(dev, prev_state, check):
         input_data=[{dev.host_name: [{}]}],
         parse_output=True,
     )
-    assert out[0][dev.host_name]['rc'] == 0, f'Failed to get DiskFree on {dev.host_name} {out}'
+    assert out[0][dev.host_name][
+        'rc'] == 0, f'Failed to get DiskFree on {dev.host_name} {out}'
     dkt = out[0][dev.host_name]['parsed_output']
     disk_dict = {}
     for d in dkt:
@@ -232,7 +240,8 @@ async def tb_device_check_disk(dev, prev_state, check):
         return disk_dict
 
     for k, v in disk_dict.items():
-        diff = abs(v['use_percentage'] - prev_state['disk'][k]['use_percentage'])
+        diff = abs(v['use_percentage'] -
+                   prev_state['disk'][k]['use_percentage'])
         if diff > 15.0:
             dev.applog.info(
                 '{} Value not in range {} {} {}'.format(
@@ -292,7 +301,8 @@ async def tb_reset_ssh_connections(devices):
 
 async def tb_get_all_devices(
     testbed,
-    exclude_devices=[DeviceType.TRAFFIC_GENERATOR, DeviceType.BLACKFOOT_ROUTER],
+    exclude_devices=[DeviceType.TRAFFIC_GENERATOR,
+                     DeviceType.BLACKFOOT_ROUTER],
     include_devices=None,
     skip_disconnected=True,
 ):
@@ -370,13 +380,15 @@ async def tb_ping_device(device, target, pkt_loss_treshold=50, dump=False, count
     cmd = f'ping -c {count} {inter} {target}'
     rc, out = await device.run_cmd(cmd, sudo=True)
     if dump:
-        device.applog.info(f'Ran {cmd} on {device.host_name} with rc {rc} and out {out}')
+        device.applog.info(
+            f'Ran {cmd} on {device.host_name} with rc {rc} and out {out}')
     for line in out.splitlines():
         line = line.rstrip()
         if 'transmitted' in line:
             pkt_stats = line
     pkt_loss = next(
-        (pkt_stat for pkt_stat in pkt_stats.split(',') if 'packet loss' in pkt_stat), None
+        (pkt_stat for pkt_stat in pkt_stats.split(
+            ',') if 'packet loss' in pkt_stat), None
     )
     if pkt_loss:
         pkt_loss_percent = pkt_loss.strip().split(' ')[0].split('.')[0]
@@ -482,7 +494,8 @@ async def tb_collect_logs_from_device(device):
 
 
 async def tb_collect_logs_from_devices(devices,
-                                       exclude_devices=[DeviceType.TRAFFIC_GENERATOR],
+                                       exclude_devices=[
+                                           DeviceType.TRAFFIC_GENERATOR],
                                        ):
     """
     collect the logs from the given devices, skip if not connected.
@@ -499,15 +512,18 @@ async def tb_collect_logs_from_devices(devices,
 
 
 def tb_generate_network_diagram(testbed, links_dict):
-    net = Network(height='750px', width='100%', bgcolor='#222222', font_color='white', layout=True)
+    net = Network(height='750px', width='100%', bgcolor='#222222',
+                  font_color='white', layout=True)
     net.barnes_hut()
     for src, links in links_dict.items():
         for slink, links in links.items():
             link, oper, ver = links
             dst, dlink = link.split(':')
-            net.add_node(src, src, title=src, shape='square', group=testbed.devices_dict[src].type.value, level=testbed.devices_dict[src].type.value)
+            net.add_node(src, src, title=src, shape='square',
+                         group=testbed.devices_dict[src].type.value, level=testbed.devices_dict[src].type.value)
             group = testbed.devices_dict[dst].type.value if dst in testbed.devices_dict else 0
-            net.add_node(dst, dst, title=dst, shape='square', group=group, level=group)
+            net.add_node(dst, dst, title=dst, shape='square',
+                         group=group, level=group)
             color = 'grey'
             if oper == 'UP':
                 color = 'green'
@@ -522,12 +538,14 @@ def tb_generate_network_diagram(testbed, links_dict):
                     found = True
                     break
             if not found:
-                net.add_edge(src, dst, id=edge, color=color, title=edge + f' {oper}')
+                net.add_edge(src, dst, id=edge, color=color,
+                             title=edge + f' {oper}')
 
     neighbor_map = net.get_adj_list()
     # add neighbor data to node hover data
     for node in net.nodes:
-        node['title'] += ' Neighbors:<br>' + '<br>'.join(neighbor_map[node['id']])
+        node['title'] += ' Neighbors:<br>' + \
+            '<br>'.join(neighbor_map[node['id']])
         node['value'] = len(neighbor_map[node['id']])
 
     net.show('network.html')
@@ -543,7 +561,8 @@ async def tb_device_tcpdump(device, interface, options, count_only=False, timeou
     rc, out = await device.run_cmd(cmd, sudo=True)
 
     if dump:
-        device.applog.info(f'Ran {cmd} on {device.host_name} with rc {rc} and out {out}')
+        device.applog.info(
+            f'Ran {cmd} on {device.host_name} with rc {rc} and out {out}')
 
     if count_only:
         rr = re.findall(r'\n(\d+) packet[s]* captured\n', out, re.MULTILINE)
@@ -573,7 +592,8 @@ async def tb_get_qualified_ports(device, ports, speed, duplex, required_ports=2)
     if device.media_mode == 'mixed':
         raise ValueError('Mixed mode is not supported')
     if device.media_mode == 'copper' and speed == 10000:
-        raise ValueError(f'Can not run test in device {device.host_name} with the speed: {speed}')
+        raise ValueError(
+            f'Can not run test in device {device.host_name} with the speed: {speed}')
 
     # Check that there are at least minimum 2 ports with the provided speed parameter
     speed_ports = {}

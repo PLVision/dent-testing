@@ -43,7 +43,7 @@ async def test_alpha_lab_static_routing_kernel_route_on_table(testbed):
     swp = 'ma1'
 
     await IpLink.show(
-        input_data=[{dent: [{'device': swp, 'cmd_options': '-j'}]}],
+        input_data=[{dent: [{'dev': swp, 'options': '-j'}]}],
     )
 
     swp_info = {}
@@ -55,7 +55,8 @@ async def test_alpha_lab_static_routing_kernel_route_on_table(testbed):
         input_data=[
             {
                 dent_dev.host_name: [
-                    {'dst': '100.0.0.0/24', 'via': f'{sip}', 'dev': swp, 'protocol': 'kernel'}
+                    {'dst': '100.0.0.0/24', 'via': f'{sip}',
+                        'dev': swp, 'protocol': 'kernel'}
                 ]
             }
         ],

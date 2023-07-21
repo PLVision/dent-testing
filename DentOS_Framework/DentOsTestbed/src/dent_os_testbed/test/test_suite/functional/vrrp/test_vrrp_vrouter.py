@@ -19,7 +19,8 @@ from dent_os_testbed.test.test_suite.functional.vrrp.vrrp_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_vrrp,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'enable_ipv4_forwarding', 'cleanup_bridges'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'enable_ipv4_forwarding', 'cleanup_bridges'),
     pytest.mark.asyncio,
 ]
 
@@ -69,7 +70,8 @@ async def test_vrrp_master_and_backup(testbed, configure_vrrp):
     # 1. Configure aggregation router
     # 2. Configure infra devices
     config = await setup_topo_for_vrrp(testbed, use_bridge=True)
-    infra, agg, bridge, links = itemgetter('infra', 'agg', 'bridge', 'links')(config)
+    infra, agg, bridge, links = itemgetter(
+        'infra', 'agg', 'bridge', 'links')(config)
 
     out = await IpAddress.add(input_data=[{
         agg.host_name: [{'dev': bridge, 'prefix': '192.168.10.5/24'},
@@ -84,8 +86,10 @@ async def test_vrrp_master_and_backup(testbed, configure_vrrp):
 
     # 3. Configure VRRP on infra devices
     await asyncio.gather(*[
-        configure_vrrp(infra[0], state='MASTER', prio=200, vr_ip=vr_addr[0], vr_id=40, dev=bridge, apply=False),
-        configure_vrrp(infra[1], state='BACKUP', prio=100, vr_ip=vr_addr[0], vr_id=40, dev=bridge, apply=False),
+        configure_vrrp(infra[0], state='MASTER', prio=200,
+                       vr_ip=vr_addr[0], vr_id=40, dev=bridge, apply=False),
+        configure_vrrp(infra[1], state='BACKUP', prio=100,
+                       vr_ip=vr_addr[0], vr_id=40, dev=bridge, apply=False),
     ])
     await asyncio.gather(*[
         configure_vrrp(infra[0], state='BACKUP', prio=100, vr_ip=vr_addr[1],
@@ -156,11 +160,13 @@ async def test_vrrp_multiple_addr(testbed, configure_vrrp):
     # 2. Configure infra devices
     config = await setup_topo_for_vrrp(testbed, use_bridge=True, use_tgen=True, vrrp_ip=vrrp_ips[0])
     infra, agg, tgen_dev, bridge, links, tg_links, dev_groups = \
-        itemgetter('infra', 'agg', 'tgen_dev', 'bridge', 'links', 'tg_links', 'dev_groups')(config)
+        itemgetter('infra', 'agg', 'tgen_dev', 'bridge',
+                   'links', 'tg_links', 'dev_groups')(config)
 
     # 3. Configure VRRP on infra devices
     await asyncio.gather(*[
-        configure_vrrp(dent, state=state, prio=prio, vr_ip=vrrp_ips, vr_id=vr_id, dev=bridge)
+        configure_vrrp(dent, state=state, prio=prio,
+                       vr_ip=vrrp_ips, vr_id=vr_id, dev=bridge)
         for dent, state, prio
         in zip(infra, ['MASTER', 'BACKUP'], [200, 100])])
     await asyncio.sleep(wait_for_keepalived)
@@ -197,7 +203,7 @@ async def test_vrrp_multiple_addr(testbed, configure_vrrp):
                             ('down', (0, count)),
                             ('up', (count, 0))]:
         out = await IpLink.set(input_data=[{
-            infra[0].host_name: [{'device': f'vrrp.{vr_id}', 'operstate': state}],
+            infra[0].host_name: [{'dev': f'vrrp.{vr_id}', 'operstate': state}],
         }])
         assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
             'Failed to disable vrrp'
@@ -259,7 +265,8 @@ async def test_vrrp_max_instances(testbed, configure_vrrp):
     # 2. Configure infra devices
     config = await setup_topo_for_vrrp(testbed, use_bridge=True, use_tgen=True, vrrp_ip=vrrp_ips[0])
     infra, agg, tgen_dev, bridge, links, tg_links, dev_groups = \
-        itemgetter('infra', 'agg', 'tgen_dev', 'bridge', 'links', 'tg_links', 'dev_groups')(config)
+        itemgetter('infra', 'agg', 'tgen_dev', 'bridge',
+                   'links', 'tg_links', 'dev_groups')(config)
 
     # 3. Configure VRRP on infra devices
     for id, ip in zip(vr_ids, vrrp_ips):
@@ -303,7 +310,7 @@ async def test_vrrp_max_instances(testbed, configure_vrrp):
                             ('down', (0, count)),
                             ('up', (count, 0))]:
         out = await IpLink.set(input_data=[{
-            infra[0].host_name: [{'device': f'vrrp.{id}', 'operstate': state}
+            infra[0].host_name: [{'dev': f'vrrp.{id}', 'operstate': state}
                                  for id in vr_ids],
         }])
         assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \

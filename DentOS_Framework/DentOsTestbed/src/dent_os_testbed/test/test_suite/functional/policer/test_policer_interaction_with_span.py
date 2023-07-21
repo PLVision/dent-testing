@@ -18,7 +18,8 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_policer,
-    pytest.mark.usefixtures('cleanup_bridges', 'cleanup_qdiscs', 'cleanup_tgen'),
+    pytest.mark.usefixtures(
+        'cleanup_bridges', 'cleanup_qdiscs', 'cleanup_tgen'),
     pytest.mark.asyncio,
 ]
 
@@ -66,12 +67,12 @@ async def test_policer_interaction_span(testbed):
     }])
     assert out[0][dent]['rc'] == 0, 'Failed creating bridge.'
 
-    await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'}]}])
+    await IpLink.set(input_data=[{dent: [{'dev': bridge, 'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state UP.'
 
     # 2. Set link up on interfaces on all participant ports. Enslave all participant ports to the bridge.
     out = await IpLink.set(input_data=[{dent: [{
-        'device': port,
+        'dev': port,
         'operstate': 'up',
         'master': bridge
     } for port in ports]}])
@@ -117,7 +118,8 @@ async def test_policer_interaction_span(testbed):
 
     stream1 = {f'stream_{port_with_rule}': {'ip_source': dev_groups[tg_ports[0]][0]['name'],
                                             'ip_destination': [dev_groups[tg_ports[1]][0]['name'],
-                                                               dev_groups[tg_ports[2]][0]['name'],
+                                                               dev_groups[tg_ports[2]
+                                                                          ][0]['name'],
                                                                dev_groups[tg_ports[3]][0]['name']],
                                             'type': 'raw',
                                             'srcIp': '106.38.228.165',
@@ -130,7 +132,8 @@ async def test_policer_interaction_span(testbed):
 
     stream2 = {f'stream_{mirred_port}': {'ip_source': dev_groups[tg_ports[1]][0]['name'],
                                          'ip_destination': [dev_groups[tg_ports[0]][0]['name'],
-                                                            dev_groups[tg_ports[2]][0]['name'],
+                                                            dev_groups[tg_ports[2]
+                                                                       ][0]['name'],
                                                             dev_groups[tg_ports[3]][0]['name']],
                                          'type': 'raw',
                                          'srcIp': '106.38.228.165',
@@ -155,17 +158,22 @@ async def test_policer_interaction_span(testbed):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Port Statistics')
     for row in stats.Rows:
         if row['Port Name'] == tg_ports[0]:
-            assert isclose(float(row['Rx. Rate (bps)']), 0), f'Expected 0.0 got : {float(row["Rx. Rate (bps)"])}'
+            assert isclose(float(
+                row['Rx. Rate (bps)']), 0), f'Expected 0.0 got : {float(row["Rx. Rate (bps)"])}'
             continue
         if row['Port Name'] == tg_ports[1]:
-            device.applog.info(f'Verifying rate for the mirred port {row["Port Name"]}')
-            mirred_port_rate = transmit_rate * (len(dev_groups) - 1) + police_rate
+            device.applog.info(
+                f'Verifying rate for the mirred port {row["Port Name"]}')
+            mirred_port_rate = transmit_rate * \
+                (len(dev_groups) - 1) + police_rate
             err_msg = f'Expected {mirred_port_rate} got : {float(row["Rx. Rate (bps)"])}'
-            assert isclose(float(row['Rx. Rate (bps)']), mirred_port_rate, rel_tol=tolerance), err_msg
+            assert isclose(float(row['Rx. Rate (bps)']),
+                           mirred_port_rate, rel_tol=tolerance), err_msg
             continue
         device.applog.info(f'Verifying rate for the port {row["Port Name"]}')
         err_msg = f'Expected {police_rate} got : {float(row["Rx. Rate (bps)"])}'
-        assert isclose(float(row['Rx. Rate (bps)']), police_rate, rel_tol=tolerance), err_msg
+        assert isclose(float(row['Rx. Rate (bps)']),
+                       police_rate, rel_tol=tolerance), err_msg
 
     await tgen_utils_stop_traffic(tgen_dev)
     # Add stream to mirred port
@@ -181,18 +189,23 @@ async def test_policer_interaction_span(testbed):
     for row in stats.Rows:
         if row['Port Name'] == tg_ports[0]:
             err_msg = f'Expected {transmit_rate * 3} got : {float(row["Rx. Rate (bps)"])}'
-            device.applog.info(f'Verifying rate for the port {row["Port Name"]}')
-            assert isclose(float(row['Rx. Rate (bps)']), transmit_rate * 3, rel_tol=tolerance), err_msg
+            device.applog.info(
+                f'Verifying rate for the port {row["Port Name"]}')
+            assert isclose(float(row['Rx. Rate (bps)']),
+                           transmit_rate * 3, rel_tol=tolerance), err_msg
             continue
         device.applog.info(f'Verifying rate for the port {row["Port Name"]}')
         mirred_port_rate = transmit_rate * (len(dev_groups) - 1) + police_rate
         err_msg = f'Expected {mirred_port_rate} got : {float(row["Rx. Rate (bps)"])}'
-        assert isclose(float(row['Rx. Rate (bps)']), mirred_port_rate, rel_tol=tolerance), err_msg
+        assert isclose(float(row['Rx. Rate (bps)']),
+                       mirred_port_rate, rel_tol=tolerance), err_msg
     await asyncio.sleep(15)
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
     for row in stats.Rows:
         if row['Traffic Item'] == f'stream_{mirred_port}':
-            device.applog.info(f'Verifying rate for the port {row["Rx Port"]} and stream stream_{mirred_port}')
+            device.applog.info(
+                f'Verifying rate for the port {row["Rx Port"]} and stream stream_{mirred_port}')
             err_msg = f'Expected {transmit_rate} got : {float(row["Rx Rate (bps)"])}'
-            assert isclose(float(row['Rx Rate (bps)']), transmit_rate, rel_tol=tolerance), err_msg
+            assert isclose(float(row['Rx Rate (bps)']),
+                           transmit_rate, rel_tol=tolerance), err_msg
     await tgen_utils_stop_traffic(tgen_dev)

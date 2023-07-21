@@ -47,7 +47,7 @@
     - name: delete
       apis: ['delete']
       cmd: ['ip link']
-      params: ['device', 'group', 'type', 'options']
+      params: ['dev', 'group', 'type', 'options']
       desc: |
         - ip link delete { DEVICE | group GROUP } type TYPE [ ARGS ]
         TYPE := [ bridge | bond | can | dummy | hsr | ifb | ipoib | macvlan | macvtap | vcan | vxcan | veth | vlan | vxlan
@@ -56,7 +56,7 @@
     - name: set
       apis: ['set']
       cmd: ['ip link']
-      params: ['device', 'group', 'up', 'enable', 'type', 'arp', 'dynamic', 'multicast', 'allmulticast', 'promiscuity', 'protodown', 'trailers', 'txqueuelen', 'name', 'address', 'broadcast', 'mtu', 'netns', 'link-netsid', 'alias', 'vf', 'mac', 'rate', 'max_tx_rate', 'min_tx_rate', 'spoofchk', 'query_rss', 'state', 'trust', 'node_guid', 'port_guid', 'xdp', 'object', 'section', 'verbose', 'pinned', 'master', 'nomaster', 'vrf', 'addrgenmode', 'maddr', 'op', 'mac_addr_list', 'options', 'ageing_time']
+      params: ['dev', 'group', 'up', 'enable', 'type', 'arp', 'dynamic', 'multicast', 'allmulticast', 'promiscuity', 'protodown', 'trailers', 'txqueuelen', 'name', 'address', 'broadcast', 'mtu', 'netns', 'link-netsid', 'alias', 'vf', 'mac', 'rate', 'max_tx_rate', 'min_tx_rate', 'spoofchk', 'query_rss', 'state', 'trust', 'node_guid', 'port_guid', 'xdp', 'object', 'section', 'verbose', 'pinned', 'master', 'nomaster', 'vrf', 'addrgenmode', 'maddr', 'op', 'mac_addr_list', 'options', 'ageing_time']
       desc: |
         - ip link set { DEVICE | group GROUP } [ { up | down } ] [ type ETYPE TYPE_ARGS ] [ ageing_time AGEING_TIME ] [ arp { on | off } ]
           [ dynamic { on | off } ] [ multicast { on | off } ] [ allmulticast { on | off } ] [ promisc { on | off } ]
@@ -70,6 +70,6 @@
     - name: show
       apis: ['show', 'xstats', 'afstats']
       cmd: ['ip link']
-      params: ['device', 'group', 'options']
+      params: ['dev', 'group', 'options']
       desc: |
         ip link show [ DEVICE | group GROUP ]

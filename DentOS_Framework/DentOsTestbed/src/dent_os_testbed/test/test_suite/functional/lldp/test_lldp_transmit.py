@@ -42,7 +42,8 @@ async def test_lldp_transmitted(testbed, scenario):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -53,7 +54,7 @@ async def test_lldp_transmitted(testbed, scenario):
     # 1.Init interfaces and set first DUT port up
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': dut_ports[0], 'operstate': 'up'}]}])
+            {'dev': dut_ports[0], 'operstate': 'up'}]}])
     assert not out[0][dev_name]['rc'], f"Verify {dut_ports[0]} set to 'UP' state.\n{out}"
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -66,7 +67,8 @@ async def test_lldp_transmitted(testbed, scenario):
     out = await Lldp.configure(
         input_data=[{dev_name: [
             {'interface': dut_ports[0], 'ports': '', 'lldp': '', 'status': 'tx-only'}]}])
-    assert not out[0][dev_name]['rc'], f'Failed to configure lldp status on port {dut_ports[0]}.\n{out}'
+    assert not out[0][dev_name][
+        'rc'], f'Failed to configure lldp status on port {dut_ports[0]}.\n{out}'
     # 3.Collect lldp units tx stats from first DUT port
     tx_before = await get_lldp_statistic(dev_name, dut_ports[0])
 
@@ -74,14 +76,16 @@ async def test_lldp_transmitted(testbed, scenario):
     out = await Lldp.configure(
         input_data=[{dev_name: [
             {'lldp': '', 'tx-interval': lldp_interval}]}])
-    assert not out[0][dev_name]['rc'], f'Failed to configure lldp tx-interval.\n{out}'
+    assert not out[0][dev_name][
+        'rc'], f'Failed to configure lldp tx-interval.\n{out}'
 
     # 5.Verify lldp unit was transmitted from DUT first port
     if scenario == 'basic':
         # basic: Verify that lldp tx stats incremented
         await asyncio.sleep(lldp_interval * wait_time)
         tx_after = await get_lldp_statistic(dev_name, dut_ports[0])
-        assert tx_after >= tx_before + wait_time, f'tx_after {tx_after} != expected amount of pkts {tx_before + wait_time}'
+        assert tx_after >= tx_before + \
+            wait_time, f'tx_after {tx_after} != expected amount of pkts {tx_before + wait_time}'
 
     elif scenario == 'mandatory':
         # mandatory: Sniff and capture transmitted lldp packet, verify mandatory fields are as expected
@@ -111,7 +115,8 @@ async def test_lldp_tx(testbed, scenario):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dev_name][0]
     dut_ports = tgen_dev.links_dict[dev_name][1]
@@ -121,7 +126,7 @@ async def test_lldp_tx(testbed, scenario):
     # 1.Init interfaces and set first DUT port up
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': dut_ports[0], 'operstate': 'up'}]}])
+            {'dev': dut_ports[0], 'operstate': 'up'}]}])
     assert not out[0][dev_name]['rc'], f"Verify {dut_ports[0]} set to 'UP' state.\n{out}"
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -135,15 +140,16 @@ async def test_lldp_tx(testbed, scenario):
     if scenario == 'port_down':
         out = await IpLink.set(
             input_data=[{dev_name: [
-                {'device': dut_ports[0], 'operstate': 'down'}]}])
+                {'dev': dut_ports[0], 'operstate': 'down'}]}])
         assert not out[0][dev_name]['rc'], f"Verify {dut_ports[0]} set to 'DOWN' state.\n{out}"
 
     # 3.Configure lldp status on first DUT port disabled/tx-only depending from scenario
     # 4.Configure lldp tx-interval to 2 sec
     out = await Lldp.configure(
-            input_data=[{dev_name: [
-                {'interface': dut_ports[0], 'ports': '', 'lldp': '', 'status': status},
-                {'lldp': '', 'tx-interval': lldp_interval}]}])
+        input_data=[{dev_name: [
+            {'interface': dut_ports[0], 'ports': '',
+                    'lldp': '', 'status': status},
+            {'lldp': '', 'tx-interval': lldp_interval}]}])
     assert not out[0][dev_name]['rc'], \
         f'Failed to configure lldp status on port {dut_ports[0]} and tx-interval.\n{out}'
 
@@ -160,7 +166,7 @@ async def test_lldp_tx(testbed, scenario):
             # tx_port_down: Set first DUT port up, sleep interval time and verify that lldp pkt were sent from port
             out = await IpLink.set(
                 input_data=[{dev_name: [
-                    {'device': dut_ports[0], 'operstate': 'up'}]}])
+                    {'dev': dut_ports[0], 'operstate': 'up'}]}])
             assert not out[0][dev_name]['rc'], f"Verify {dut_ports[0]} set to 'UP' state.\n{out}"
 
             await asyncio.sleep(lldp_interval * (wait_time + 2))
@@ -170,7 +176,8 @@ async def test_lldp_tx(testbed, scenario):
     else:
         # tx_interval: Verify that lldp pkts were transmitted from port
         tx_after = await get_lldp_statistic(dev_name, dut_ports[0])
-        assert tx_after >= tx_before + wait_time, f'tx_counter_after {tx_after} >= tx_counters_before {tx_before + wait_time}'
+        assert tx_after >= tx_before + \
+            wait_time, f'tx_counter_after {tx_after} >= tx_counters_before {tx_before + wait_time}'
 
 
 async def test_lldp_tx_hold(testbed):
@@ -186,7 +193,8 @@ async def test_lldp_tx_hold(testbed):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -197,7 +205,7 @@ async def test_lldp_tx_hold(testbed):
     # 1.Init interfaces and set first DUT port up
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': dut_ports[0], 'operstate': 'up'}]}])
+            {'dev': dut_ports[0], 'operstate': 'up'}]}])
     assert not out[0][dev_name]['rc'], f"Verify {dut_ports[0]} set to 'UP' state.\n{out}"
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -210,12 +218,15 @@ async def test_lldp_tx_hold(testbed):
     out = await Lldp.configure(
         input_data=[{dev_name: [
             {'lldp': '', 'tx-hold': tx_hold},
-            {'interface': dut_ports[0], 'ports': '', 'lldp': '', 'status': 'tx-only'},
+            {'interface': dut_ports[0], 'ports': '',
+                'lldp': '', 'status': 'tx-only'},
             {'lldp': '', 'tx-interval': lldp_interval}]}])
-    assert not out[0][dev_name]['rc'], f'Failed to configure lldp status, tx-hold, tx-interval.\n{out}'
+    assert not out[0][dev_name][
+        'rc'], f'Failed to configure lldp status, tx-hold, tx-interval.\n{out}'
 
     # 3.Verify that transmitted lldp packet have ttl value set to tx-hold * tx-interval
     res = await tb_device_tcpdump(dent_dev, dut_ports[0], 'ether proto 0x88cc -vnne', timeout=lldp_interval + 1, dump=True)
     parsed_lldp = parse_lldp_pkt(['Time to Live TLV'], res)
     assert str(tx_hold * lldp_interval) in parsed_lldp['Time to Live TLV'], \
-        ERR_MSG_TX.format(str(tx_hold * lldp_interval), 'Time to Live TLV', parsed_lldp['Time to Live TLV'])
+        ERR_MSG_TX.format(str(tx_hold * lldp_interval),
+                          'Time to Live TLV', parsed_lldp['Time to Live TLV'])

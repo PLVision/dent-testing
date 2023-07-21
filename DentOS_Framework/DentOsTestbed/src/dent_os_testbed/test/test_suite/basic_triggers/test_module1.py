@@ -36,7 +36,8 @@ async def test_route_add_del(testbed):
         if not dev:
             continue
         out = await IpRoute.show(
-            input_data=[{dev.host_name: [{'dst': 'default', 'cmd_options': '-j'}]}],
+            input_data=[
+                {dev.host_name: [{'dst': 'default', 'options': '-j'}]}],
             parse_output=True,
         )
         assert out[0][dev.host_name]['rc'] == 0, f'No Default route on {dev.host_name}'
@@ -52,13 +53,15 @@ async def test_route_add_del(testbed):
         )
         out = await IpRoute.add(
             input_data=[
-                {dev.host_name: [{'dst': '10.20.30.40', 'via': default_route[0]['gateway']}]}
+                {dev.host_name: [{'dst': '10.20.30.40',
+                                  'via': default_route[0]['gateway']}]}
             ],
         )
         # assert out[0][dev.host_name]["rc"] == 0
         print(out)
         out = await IpRoute.show(
-            input_data=[{dev.host_name: [{'dst': '10.20.30.40', 'cmd_options': '-j'}]}],
+            input_data=[
+                {dev.host_name: [{'dst': '10.20.30.40', 'options': '-j'}]}],
         )
         assert out[0][dev.host_name]['rc'] == 0
         print(out)
@@ -68,7 +71,8 @@ async def test_route_add_del(testbed):
         # assert out[0][dev.host_name]["rc"] == 0
         print(out)
         out = await IpRoute.show(
-            input_data=[{dev.host_name: [{'dst': '10.20.30.40', 'cmd_options': '-j'}]}],
+            input_data=[
+                {dev.host_name: [{'dst': '10.20.30.40', 'options': '-j'}]}],
         )
         # assert out[0][dev.host_name]["rc"] == 0
         print(out)
@@ -104,7 +108,7 @@ async def test_link_up_down(testbed):
         if not dev:
             continue
         out = await IpLink.show(
-            input_data=[{dev.host_name: [{'cmd_options': '-j'}]}],
+            input_data=[{dev.host_name: [{'options': '-j'}]}],
         )
         assert out[0][dev.host_name]['rc'] == 0
         links = json.loads(out[0][dev.host_name]['result'])
@@ -119,31 +123,36 @@ async def test_link_up_down(testbed):
             return
 
         out = await IpLink.show(
-            input_data=[{dev.host_name: [{'device': link_name, 'cmd_options': '-j'}]}],
+            input_data=[
+                {dev.host_name: [{'dev': link_name, 'options': '-j'}]}],
         )
         assert out[0][dev.host_name]['rc'] == 0
         print(out)
         out = await IpLink.set(
-            input_data=[{dev.host_name: [{'device': link_name, 'operstate': 'down'}]}],
+            input_data=[
+                {dev.host_name: [{'dev': link_name, 'operstate': 'down'}]}],
         )
         assert out[0][dev.host_name]['rc'] == 0
         print(out)
         # wait for it to come down
         time.sleep(5)
         out = await IpLink.show(
-            input_data=[{dev.host_name: [{'device': link_name, 'cmd_options': '-j'}]}],
+            input_data=[
+                {dev.host_name: [{'dev': link_name, 'options': '-j'}]}],
         )
         assert out[0][dev.host_name]['rc'] == 0
         print(out)
         out = await IpLink.set(
-            input_data=[{dev.host_name: [{'device': link_name, 'operstate': 'up'}]}],
+            input_data=[
+                {dev.host_name: [{'dev': link_name, 'operstate': 'up'}]}],
         )
         assert out[0][dev.host_name]['rc'] == 0
         print(out)
         # wait for it to come up
         time.sleep(5)
         out = await IpLink.show(
-            input_data=[{dev.host_name: [{'device': link_name, 'cmd_options': '-j'}]}],
+            input_data=[
+                {dev.host_name: [{'dev': link_name, 'options': '-j'}]}],
         )
         assert out[0][dev.host_name]['rc'] == 0
         print(out)

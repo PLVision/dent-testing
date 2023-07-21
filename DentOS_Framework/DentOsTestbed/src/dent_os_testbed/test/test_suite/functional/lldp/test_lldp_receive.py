@@ -47,7 +47,8 @@ async def test_lldp_received(testbed, scenario):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dev_name][0]
     dut_ports = tgen_dev.links_dict[dev_name][1]
@@ -56,7 +57,7 @@ async def test_lldp_received(testbed, scenario):
     # 1.Init interfaces and set first DUT port up
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': dut_ports[0], 'operstate': 'up'}]}])
+            {'dev': dut_ports[0], 'operstate': 'up'}]}])
     assert not out[0][dev_name]['rc'], f"Verify {dut_ports[0]} set to 'UP' state.\n{out}"
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -69,7 +70,8 @@ async def test_lldp_received(testbed, scenario):
     out = await Lldp.configure(
         input_data=[{dev_name: [
             {'interface': dut_ports[0], 'ports': '', 'lldp': '', 'status': 'rx-only'}]}])
-    assert not out[0][dev_name]['rc'], f'Failed to configure lldp status on port {dut_ports[0]}.\n{out}'
+    assert not out[0][dev_name][
+        'rc'], f'Failed to configure lldp status on port {dut_ports[0]}.\n{out}'
 
     # 3.Setup lldp packet for trasmitting to first DUT port
     # In case of ttl scenario set ttl to 20
@@ -78,16 +80,16 @@ async def test_lldp_received(testbed, scenario):
     port_subtype = 1
     ttl = 120
     lldp = {
-            'chassisLen': (len(chassis.replace(':', '')) // 2) + 1,
-            'chassisSubtype': 4,
-            'chassisVarLen': len(chassis.replace(':', '')) // 2,
-            'chassisId': chassis.replace(':', ''),
-            'portLen': (len(port.encode().hex()) // 2) + 1,
-            'portSubtype': port_subtype,
-            'portVarLen': len(port.encode().hex()) // 2,
-            'portId': port.encode().hex(),
-            'ttlLen': 2,
-            'ttlVal': ttl,
+        'chassisLen': (len(chassis.replace(':', '')) // 2) + 1,
+        'chassisSubtype': 4,
+        'chassisVarLen': len(chassis.replace(':', '')) // 2,
+        'chassisId': chassis.replace(':', ''),
+        'portLen': (len(port.encode().hex()) // 2) + 1,
+        'portSubtype': port_subtype,
+        'portVarLen': len(port.encode().hex()) // 2,
+        'portId': port.encode().hex(),
+        'ttlLen': 2,
+        'ttlVal': ttl,
     }
     if scenario == 'ttl':
         chassis = '00:00:00:11:11:11'
@@ -127,7 +129,8 @@ async def test_lldp_received(testbed, scenario):
             'customData': lldp_hex}
         }
     if scenario != 'optional':
-        lldp_stream = get_lldp_stream(dev_groups[tg_ports[0]][0]['name'], dev_groups[tg_ports[1]][0]['name'], lldp, count=count)
+        lldp_stream = get_lldp_stream(
+            dev_groups[tg_ports[0]][0]['name'], dev_groups[tg_ports[1]][0]['name'], lldp, count=count)
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=lldp_stream)
 
     # Get lldp rx stats from port
@@ -156,7 +159,8 @@ async def test_lldp_received(testbed, scenario):
     # basic: Verify that DUT received lldp packet based on port rx stats
     elif scenario == 'basic':
         rx_after = await get_lldp_statistic(dev_name, dut_ports[0], stats='rx')
-        assert rx_after == rx_before + count, f'rx_after {rx_after} != expected amount of pkts {rx_before + count}'
+        assert rx_after == rx_before + \
+            count, f'rx_after {rx_after} != expected amount of pkts {rx_before + count}'
 
 
 @pytest.mark.parametrize('scenario', ['disable', 'port_down_up'])
@@ -175,7 +179,8 @@ async def test_lldp_rx(testbed, scenario):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dev_name][0]
     dut_ports = tgen_dev.links_dict[dev_name][1]
@@ -183,7 +188,7 @@ async def test_lldp_rx(testbed, scenario):
     # 1.Init interfaces and set first DUT port up
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': dut_ports[0], 'operstate': 'up'}]}])
+            {'dev': dut_ports[0], 'operstate': 'up'}]}])
     assert not out[0][dev_name]['rc'], f"Verify {dut_ports[0]} set to 'UP' state.\n{out}"
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -197,18 +202,20 @@ async def test_lldp_rx(testbed, scenario):
         out = await Lldp.configure(
             input_data=[{dev_name: [
                 {'interface': dut_ports[0], 'ports': '', 'lldp': '', 'status': 'disabled'}]}])
-        assert not out[0][dev_name]['rc'], f'Failed to configure lldp status on port {dut_ports[0]}.\n{out}'
+        assert not out[0][dev_name][
+            'rc'], f'Failed to configure lldp status on port {dut_ports[0]}.\n{out}'
 
     elif scenario == 'port_down_up':
         out = await IpLink.set(
             input_data=[{dev_name: [
-                {'device': dut_ports[0], 'operstate': 'down'}]}])
+                {'dev': dut_ports[0], 'operstate': 'down'}]}])
         assert not out[0][dev_name]['rc'], f"Verify {dut_ports[0]} set to 'DOWN' state.\n{out}"
 
         out = await Lldp.configure(
             input_data=[{dev_name: [
                 {'interface': dut_ports[0], 'ports': '', 'lldp': '', 'status': 'rx-only'}]}])
-        assert not out[0][dev_name]['rc'], f'Failed to configure lldp status on port {dut_ports[0]}.\n{out}'
+        assert not out[0][dev_name][
+            'rc'], f'Failed to configure lldp status on port {dut_ports[0]}.\n{out}'
 
     # 3.Setup lldp packet for trasmitting to first DUT port and transmit stream
     chassis = 'a2:2c:38:b8:9c:a6'
@@ -216,18 +223,19 @@ async def test_lldp_rx(testbed, scenario):
     ttl = 120
     port_subtype = 5
     lldp = {
-            'chassisLen': (len(chassis.replace(':', '')) // 2) + 1,
-            'chassisSubtype': 4,
-            'chassisVarLen': len(chassis.replace(':', '')) // 2,
-            'chassisId': chassis.replace(':', ''),
-            'portLen': (len(port.encode().hex()) // 2) + 1,
-            'portSubtype': port_subtype,
-            'portVarLen': len(port.encode().hex()) // 2,
-            'portId': port.encode().hex(),
-            'ttlLen': 2,
-            'ttlVal': ttl
+        'chassisLen': (len(chassis.replace(':', '')) // 2) + 1,
+        'chassisSubtype': 4,
+        'chassisVarLen': len(chassis.replace(':', '')) // 2,
+        'chassisId': chassis.replace(':', ''),
+        'portLen': (len(port.encode().hex()) // 2) + 1,
+        'portSubtype': port_subtype,
+        'portVarLen': len(port.encode().hex()) // 2,
+        'portId': port.encode().hex(),
+        'ttlLen': 2,
+        'ttlVal': ttl
     }
-    lldp_stream = get_lldp_stream(dev_groups[tg_ports[0]][0]['name'], dev_groups[tg_ports[1]][0]['name'], lldp)
+    lldp_stream = get_lldp_stream(
+        dev_groups[tg_ports[0]][0]['name'], dev_groups[tg_ports[1]][0]['name'], lldp)
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=lldp_stream)
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(10)
@@ -240,7 +248,7 @@ async def test_lldp_rx(testbed, scenario):
     if scenario == 'port_down_up':
         out = await IpLink.set(
             input_data=[{dev_name: [
-                {'device': dut_ports[0], 'operstate': 'up'}]}])
+                {'dev': dut_ports[0], 'operstate': 'up'}]}])
         assert not out[0][dev_name]['rc'], f"Verify {dut_ports[0]} set to 'UP' state.\n{out}"
 
         await tgen_utils_start_traffic(tgen_dev)
@@ -262,7 +270,8 @@ async def test_lldp_max_neighbours(testbed):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -271,7 +280,7 @@ async def test_lldp_max_neighbours(testbed):
     # 1.Init interfaces and set first DUT port up
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': dut_ports[0], 'operstate': 'up'}]}])
+            {'dev': dut_ports[0], 'operstate': 'up'}]}])
     assert not out[0][dev_name]['rc'], f"Verify {dut_ports[0]} set to 'UP' state.\n{out}"
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -282,16 +291,17 @@ async def test_lldp_max_neighbours(testbed):
 
     # 2.Set lldp status on first DUT port rx-only, get max-neighbors configured in lldp
     out = await Lldp.configure(
-            input_data=[{dev_name: [
-                {'interface': dut_ports[0], 'ports': '', 'lldp': '', 'status': 'rx-only'}]}])
+        input_data=[{dev_name: [
+            {'interface': dut_ports[0], 'ports': '', 'lldp': '', 'status': 'rx-only'}]}])
     assert not out[0][dev_name]['rc'], \
         f'Failed to configure lldp status on port {dut_ports[0]}.\n{out}'
 
     out = await Lldp.show_lldpcli(
         input_data=[{dev_name: [
-            {'running-configuration': '', 'cmd_options': '-f json'}]}], parse_output=True)
+            {'running-configuration': '', 'options': '-f json'}]}], parse_output=True)
     assert not out[0][dev_name]['rc'], f'Failed to show LLDP neighbors.\n{out}'
-    max_neighbors = int(out[0][dev_name]['parsed_output']['configuration']['config']['max-neighbors'])
+    max_neighbors = int(out[0][dev_name]['parsed_output']
+                        ['configuration']['config']['max-neighbors'])
 
     # 3.Setup incremented lldp packet for trasmitting to first DUT port and transmit stream
     chassis = '01:01:01:01:01:01'
@@ -300,29 +310,30 @@ async def test_lldp_max_neighbours(testbed):
     count = max_neighbors + 5
 
     lldp = {
-            'chassisLen': (len(chassis.replace(':', '')) // 2) + 1,
-            'chassisSubtype': 4,
-            'chassisVarLen': len(chassis.replace(':', '')) // 2,
-            'chassisId': {
-                'type': 'increment',
-                'start': chassis.replace(':', ''),
-                'step': step.replace(':', ''),
-                'count': count,
-            },
-            'portLen': (len(port_val.replace(':', '')) // 2) + 1,
-            'portSubtype': 3,
-            'portVarLen': len(port_val.replace(':', '')) // 2,
-            'portId': {
-                'type': 'increment',
-                'start': port_val.replace(':', ''),
-                'step': step.replace(':', ''),
-                'count': count,
-            },
-            'ttlLen': 2,
-            'ttlVal': 240,
-        }
+        'chassisLen': (len(chassis.replace(':', '')) // 2) + 1,
+        'chassisSubtype': 4,
+        'chassisVarLen': len(chassis.replace(':', '')) // 2,
+        'chassisId': {
+            'type': 'increment',
+            'start': chassis.replace(':', ''),
+            'step': step.replace(':', ''),
+            'count': count,
+        },
+        'portLen': (len(port_val.replace(':', '')) // 2) + 1,
+        'portSubtype': 3,
+        'portVarLen': len(port_val.replace(':', '')) // 2,
+        'portId': {
+            'type': 'increment',
+            'start': port_val.replace(':', ''),
+            'step': step.replace(':', ''),
+            'count': count,
+        },
+        'ttlLen': 2,
+        'ttlVal': 240,
+    }
 
-    lldp_stream = get_lldp_stream(dev_groups[tg_ports[0]][0]['name'], dev_groups[tg_ports[1]][0]['name'], lldp, rate=count, count=count)
+    lldp_stream = get_lldp_stream(
+        dev_groups[tg_ports[0]][0]['name'], dev_groups[tg_ports[1]][0]['name'], lldp, rate=count, count=count)
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=lldp_stream)
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(10)
@@ -330,4 +341,5 @@ async def test_lldp_max_neighbours(testbed):
     # 4.Verify that lldp will have configured amount of max-neighbors
     rc, out = await dent_dev.run_cmd('lldpcli show neighbors | grep RID | wc -l')
     assert not rc, f'Failed to run cmd lldpcli show neighbors {rc}'
-    assert int(out.strip()) == max_neighbors, f'Current neighbors amount {int(out.strip())} is not equal to expected {max_neighbors}'
+    assert int(out.strip(
+    )) == max_neighbors, f'Current neighbors amount {int(out.strip())} is not equal to expected {max_neighbors}'

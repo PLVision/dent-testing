@@ -100,7 +100,7 @@ class LinuxIpTablesImpl(LinuxIpTables):
         # TODO: Implement me
         cmd = 'iptables '
         cmd += '-t {} '.format(params['table']) if 'table' in params else ''
-        cmd += '{} '.format(params['cmd_options']) if 'cmd_options' in params else ''
+        cmd += '{} '.format(params['options']) if 'options' in params else ''
         cmd += '--{} '.format(command)
         if 'chain' in params:
             cmd += '{} '.format(params['chain'])

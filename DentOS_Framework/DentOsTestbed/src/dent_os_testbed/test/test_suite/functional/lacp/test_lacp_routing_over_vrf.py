@@ -61,10 +61,10 @@ async def test_lacp_routing_over_lag_vrf(testbed):
     rate = 10000
 
     # 1. Create 3 bonds
-    out = await IpLink.add(input_data=[{dent: [{'device': bond, 'type': 'bond', 'mode': '802.3ad'} for bond in bonds]}])
+    out = await IpLink.add(input_data=[{dent: [{'dev': bond, 'type': 'bond', 'mode': '802.3ad'} for bond in bonds]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bond'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': bond, 'operstate': 'up'} for bond in bonds]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': bond, 'operstate': 'up'} for bond in bonds]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bond to state up'
 
     # Create 2 VRF tables
@@ -72,7 +72,7 @@ async def test_lacp_routing_over_lag_vrf(testbed):
         out = await IpLink.add(input_data=[{dent: [{'dev': vrf,  'type': 'vrf', 'table': table_id}]}])
         assert out[0][dent]['rc'] == 0, 'Failed to add vrf'
 
-        out = await IpLink.set(input_data=[{dent: [{'device': vrf, 'operstate': 'up'}]}])
+        out = await IpLink.set(input_data=[{dent: [{'dev': vrf, 'operstate': 'up'}]}])
         assert out[0][dent]['rc'] == 0, 'Failed setting vrf to up state'
 
         out = await IpRoute.add(input_data=[{dent: [{'table': table_id, 'type': 'unreachable', 'table_id': 'default'}]}])
@@ -83,22 +83,22 @@ async def test_lacp_routing_over_lag_vrf(testbed):
     # DUT port <==> tgen port 3 to bond 2
     # DUT port <==>  tgen port 4 to bond 3
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'down'} for port in ports] +
-               [{'device': ports[0], 'master': bonds[0]}] +
-               [{'device': ports[1], 'master': bonds[1]}] +
-               [{'device': port, 'master': bonds[2]} for port in ports[2:]]
+        {dent: [{'dev': port, 'operstate': 'down'} for port in ports] +
+               [{'dev': ports[0], 'master': bonds[0]}] +
+               [{'dev': ports[1], 'master': bonds[1]}] +
+               [{'dev': port, 'master': bonds[2]} for port in ports[2:]]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed setting master to state down'
 
     # 3. Set link up on all participant ports
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'} for port in ports]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'operstate': 'up'} for port in ports]}])
     assert out[0][dent]['rc'] == 0, f'Failed setting {ports[0]} to state up'
 
     #  Enslave bond1 and bond2 to vrf1 and bond3 to vrf2
     out = await IpLink.set(input_data=[
-        {dent: [{'device': bonds[0], 'master':vrf_1}] +
-               [{'device': bonds[1], 'master': vrf_1}] +
-               [{'device': bonds[2], 'master': vrf_2}]
+        {dent: [{'dev': bonds[0], 'master':vrf_1}] +
+               [{'dev': bonds[1], 'master': vrf_1}] +
+               [{'dev': bonds[2], 'master': vrf_2}]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed enslaving bonds to vrf'
 

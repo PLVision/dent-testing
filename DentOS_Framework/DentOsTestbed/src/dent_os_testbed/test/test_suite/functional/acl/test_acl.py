@@ -28,7 +28,8 @@ from dent_os_testbed.utils.test_utils.tc_flower_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_acl,
-    pytest.mark.usefixtures('cleanup_qdiscs', 'cleanup_tgen', 'cleanup_bridges'),
+    pytest.mark.usefixtures(
+        'cleanup_qdiscs', 'cleanup_tgen', 'cleanup_bridges'),
     pytest.mark.asyncio,
 ]
 
@@ -58,7 +59,8 @@ async def test_acl_skip_sw_hw_selector(testbed, action):
     # 1. Initiate test params
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:2]
@@ -77,9 +79,9 @@ async def test_acl_skip_sw_hw_selector(testbed, action):
 
     # 3. Set link up on interfaces
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge} for port in ports
+        {'dev': port, 'operstate': 'up', 'master': bridge} for port in ports
     ] + [
-        {'device': bridge, 'operstate': 'up'}
+        {'dev': bridge, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -197,7 +199,8 @@ async def test_acl_rule_deletion(testbed):
     # 1. Initiate test params
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 1)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     port = tgen_dev.links_dict[dent][1][0]
@@ -215,12 +218,13 @@ async def test_acl_rule_deletion(testbed):
     batch_size = 400
     for idx in range(0, rule_count, batch_size):
         count = batch_size if idx + batch_size < rule_count else rule_count - idx
-        selector_list = ('want_vlan', 'want_ip', 'want_tcp', 'want_port', 'want_icmp')
+        selector_list = ('want_vlan', 'want_ip', 'want_tcp',
+                         'want_port', 'want_icmp')
         out = await TcFilter.add(input_data=[
             {dent: (tcutil_generate_rule_with_random_selectors(
-                        port, pref=x, want_mac=True,
-                        **{sel: random.randint(0, 1) for sel in selector_list})
-                    for x in range(pref + idx, pref + idx + count))}
+                port, pref=x, want_mac=True,
+                **{sel: random.randint(0, 1) for sel in selector_list})
+                for x in range(pref + idx, pref + idx + count))}
         ])
         assert out[0][dent]['rc'] == 0, 'Failed to add tc rules'
 
@@ -230,7 +234,8 @@ async def test_acl_rule_deletion(testbed):
     rc, out = await dent_dev.run_cmd(f'tc filter show dev {port} ingress | grep in_hw | wc -l')
     assert rc == 0, 'Failed to get tc rule count'
     offloaded_rules = int(out)
-    dent_dev.applog.info(f'Total number of rules: {total_rules}, offloaded: {offloaded_rules}')
+    dent_dev.applog.info(
+        f'Total number of rules: {total_rules}, offloaded: {offloaded_rules}')
     assert offloaded_rules == rule_count, 'Some tc rules were not offloaded'
 
     # 4. Delete the last and the first rules within the qdisc
@@ -246,7 +251,8 @@ async def test_acl_rule_deletion(testbed):
         {'dev': port, 'direction': 'ingress', 'pref': pref + rule_count - 1},
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to get tc rules'
-    assert not out[0][dent]['result'].strip(), f'Some of the rules were not deleted\n{out}'
+    assert not out[0][dent]['result'].strip(
+    ), f'Some of the rules were not deleted\n{out}'
 
 
 async def test_acl_addition_deletion_under_traffic(testbed):
@@ -271,7 +277,8 @@ async def test_acl_addition_deletion_under_traffic(testbed):
     # 1. Initiate test params
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0][:2]
     ports = tgen_dev.links_dict[dent][1][:2]
@@ -287,9 +294,9 @@ async def test_acl_addition_deletion_under_traffic(testbed):
 
     # 3. Set link up on interfaces
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge} for port in ports
+        {'dev': port, 'operstate': 'up', 'master': bridge} for port in ports
     ] + [
-        {'device': bridge, 'operstate': 'up'}
+        {'dev': bridge, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 

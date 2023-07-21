@@ -20,7 +20,7 @@ class PerfValueException(ValueError):
 
 class PerfBase(object):
     def __init__(self, *args, **kwargs):
-        self._device = kwargs['device']
+        self._device = kwargs['dev']
         self._type = kwargs['type']
         self._data = []
         self._threshold = kwargs['thresholds'].get(self._type, {})
@@ -176,7 +176,8 @@ class PerfProcesses(PerfBase):
                 record = output[0][self._device.host_name]['parsed_output']
                 if pid in self._threshold or 'all' in self._threshold:
                     self.analyze_data(
-                        proc, ctime, record, self._threshold.get(pid, self._threshold['all'])
+                        proc, ctime, record, self._threshold.get(
+                            pid, self._threshold['all'])
                     )
                 # save for future processing.
                 self._data[proc]['data'].append((ctime, record))
@@ -219,7 +220,7 @@ class PerfRunner(threading.Thread):
         super(PerfRunner, self).__init__()
         self._event = threading.Event()
         self._event.set()
-        self.device = kwargs['device']
+        self.device = kwargs['dev']
         self._frequency = kwargs['frequency']
         self._max_records = kwargs['max_records']
         self._thresholds = kwargs['thresholds']

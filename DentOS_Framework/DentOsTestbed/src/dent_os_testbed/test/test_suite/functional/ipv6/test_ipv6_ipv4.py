@@ -26,7 +26,8 @@ from dent_os_testbed.test.test_suite.functional.ipv6.ipv6_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv6,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'enable_ipv6_forwarding', 'enable_ipv4_forwarding'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'enable_ipv6_forwarding', 'enable_ipv4_forwarding'),
     pytest.mark.asyncio,
 ]
 
@@ -54,12 +55,14 @@ async def test_ipv64_nh_reconfig(testbed):
     num_of_ports = 4
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     nh_info = namedtuple('nh_info', ['swp', 'tg', 'dst', 'via', 'plen', 'mac'])
     traffic_duration = 10
     wait_for_stats = 5
@@ -98,7 +101,7 @@ async def test_ipv64_nh_reconfig(testbed):
     }
 
     out = await IpLink.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port info'
 
@@ -120,7 +123,7 @@ async def test_ipv64_nh_reconfig(testbed):
 
     # 2. Set ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port in ports
+        {'dev': port, 'operstate': 'up'} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -184,7 +187,7 @@ async def test_ipv64_nh_reconfig(testbed):
 
         # 7. Verify neighbors resolved
         out = await IpNeighbor.show(input_data=[{dent: [
-            {'cmd_options': '-j -' + proto[-1]},  # -4/-6
+            {'options': '-j -' + proto[-1]},  # -4/-6
         ]}], parse_output=True)
         assert out[0][dent]['rc'] == 0, 'Failed to get neighbors'
 
@@ -203,7 +206,7 @@ async def test_ipv64_nh_reconfig(testbed):
 
         # Verify connected IPv4 routes added and offloaded
         out = await IpRoute.show(input_data=[{dent: [
-            {'cmd_options': '-j -' + proto[-1]},  # -4/-6
+            {'options': '-j -' + proto[-1]},  # -4/-6
         ]}], parse_output=True)
         assert out[0][dent]['rc'] == 0, 'Failed to get routes'
 
@@ -246,12 +249,14 @@ async def test_ipv64_nh_routes(testbed):
     num_of_ports = 4
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     nh_info = namedtuple('nh_info', ['swp', 'tg', 'dst', 'via', 'plen', 'mac'])
     traffic_duration = 10
     wait_for_stats = 5
@@ -282,7 +287,7 @@ async def test_ipv64_nh_routes(testbed):
     )
 
     out = await IpLink.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port info'
 
@@ -292,7 +297,7 @@ async def test_ipv64_nh_routes(testbed):
 
     # 1. Set ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port in ports
+        {'dev': port, 'operstate': 'up'} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 

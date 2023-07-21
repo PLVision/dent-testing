@@ -24,7 +24,8 @@ from dent_os_testbed.utils.test_utils.tb_utils import (
 pytestmark = [
     pytest.mark.suite_functional_bridging,
     pytest.mark.asyncio,
-    pytest.mark.usefixtures('cleanup_bridges', 'cleanup_tgen', 'cleanup_ip_addrs')
+    pytest.mark.usefixtures(
+        'cleanup_bridges', 'cleanup_tgen', 'cleanup_ip_addrs')
 ]
 
 
@@ -51,7 +52,8 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
@@ -61,28 +63,32 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that bridge created.\n{out}'
+            {'dev': bridge, 'type': 'bridge'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that bridge created.\n{out}'
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpAddress.add(
         input_data=[{device_host_name: [
             {'dev': bridge, 'prefix': f'{prefix}/24'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Failed to add IP address to bridge.\n{out}'
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Failed to add IP address to bridge.\n{out}'
 
-    out = await IpLink.show(input_data=[{device_host_name: [{'device': ports[0], 'cmd_options': '-j'}]}],
+    out = await IpLink.show(input_data=[{device_host_name: [{'dev': ports[0], 'options': '-j'}]}],
                             parse_output=True)
-    assert out[0][device_host_name]['rc'] == 0, f'Failed to display device attributes.\n{out}'
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Failed to display device attributes.\n{out}'
 
     dev_attributes = out[0][device_host_name]['parsed_output']
     self_mac = dev_attributes[0]['address']
@@ -104,7 +110,8 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
     list_streams = get_streams(srcMac, self_mac, prefix, dev_groups, tg_ports)
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=list_streams)
 
-    tcpdump = asyncio.create_task(tb_device_tcpdump(dent_dev, ports[0], '-n', count_only=False, timeout=15, dump=True))
+    tcpdump = asyncio.create_task(tb_device_tcpdump(
+        dent_dev, ports[0], '-n', count_only=False, timeout=15, dump=True))
 
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)
@@ -142,12 +149,14 @@ async def test_bridging_bum_traffic_bridge_with_rif(testbed):
 
     data = await tcpdump
 
-    count_of_packets = re.findall(r'(\d+) packets (captured|received|dropped)', data)
+    count_of_packets = re.findall(
+        r'(\d+) packets (captured|received|dropped)', data)
     for count, type in count_of_packets:
         if type == 'received':
             assert int(count) > 0, 'Verify that packets are received by filter.'
         if type == 'captured' or type == 'dropped':
-            assert int(count) >= 0, 'Verify that packets are captured and dropped by kernel.'
+            assert int(
+                count) >= 0, 'Verify that packets are captured and dropped by kernel.'
 
 
 async def test_bridging_bum_traffic_bridge_without_rif(testbed):
@@ -172,7 +181,8 @@ async def test_bridging_bum_traffic_bridge_without_rif(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
@@ -182,23 +192,26 @@ async def test_bridging_bum_traffic_bridge_without_rif(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that bridge created.\n{out}'
+            {'dev': bridge, 'type': 'bridge'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that bridge created.\n{out}'
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
-    out = await IpLink.show(input_data=[{device_host_name: [{'device': ports[0], 'cmd_options': '-j'}]}],
+    out = await IpLink.show(input_data=[{device_host_name: [{'dev': ports[0], 'options': '-j'}]}],
                             parse_output=True)
-    assert out[0][device_host_name]['rc'] == 0, f'Failed to display device attributes.\n{out}'
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Failed to display device attributes.\n{out}'
 
     dev_attributes = out[0][device_host_name]['parsed_output']
     self_mac = dev_attributes[0]['address']
@@ -220,7 +233,8 @@ async def test_bridging_bum_traffic_bridge_without_rif(testbed):
     list_streams = get_streams(srcMac, self_mac, prefix, dev_groups, tg_ports)
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=list_streams)
 
-    tcpdump = asyncio.create_task(tb_device_tcpdump(dent_dev, ports[0], '-n', count_only=False, timeout=15, dump=True))
+    tcpdump = asyncio.create_task(tb_device_tcpdump(
+        dent_dev, ports[0], '-n', count_only=False, timeout=15, dump=True))
 
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(traffic_duration)
@@ -258,9 +272,11 @@ async def test_bridging_bum_traffic_bridge_without_rif(testbed):
 
     data = await tcpdump
 
-    count_of_packets = re.findall(r'(\d+) packets (captured|received|dropped)', data)
+    count_of_packets = re.findall(
+        r'(\d+) packets (captured|received|dropped)', data)
     for count, type in count_of_packets:
         if type == 'received':
             assert int(count) > 0, 'Verify that packets are received by filter.'
         if type == 'captured' or type == 'dropped':
-            assert int(count) >= 0, 'Verify that packets are captured and dropped by kernel.'
+            assert int(
+                count) >= 0, 'Verify that packets are captured and dropped by kernel.'

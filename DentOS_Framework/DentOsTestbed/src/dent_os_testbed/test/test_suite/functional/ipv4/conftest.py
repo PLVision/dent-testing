@@ -48,18 +48,20 @@ async def remove_default_gateway(testbed):
     dent = dent_devices[0].host_name
 
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j -4'}
+        {'options': '-j -4'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of IPv4 route entries'
     # save default route to restore it later
-    def_routes = [route for route in out[0][dent]['parsed_output'] if route['dst'] == 'default']
+    def_routes = [route for route in out[0][dent]
+                  ['parsed_output'] if route['dst'] == 'default']
 
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j -6'}
+        {'options': '-j -6'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of IPv6 route entries'
     # save default route to restore it later
-    def_routes += [route for route in out[0][dent]['parsed_output'] if route['dst'] == 'default']
+    def_routes += [route for route in out[0][dent]
+                   ['parsed_output'] if route['dst'] == 'default']
 
     out = await IpRoute.delete(input_data=[{dent: [
         {'dev': route['dev'], 'type': 'default', 'via': route['gateway']}
@@ -70,14 +72,16 @@ async def remove_default_gateway(testbed):
     yield  # Run the test
 
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j -4'}
+        {'options': '-j -4'}
     ]}], parse_output=True)
-    default_routes = [route for route in out[0][dent]['parsed_output'] if route['dst'] == 'default']
+    default_routes = [route for route in out[0][dent]
+                      ['parsed_output'] if route['dst'] == 'default']
 
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j -6'}
+        {'options': '-j -6'}
     ]}], parse_output=True)
-    default_routes += [route for route in out[0][dent]['parsed_output'] if route['dst'] == 'default']
+    default_routes += [route for route in out[0][dent]
+                       ['parsed_output'] if route['dst'] == 'default']
 
     if default_routes:
         # Remove non-default gateways
@@ -104,15 +108,16 @@ async def cleanup_mtu(testbed):
 
     # Get current mtu to restore it later
     out = await IpLink.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get ports'
 
-    def_mtu_map = [link for link in out[0][dent]['parsed_output'] if link['ifname'] in ports]
+    def_mtu_map = [link for link in out[0][dent]
+                   ['parsed_output'] if link['ifname'] in ports]
 
     yield  # Run the test
 
     # Restore old mtu
     out = await IpLink.set(input_data=[{dent: [
-        {'device': link['ifname'], 'mtu': link['mtu']} for link in def_mtu_map
+        {'dev': link['ifname'], 'mtu': link['mtu']} for link in def_mtu_map
     ]}])

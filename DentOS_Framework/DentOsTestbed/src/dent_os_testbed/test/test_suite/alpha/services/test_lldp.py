@@ -31,7 +31,7 @@ async def test_alpha_lab_services_lldp(testbed):
         if dev.type not in [DeviceType.INFRA_SWITCH]:
             continue
         out = await Lldp.show(
-            input_data=[{dev.host_name: [{'cmd_options': '-f json'}]}],
+            input_data=[{dev.host_name: [{'options': '-f json'}]}],
             parse_output=True,
         )
         dev.applog.info(out)

@@ -46,7 +46,8 @@ async def test_stp_blocked_ports(testbed, version):
     num_ports = 4
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_device = dent_devices[0]
     dent = dent_device.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_ports]
@@ -61,19 +62,19 @@ async def test_stp_blocked_ports(testbed, version):
 
     # 1. Create bridge entity with STP enabled
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge', 'stp_state': 1}
+        {'dev': bridge, 'type': 'bridge', 'stp_state': 1}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2. Enslave port to the bridge
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port,
+        {'dev': port,
          'master': bridge} for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
     # 3. Change the MAC addresses the bridge
     out = await IpLink.set(input_data=[{dent: [
-        {'device': bridge,
+        {'dev': bridge,
          'address': '22:BB:4D:85:E7:098'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to change MAC address'
 
@@ -87,12 +88,12 @@ async def test_stp_blocked_ports(testbed, version):
 
     # 4. Set link up on all participant ports, bridge
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port,
+        {'dev': port,
          'operstate': 'up'} for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
     out = await IpLink.set(input_data=[{dent: [
-        {'device': bridge,
+        {'dev': bridge,
          'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set bridge to state UP'
 
@@ -169,7 +170,9 @@ async def test_stp_blocked_ports(testbed, version):
     for row in stats.Rows:
         if row['Traffic Item'] == traffic and row['Rx Port'] == tg_ports[1]:
             err_msg = f'Expected 0.0 got : {float(row["Rx Rate (Mbps)"])}'
-            assert isclose(float(row['Rx Rate (Mbps)']), 0.0, abs_tol=tolerance), err_msg
+            assert isclose(float(row['Rx Rate (Mbps)']),
+                           0.0, abs_tol=tolerance), err_msg
         if row['Traffic Item'] == traffic and row['Rx Port'] == tg_ports[0]:
             err_msg = f'Expected 300 got : {float(row["Rx Rate (Mbps)"])}'
-            assert isclose(float(row['Rx Rate (Mbps)']), 300, rel_tol=tolerance), err_msg
+            assert isclose(float(row['Rx Rate (Mbps)']),
+                           300, rel_tol=tolerance), err_msg

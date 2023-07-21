@@ -52,7 +52,8 @@ async def test_port_isolation_interaction_br_storm_control(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
@@ -63,25 +64,27 @@ async def test_port_isolation_interaction_br_storm_control(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'vlan_filtering': 1, 'type': 'bridge'}]}])
+            {'dev': bridge, 'vlan_filtering': 1, 'type': 'bridge'}]}])
     err_msg = f"Verify that bridge created and vlan filtering set to 'ON'.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'isolated': True} for port in ports[:3]]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that entities set to isolated state 'ON'.\n{out}"
+            {'dev': port, 'isolated': True} for port in ports[:3]]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that entities set to isolated state 'ON'.\n{out}"
 
     await devlink_rate_value(dev=f'pci/0000:01:00.0/{ports[0].replace("swp","")}',
                              name='bc_kbyte_per_sec_rate ', value=kbyte_value[0],
@@ -115,31 +118,31 @@ async def test_port_isolation_interaction_br_storm_control(testbed):
         """
 
         streams = {
-                f'stream_{x+1}': {
-                    'ip_source': dev_groups[tg_ports[0]][0]['name'],
-                    'ip_destination': dev_groups[tg_ports[3-x]][0]['name'],
-                    'srcMac': f'16:ea:c3:{x+5}d:1e:ec',
-                    'dstMac': 'ff:ff:ff:ff:ff:ff',
-                    'frameSize': randrange(100, 1500),
-                    'frame_rate_type': 'line_rate',
-                    'rate': 100,
-                    'protocol': '0x0800',
-                    'type': 'raw'
-                } for x in range(3)
-            }
+            f'stream_{x+1}': {
+                'ip_source': dev_groups[tg_ports[0]][0]['name'],
+                'ip_destination': dev_groups[tg_ports[3-x]][0]['name'],
+                'srcMac': f'16:ea:c3:{x+5}d:1e:ec',
+                'dstMac': 'ff:ff:ff:ff:ff:ff',
+                'frameSize': randrange(100, 1500),
+                'frame_rate_type': 'line_rate',
+                'rate': 100,
+                'protocol': '0x0800',
+                'type': 'raw'
+            } for x in range(3)
+        }
         streams.update({
-                f'stream_{x+4}': {
-                    'ip_source': dev_groups[tg_ports[3]][0]['name'],
-                    'ip_destination': dev_groups[tg_ports[2-x]][0]['name'],
-                    'srcMac': f'84:fc:70:36:2a:7{x+3}',
-                    'dstMac': 'ff:ff:ff:ff:ff:ff',
-                    'frameSize': randrange(100, 1500),
-                    'frame_rate_type': 'line_rate',
-                    'rate': 100,
-                    'protocol': '0x0800',
-                    'type': 'raw'
-                } for x in range(3)
-            })
+            f'stream_{x+4}': {
+                'ip_source': dev_groups[tg_ports[3]][0]['name'],
+                'ip_destination': dev_groups[tg_ports[2-x]][0]['name'],
+                'srcMac': f'84:fc:70:36:2a:7{x+3}',
+                'dstMac': 'ff:ff:ff:ff:ff:ff',
+                'frameSize': randrange(100, 1500),
+                'frame_rate_type': 'line_rate',
+                'rate': 100,
+                'protocol': '0x0800',
+                'type': 'raw'
+            } for x in range(3)
+        })
 
         await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
         await tgen_utils_start_traffic(tgen_dev)

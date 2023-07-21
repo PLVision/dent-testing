@@ -5,13 +5,13 @@ from dent_os_testbed.lib.ip.ip_neighbor import IpNeighbor
 
 async def verify_dut_routes(dent, expected_routes):
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j -4'},
+        {'options': '-j -4'},
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get IPv4 routes'
     routes = out[0][dent]['parsed_output']
 
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j -6'},
+        {'options': '-j -6'},
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get IPv6 routes'
     routes += out[0][dent]['parsed_output']
@@ -30,18 +30,19 @@ async def verify_dut_routes(dent, expected_routes):
             break
         else:  # route not found
             if expected_route['should_exist']:
-                raise LookupError(f'Route {expected_route} expected, but not found')
+                raise LookupError(
+                    f'Route {expected_route} expected, but not found')
 
 
 async def verify_dut_neighbors(dent, expected_neis):
     out = await IpNeighbor.show(input_data=[{dent: [
-        {'cmd_options': '-j -4'},
+        {'options': '-j -4'},
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get IPv4 neighbors'
     neighbors = out[0][dent]['parsed_output']
 
     out = await IpNeighbor.show(input_data=[{dent: [
-        {'cmd_options': '-j -6'},
+        {'options': '-j -6'},
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get IPv6 neighbors'
     neighbors += out[0][dent]['parsed_output']
@@ -64,7 +65,8 @@ async def verify_dut_neighbors(dent, expected_neis):
             break
         else:  # neighbor not found
             if expected_nei['should_exist']:
-                raise LookupError(f'Neighbor {expected_nei} expected, but not found')
+                raise LookupError(
+                    f'Neighbor {expected_nei} expected, but not found')
 
     learned_macs = {}
     for nei in neighbors:
@@ -77,7 +79,7 @@ async def verify_dut_neighbors(dent, expected_neis):
 
 async def verify_dut_addrs(dent, expected_addrs):
     out = await IpAddress.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get IPv4 addr'
 
@@ -97,4 +99,5 @@ async def verify_dut_addrs(dent, expected_addrs):
                 break
         else:  # link with addr not found
             if expected_addr['should_exist']:
-                raise LookupError(f'IP addr {expected_addr} expected, but not found')
+                raise LookupError(
+                    f'IP addr {expected_addr} expected, but not found')

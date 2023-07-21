@@ -28,7 +28,7 @@ class LinuxBridgeLinkImpl(LinuxBridgeLink):
         params = kwarg['params']
         cmd = 'bridge {} link {} '.format(params.get('options', ''), command)
 
-        cmd += 'dev {} '.format(params.get('device', ''))
+        cmd += 'dev {} '.format(params.get('dev', ''))
 
         for key in ['cost', 'priority', 'state', 'mcast_router', 'hwmode', 'backup_port']:
             if key in params:
@@ -54,7 +54,7 @@ class LinuxBridgeLinkImpl(LinuxBridgeLink):
         params = kwarg['params']
         cmd = 'bridge {} link {} '.format(params.get('options', ''), command)
 
-        if 'device' in params:
+        if 'dev' in params:
             cmd += f'dev {params["device"]} '
 
         return cmd

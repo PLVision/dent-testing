@@ -58,24 +58,27 @@ async def test_dentv2_vlan_port_isolation_bum(testbed):
     mgmt_dst = []
     for dd in infra_devices:
         # Create bridge br0 and put tgen ports on it
-        await IpLink.delete(input_data=[{dd.host_name: [{'device': 'bridge'}]}])
-        await IpLink.delete(input_data=[{dd.host_name: [{'device': 'br0'}]}])
+        await IpLink.delete(input_data=[{dd.host_name: [{'dev': 'bridge'}]}])
+        await IpLink.delete(input_data=[{dd.host_name: [{'dev': 'br0'}]}])
         out = await IpLink.add(
-            input_data=[{dd.host_name: [{'device': 'br0', 'type': 'bridge', 'vlan_filtering': 1}]}]
+            input_data=[
+                {dd.host_name: [{'dev': 'br0', 'type': 'bridge', 'vlan_filtering': 1}]}]
         )
         assert out[0][dd.host_name]['rc'] == 0, out
-        out = await IpLink.set(input_data=[{dd.host_name: [{'device': 'br0', 'operstate': 'up'}]}])
+        out = await IpLink.set(input_data=[{dd.host_name: [{'dev': 'br0', 'operstate': 'up'}]}])
         assert out[0][dd.host_name]['rc'] == 0, out
         for swp in tgen_dev.links_dict[dd.host_name][1]:
             mgmt_src.append(f'{dd.host_name}_MGMT_{swp}')
             mgmt_dst.append(f'{dd.host_name}_MGMT_{swp}')
-            await IpLink.set(input_data=[{dd.host_name: [{'device': swp, 'nomaster': ''}]}])
-            out = await IpLink.set(input_data=[{dd.host_name: [{'device': swp, 'master': 'br0'}]}])
+            await IpLink.set(input_data=[{dd.host_name: [{'dev': swp, 'nomaster': ''}]}])
+            out = await IpLink.set(input_data=[{dd.host_name: [{'dev': swp, 'master': 'br0'}]}])
             assert out[0][dd.host_name]['rc'] == 0, out
-            await BridgeLink.set(input_data=[{dd.host_name: [{'device': swp, 'isolated': True}]}])
+            await BridgeLink.set(input_data=[{dd.host_name: [{'dev': swp, 'isolated': True}]}])
 
-    ep_src = list(map(lambda x: f"{x.split('_')[0]}:{x.split('_')[2]}", mgmt_src))
-    ep_dst = list(map(lambda x: f"{x.split('_')[0]}:{x.split('_')[2]}", mgmt_dst))
+    ep_src = list(
+        map(lambda x: f"{x.split('_')[0]}:{x.split('_')[2]}", mgmt_src))
+    ep_dst = list(
+        map(lambda x: f"{x.split('_')[0]}:{x.split('_')[2]}", mgmt_dst))
     # TODO: Send BUM traffic
     streams = {
         'L2_bum_multicast': {
@@ -99,7 +102,8 @@ async def test_dentv2_vlan_port_isolation_bum(testbed):
     }
     await tgen_utils_setup_streams(
         tgen_dev,
-        pytest._args.config_dir + f'/{tgen_dev.host_name}/tgen_port_isolation_bum',
+        pytest._args.config_dir +
+        f'/{tgen_dev.host_name}/tgen_port_isolation_bum',
         streams,
         force_update=True,
     )
@@ -113,6 +117,7 @@ async def test_dentv2_vlan_port_isolation_bum(testbed):
 
     # Traffic Verification
     for row in stats.Rows:
-        assert float(row['Loss %']) == 100.000, f'Failed>Loss percent: {row["Loss %"]}'
+        assert float(
+            row['Loss %']) == 100.000, f'Failed>Loss percent: {row["Loss %"]}'
 
     await tgen_utils_stop_protocols(tgen_dev)

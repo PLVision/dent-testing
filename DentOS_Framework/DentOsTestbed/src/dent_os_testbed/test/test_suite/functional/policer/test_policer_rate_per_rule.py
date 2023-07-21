@@ -23,7 +23,8 @@ from dent_os_testbed.utils.test_utils.tc_flower_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_policer,
-    pytest.mark.usefixtures('cleanup_bridges', 'cleanup_qdiscs', 'cleanup_tgen'),
+    pytest.mark.usefixtures(
+        'cleanup_bridges', 'cleanup_qdiscs', 'cleanup_tgen'),
     pytest.mark.asyncio,
 ]
 
@@ -63,12 +64,12 @@ async def test_policer_rate_per_rule(testbed):
     }])
     assert out[0][dent]['rc'] == 0, 'Failed creating bridge.'
 
-    await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'}]}])
+    await IpLink.set(input_data=[{dent: [{'dev': bridge, 'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state UP.'
 
     # 2. Set link up on interfaces on all participant ports. Enslave all participant ports to the bridge.
     out = await IpLink.set(input_data=[{dent: [{
-        'device': port,
+        'dev': port,
         'operstate': 'up',
         'master': bridge
     } for port in ports]}])
@@ -112,7 +113,8 @@ async def test_policer_rate_per_rule(testbed):
          }]
 
     for config in configs:
-        rule = tcutil_generate_rule_with_random_selectors(port_with_rule, **config)
+        rule = tcutil_generate_rule_with_random_selectors(
+            port_with_rule, **config)
         out = await TcFilter.add(input_data=[{dent: [rule]}])
         assert out[0][dent]['rc'] == 0, 'Failed to create tc rule'
 
@@ -146,5 +148,6 @@ async def test_policer_rate_per_rule(testbed):
     for row, stream in zip(stats.Rows, rate_stream_matching):
         device.applog.info(f'Veryfing rate for the stream {stream[1]}')
         err_msg = f'Expected rate for stream {stream[1]} to be {stream[0]} got {row["Rx Rate (bps)"]} '
-        assert isclose(float(row['Rx Rate (bps)']), stream[0], rel_tol=tolerance), err_msg
+        assert isclose(float(row['Rx Rate (bps)']),
+                       stream[0], rel_tol=tolerance), err_msg
     await tgen_utils_stop_traffic(tgen_dev)

@@ -16,8 +16,8 @@ class LinuxPoectlImpl(LinuxPoectl):
         """
         params = kwarg['params']
         if params.get('dut_discovery', False):
-            params['cmd_options'] = '-j -a'
-        cmd = 'poectl {} '.format(params.get('cmd_options', ''))
+            params['options'] = '-j -a'
+        cmd = 'poectl {} '.format(params.get('options', ''))
         if 'port' in kwarg['params']:
             cmd += '-i {} '.format(kwarg['params']['port'])
         return cmd + ' 2> /dev/null'
@@ -39,7 +39,8 @@ class LinuxPoectlImpl(LinuxPoectl):
 
         """
         params = kwarg['params']
-        cmd = 'poectl {} --{}-ports '.format(params.get('cmd_options', ''), command)
+        cmd = 'poectl {} --{}-ports '.format(
+            params.get('options', ''), command)
         # TODO: Implement me
         if 'port' not in kwarg['params']:
             return cmd + ' 2> /dev/null'

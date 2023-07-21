@@ -51,7 +51,8 @@ async def test_devlink_basic(testbed, traffic):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -64,7 +65,7 @@ async def test_devlink_basic(testbed, traffic):
     # 1.Set link up on interfaces on all participant ports and connect devices
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': port, 'operstate': 'up'} for port in dut_ports]}])
+            {'dev': port, 'operstate': 'up'} for port in dut_ports]}])
     err_msg = f"Verify that ports set to 'UP' state.\n{out}"
     assert out[0][dev_name]['rc'] == 0, err_msg
 
@@ -144,7 +145,8 @@ async def test_devlink_random(testbed):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -160,7 +162,7 @@ async def test_devlink_random(testbed):
     # 1.Set link up on interfaces on all participant ports and connect devices
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': port, 'operstate': 'up'} for port in dut_ports]}])
+            {'dev': port, 'operstate': 'up'} for port in dut_ports]}])
     err_msg = f"Verify that ports set to 'UP' state.\n{out}"
     assert out[0][dev_name]['rc'] == 0, err_msg
 
@@ -188,7 +190,8 @@ async def test_devlink_random(testbed):
                       'want_tcp': choice([True, False]) if want_port else False,
                       'want_vlan_ethtype': True if want_ip and want_vlan else False}
 
-    tc_rule = tcutil_generate_rule_with_random_selectors(dut_ports[0], **rule_selectors)
+    tc_rule = tcutil_generate_rule_with_random_selectors(
+        dut_ports[0], **rule_selectors)
     tc_rule_copy = deepcopy(tc_rule)
     randomize_rule_by_src_dst_field(tc_rule, rule_selectors)
 
@@ -234,7 +237,8 @@ async def test_devlink_policer_log(testbed):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -248,7 +252,7 @@ async def test_devlink_policer_log(testbed):
     # 1.Set link up on interfaces on all participant ports and connect devices
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': port, 'operstate': 'up'} for port in dut_ports]}])
+            {'dev': port, 'operstate': 'up'} for port in dut_ports]}])
     err_msg = f"Verify that ports set to 'UP' state.\n{out}"
     assert out[0][dev_name]['rc'] == 0, err_msg
 
@@ -277,7 +281,8 @@ async def test_devlink_policer_log(testbed):
                       'want_tcp': choice([True, False]) if want_port else False,
                       'want_vlan_ethtype': True if want_ip and want_vlan else False}
 
-    tc_rule = tcutil_generate_rule_with_random_selectors(dut_ports[0], **rule_selectors)
+    tc_rule = tcutil_generate_rule_with_random_selectors(
+        dut_ports[0], **rule_selectors)
     tc_rule_copy = deepcopy(tc_rule)
     randomize_rule_by_src_dst_field(tc_rule, rule_selectors)
 
@@ -332,14 +337,16 @@ async def test_devlink_diff_rate_units(testbed, rate_units):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
     dut_ports = tgen_dev.links_dict[dev_name][1]
     frame_size = randint(128, 500)
     # Calculate max possible rate for cpu trap 4000pps is max
-    max_rate = (frame_size * CPU_MAX_PPS) * RATE_UNITS['bps']  # Max rate in bits per second
+    max_rate = (frame_size * CPU_MAX_PPS) * \
+        RATE_UNITS['bps']  # Max rate in bits per second
     policer_rate_bps = randint(2_000_000, max_rate)
     policer_rate = policer_rate_bps / RATE_UNITS[rate_units]
     want_ip = choice([True, False])
@@ -349,7 +356,7 @@ async def test_devlink_diff_rate_units(testbed, rate_units):
     # 1.Set link up on interfaces on all participant ports
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': port, 'operstate': 'up'} for port in dut_ports]}])
+            {'dev': port, 'operstate': 'up'} for port in dut_ports]}])
     err_msg = f"Verify that ports set to 'UP' state.\n{out}"
     assert out[0][dev_name]['rc'] == 0, err_msg
 
@@ -378,7 +385,8 @@ async def test_devlink_diff_rate_units(testbed, rate_units):
                       'want_tcp': choice([True, False]) if want_port else False,
                       'want_vlan_ethtype': True if want_vlan and want_ip else False}
 
-    tc_rule = tcutil_generate_rule_with_random_selectors(dut_ports[0], **rule_selectors)
+    tc_rule = tcutil_generate_rule_with_random_selectors(
+        dut_ports[0], **rule_selectors)
     tc_rule_copy = deepcopy(tc_rule)
     randomize_rule_by_src_dst_field(tc_rule, rule_selectors)
 

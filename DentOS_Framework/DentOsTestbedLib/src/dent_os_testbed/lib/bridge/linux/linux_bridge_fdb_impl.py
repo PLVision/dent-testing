@@ -20,8 +20,8 @@ class LinuxBridgeFdbImpl(LinuxBridgeFdb):
         # TODO: Implement me
         if 'lladdr' in params:
             cmd += '{} '.format((params['lladdr']))
-        if 'device' in params:
-            cmd += 'dev {} '.format(params.get('device', ''))
+        if 'dev' in params:
+            cmd += 'dev {} '.format(params.get('dev', ''))
         if 'static' in params and params['static']:
             cmd += 'static '
         if 'master' in params and params['master']:
@@ -42,8 +42,8 @@ class LinuxBridgeFdbImpl(LinuxBridgeFdb):
         # TODO: Implement me
         if 'lladdr' in params:
             cmd += '{} '.format((params['lladdr']))
-        if 'device' in params:
-            cmd += 'dev {} '.format(params.get('device', ''))
+        if 'dev' in params:
+            cmd += 'dev {} '.format(params.get('dev', ''))
         if 'static' in params and params['static']:
             cmd += 'static '
         if 'master' in params and params['master']:
@@ -60,8 +60,8 @@ class LinuxBridgeFdbImpl(LinuxBridgeFdb):
         params = kwarg['params']
         cmd = 'bridge {} fdb {} '.format(params.get('options', ''), command)
         # TODO: Implement me
-        if 'device' in params:
-            cmd += 'dev {} '.format(params.get('device', ''))
+        if 'dev' in params:
+            cmd += 'dev {} '.format(params.get('dev', ''))
         return cmd
 
     def parse_show(self, command, output, *argv, **kwarg):

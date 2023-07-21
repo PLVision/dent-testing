@@ -53,12 +53,14 @@ async def test_ipv6_route_default_offload(testbed):
     num_of_ports = 3
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     traffic_duration = 10
     wait_for_stats = 5
     dip = '2001:5555::5'
@@ -70,12 +72,13 @@ async def test_ipv6_route_default_offload(testbed):
     )
 
     route_map = [
-        {'port': port, 'gw': def_gw, 'metric': metric, 'should_offload': metric == 200}
+        {'port': port, 'gw': def_gw, 'metric': metric,
+            'should_offload': metric == 200}
         for (port, _, _, def_gw, _), metric in zip(address_map[1:], (200, 300))
     ]
 
     out = await IpLink.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port info'
 
@@ -86,7 +89,7 @@ async def test_ipv6_route_default_offload(testbed):
 
     # Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port in ports
+        {'dev': port, 'operstate': 'up'} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -121,7 +124,8 @@ async def test_ipv6_route_default_offload(testbed):
 
     # 2. Add default routes via 2nd and 3rd interfaces
     out = await IpRoute.add(input_data=[{dent: [
-        {'dev': route['port'], 'type': 'default', 'via': route['gw'], 'metric': route['metric']}
+        {'dev': route['port'], 'type': 'default',
+            'via': route['gw'], 'metric': route['metric']}
         for route in route_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add default routes'
@@ -153,7 +157,8 @@ async def test_ipv6_route_default_offload(testbed):
     route_map[1]['should_offload'] = True
     route_map[1]['metric'] = 100
     out = await IpRoute.add(input_data=[{dent: [
-        {'dev': route['port'], 'type': 'default', 'via': route['gw'], 'metric': route['metric']}
+        {'dev': route['port'], 'type': 'default',
+            'via': route['gw'], 'metric': route['metric']}
         for route in (route_map[1],)
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add default routes'
@@ -199,12 +204,14 @@ async def test_ipv6_route_lpm(testbed):
     num_of_ports = 4
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     traffic_duration = 10
     wait_for_stats = 5
 
@@ -216,7 +223,7 @@ async def test_ipv6_route_lpm(testbed):
     )
 
     out = await IpLink.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port info'
 
@@ -227,7 +234,7 @@ async def test_ipv6_route_lpm(testbed):
 
     # Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port in ports
+        {'dev': port, 'operstate': 'up'} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -245,7 +252,8 @@ async def test_ipv6_route_lpm(testbed):
     )
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 
-    routes = [('2002:1::', 64, address_map[1]), ('2002:1::2', 128, address_map[2])]
+    routes = [('2002:1::', 64, address_map[1]),
+              ('2002:1::2', 128, address_map[2])]
     streams = {
         'traffic': {
             'type': 'raw',
@@ -370,12 +378,14 @@ async def test_ipv6_nh_state(testbed):
     num_of_ports = 3
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     traffic_duration = 10
     wait_for_stats = 5
 
@@ -387,21 +397,29 @@ async def test_ipv6_nh_state(testbed):
 
     egress_port1 = address_map[1]
     egress_port2 = address_map[2]
-    route_info = namedtuple('route_info', ['swp', 'net', 'host', 'plen', 'gw', 'metric'])
+    route_info = namedtuple(
+        'route_info', ['swp', 'net', 'host', 'plen', 'gw', 'metric'])
     routes = [
         # 2 net routes and 2 host routes for one of subnets
-        route_info(egress_port1.swp, '2001:1::', '5', 128, egress_port1.tg_ip, None),
-        route_info(egress_port1.swp, '2001:1::', '8', 126, egress_port1.tg_ip, None),
-        route_info(egress_port1.swp, '2001:2::', '5', 128, egress_port1.tg_ip, None),
-        route_info(egress_port1.swp, '2001:2::', '8', 126, egress_port1.tg_ip, None),
+        route_info(egress_port1.swp, '2001:1::', '5',
+                   128, egress_port1.tg_ip, None),
+        route_info(egress_port1.swp, '2001:1::', '8',
+                   126, egress_port1.tg_ip, None),
+        route_info(egress_port1.swp, '2001:2::', '5',
+                   128, egress_port1.tg_ip, None),
+        route_info(egress_port1.swp, '2001:2::', '8',
+                   126, egress_port1.tg_ip, None),
         # less specific routes to same networks (shorter mask)
-        route_info(egress_port1.swp, '2001:3::', '', 64, egress_port1.tg_ip, 10),
-        route_info(egress_port2.swp, '2001:3::', '', 64, egress_port2.tg_ip, 100),
-        route_info(egress_port2.swp, '2001:2::', '', 64, egress_port2.tg_ip, None),
+        route_info(egress_port1.swp, '2001:3::',
+                   '', 64, egress_port1.tg_ip, 10),
+        route_info(egress_port2.swp, '2001:3::',
+                   '', 64, egress_port2.tg_ip, 100),
+        route_info(egress_port2.swp, '2001:2::', '',
+                   64, egress_port2.tg_ip, None),
     ]
 
     out = await IpLink.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port info'
 
@@ -412,7 +430,7 @@ async def test_ipv6_nh_state(testbed):
 
     # Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port in ports
+        {'dev': port, 'operstate': 'up'} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -464,7 +482,7 @@ async def test_ipv6_nh_state(testbed):
 
     # 4. Set the 2d interface to down state
     out = await IpLink.set(input_data=[{dent: [
-        {'device': egress_port1.swp, 'operstate': 'down'}
+        {'dev': egress_port1.swp, 'operstate': 'down'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -520,12 +538,14 @@ async def test_ipv6_route_metrics(testbed):
     num_of_ports = 3
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     traffic_duration = 10
     wait_for_stats = 5
 
@@ -536,17 +556,22 @@ async def test_ipv6_route_metrics(testbed):
         addr_info(ports[2], tg_ports[2], '2001:4444::1', '2001:4444::2', 64),
     )
 
-    route_info = namedtuple('route_info', ['swp', 'dst', 'plen', 'gw', 'metric'])
+    route_info = namedtuple(
+        'route_info', ['swp', 'dst', 'plen', 'gw', 'metric'])
     dst_ip = address_map[-1].tg_ip[:-1] + '5'
     routes = [
-        route_info(address_map[1].swp, dst_ip[:-1], 64, address_map[1].tg_ip, 100),
-        route_info(address_map[1].swp, dst_ip[:-1], 64, address_map[1].tg_ip, 101),
-        route_info(address_map[2].swp, dst_ip[:-1], 64, address_map[2].tg_ip, 102),
-        route_info(address_map[2].swp, dst_ip[:-1], 64, address_map[2].tg_ip, 99),
+        route_info(address_map[1].swp, dst_ip[:-1],
+                   64, address_map[1].tg_ip, 100),
+        route_info(address_map[1].swp, dst_ip[:-1],
+                   64, address_map[1].tg_ip, 101),
+        route_info(address_map[2].swp, dst_ip[:-1],
+                   64, address_map[2].tg_ip, 102),
+        route_info(address_map[2].swp, dst_ip[:-1],
+                   64, address_map[2].tg_ip, 99),
     ]
 
     out = await IpLink.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port info'
 
@@ -557,7 +582,7 @@ async def test_ipv6_route_metrics(testbed):
 
     # Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port in ports
+        {'dev': port, 'operstate': 'up'} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -608,7 +633,8 @@ async def test_ipv6_route_metrics(testbed):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
     for row in stats.Rows:
         loss = tgen_utils_get_loss(row)
-        expected_loss = 0 if tg_to_swp[row['Rx Port']] == routes[0].swp else 100
+        expected_loss = 0 if tg_to_swp[row['Rx Port']
+                                       ] == routes[0].swp else 100
         assert loss == expected_loss, f'Expected loss: {expected_loss}%, actual: {loss}%'
 
     # 4. Verify the route to the network with best metric is the only offloaded route
@@ -644,7 +670,8 @@ async def test_ipv6_route_metrics(testbed):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
     for row in stats.Rows:
         loss = tgen_utils_get_loss(row)
-        expected_loss = 0 if tg_to_swp[row['Rx Port']] == routes[0].swp else 100
+        expected_loss = 0 if tg_to_swp[row['Rx Port']
+                                       ] == routes[0].swp else 100
         assert loss == expected_loss, f'Expected loss: {expected_loss}%, actual: {loss}%'
 
     # 7. Verify the route to the network with best metric is the only offloaded route
@@ -669,7 +696,8 @@ async def test_ipv6_route_metrics(testbed):
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
     for row in stats.Rows:
         loss = tgen_utils_get_loss(row)
-        expected_loss = 0 if tg_to_swp[row['Rx Port']] == routes[-1].swp else 100
+        expected_loss = 0 if tg_to_swp[row['Rx Port']
+                                       ] == routes[-1].swp else 100
         assert loss == expected_loss, f'Expected loss: {expected_loss}%, actual: {loss}%'
 
     # 10. Verify the route to the network with best metric is the only offloaded route
@@ -709,12 +737,14 @@ async def test_ipv6_icmp(testbed):
     num_of_ports = 2
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     traffic_duration = 10
     timeout = 20
 
@@ -724,7 +754,7 @@ async def test_ipv6_icmp(testbed):
     )
 
     out = await IpLink.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get port info'
 
@@ -734,7 +764,7 @@ async def test_ipv6_icmp(testbed):
 
     # Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port in ports
+        {'dev': port, 'operstate': 'up'} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -757,9 +787,9 @@ async def test_ipv6_icmp(testbed):
         {'ifname': info.swp,
          'should_exist': True,
          'addr_info': {
-            'family': 'inet6',
-            'local': info.swp_ip,
-            'prefixlen': info.plen}}
+             'family': 'inet6',
+             'local': info.swp_ip,
+             'prefixlen': info.plen}}
         for info in address_map
     ]
     await verify_dut_addrs(dent, expected_addrs)
@@ -888,7 +918,7 @@ async def test_ipv6_icmp(testbed):
 
     # 5. Delete IP from DUT
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': state}
+        {'dev': port, 'operstate': state}
         for port in ports for state in ['down', 'up']
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'

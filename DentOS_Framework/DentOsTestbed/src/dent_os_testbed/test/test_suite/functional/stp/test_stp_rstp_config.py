@@ -59,7 +59,8 @@ async def test_stp_bpdu_filter(testbed, version):
     num_ports = 3
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_device = dent_devices[0]
     dent = dent_device.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_ports]
@@ -75,16 +76,16 @@ async def test_stp_bpdu_filter(testbed, version):
 
     # 1. Add bridge
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge', 'stp_state': 1}
+        {'dev': bridge, 'type': 'bridge', 'stp_state': 1}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2. Enslave ports
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge}
+        {'dev': port, 'operstate': 'up', 'master': bridge}
         for port in ports
     ] + [
-        {'device': bridge, 'operstate': 'up', 'address': bridge_mac}
+        {'dev': bridge, 'operstate': 'up', 'address': bridge_mac}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -181,7 +182,8 @@ async def test_stp_bpdu_filter(testbed, version):
         ]}])
         assert out[0][dent]['rc'] == 0, 'Failed to enable bpdu filter'
 
-        dent_device.applog.info(f'Waiting {convergence_time_s}s for topo convergence')
+        dent_device.applog.info(
+            f'Waiting {convergence_time_s}s for topo convergence')
         await asyncio.sleep(convergence_time_s)
 
         # 7. Verify port#1 is ALTERNATE/DESIGNATED
@@ -194,7 +196,8 @@ async def test_stp_bpdu_filter(testbed, version):
             dev = info['port']
             role = stp_state[dev]['role'].name
             state = stp_state[dev]['state']
-            assert info['role'].upper() == role, f'Expected port {dev} role to be \'{role}\''
+            assert info['role'].upper(
+            ) == role, f'Expected port {dev} role to be \'{role}\''
             assert info['state'] == state, f'Expected port {dev} state to be \'{state}\''
 
         # 8. Verify traffic is discarded/forwarded through port#1
@@ -227,7 +230,8 @@ async def test_stp_hello_time(testbed, version):
     """
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 1)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     port = tgen_dev.links_dict[dent][1][0]
     bridge = 'br0'
@@ -238,15 +242,15 @@ async def test_stp_hello_time(testbed, version):
 
     # 1. Add bridge
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bridge, 'type': 'bridge', 'stp_state': 1}
+        {'dev': bridge, 'type': 'bridge', 'stp_state': 1}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
     # 2. Enslave ports
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge}
+        {'dev': port, 'operstate': 'up', 'master': bridge}
     ] + [
-        {'device': bridge, 'operstate': 'up'}
+        {'dev': bridge, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 

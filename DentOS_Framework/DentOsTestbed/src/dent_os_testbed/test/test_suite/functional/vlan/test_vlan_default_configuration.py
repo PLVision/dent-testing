@@ -21,10 +21,13 @@ pytestmark = [pytest.mark.suite_functional_vlan,
               pytest.mark.asyncio,
               pytest.mark.usefixtures('cleanup_bridges', 'cleanup_tgen')]
 
-packet_vids = ['X', 1, 2]  # VLAN tag number contained in the transmitted packet
+# VLAN tag number contained in the transmitted packet
+packet_vids = ['X', 1, 2]
 port_map = ({'port': 0, 'settings': [{'vlan': 1, 'untagged': True, 'pvid': True}]},
-            {'port': 1, 'settings': [{'vlan': 1, 'untagged': True, 'pvid': True}]},
-            {'port': 2, 'settings': [{'vlan': 1, 'untagged': True, 'pvid': True}]},
+            {'port': 1, 'settings': [
+                {'vlan': 1, 'untagged': True, 'pvid': True}]},
+            {'port': 2, 'settings': [
+                {'vlan': 1, 'untagged': True, 'pvid': True}]},
             {'port': 3, 'settings': [{'vlan': 1, 'untagged': True, 'pvid': True}]})
 
 
@@ -70,14 +73,14 @@ def set_up_traffic_streams(traffic_type, tg_ports, dev_groups):
         return streams
 
     streams = {f'Traffic with VLAN ID: {vlan}': {
-            'type': 'raw',
-            'protocol': '802.1Q',
-            'ip_source': tx_ports,
-            'ip_destination': rx_ports,
-            'src_mac': src_mac,
-            'dst_mac': dst_mac[traffic_type],
-            'vlanID': vlan
-        } for vlan in packet_vids if vlan != 'X'}
+        'type': 'raw',
+        'protocol': '802.1Q',
+        'ip_source': tx_ports,
+        'ip_destination': rx_ports,
+        'src_mac': src_mac,
+        'dst_mac': dst_mac[traffic_type],
+        'vlanID': vlan
+    } for vlan in packet_vids if vlan != 'X'}
     streams['Untagged traffic'] = {
         'type': 'raw',
         'ip_source': tx_ports,
@@ -118,19 +121,19 @@ async def test_vlan_default_configuration_with_(testbed, traffic_type):
 
     # 1. Configure bridge
     out = await IpLink.add(input_data=[{device: [{
-        'device': bridge,
+        'dev': bridge,
         'type': 'bridge',
         'vlan_filtering': 1
-        }]
+    }]
     }])
     assert out[0][device]['rc'] == 0, 'Failed creating bridge.'
 
-    await IpLink.set(input_data=[{device: [{'device': bridge, 'operstate': 'up'}]}])
+    await IpLink.set(input_data=[{device: [{'dev': bridge, 'operstate': 'up'}]}])
     assert out[0][device]['rc'] == 0, 'Failed setting bridge to state UP.'
 
     # 2. Enslave links to bridge and set to 'up' state
     out = await IpLink.set(input_data=[{device: [{
-        'device': port,
+        'dev': port,
         'operstate': 'up',
         'master': bridge
     } for port in dut_ports]}])
@@ -138,9 +141,12 @@ async def test_vlan_default_configuration_with_(testbed, traffic_type):
 
     # Configure ixia ports
     dev_groups = tgen_utils_dev_groups_from_config([
-        {'ixp': tg_ports[0], 'ip': '100.1.1.2', 'gw': '100.1.1.6', 'plen': 24, },
-        {'ixp': tg_ports[1], 'ip': '100.1.1.3', 'gw': '100.1.1.6', 'plen': 24, },
-        {'ixp': tg_ports[2], 'ip': '100.1.1.4', 'gw': '100.1.1.6', 'plen': 24, },
+        {'ixp': tg_ports[0], 'ip': '100.1.1.2',
+            'gw': '100.1.1.6', 'plen': 24, },
+        {'ixp': tg_ports[1], 'ip': '100.1.1.3',
+            'gw': '100.1.1.6', 'plen': 24, },
+        {'ixp': tg_ports[2], 'ip': '100.1.1.4',
+            'gw': '100.1.1.6', 'plen': 24, },
         {'ixp': tg_ports[3], 'ip': '100.1.1.5', 'gw': '100.1.1.6', 'plen': 24, }])
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, dut_ports, dev_groups)
 
@@ -162,7 +168,8 @@ async def test_vlan_default_configuration_with_(testbed, traffic_type):
 
     # 5. Verify traffic loss on rx_ports per port_map configuration and packet type
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-    ti_to_rx_port_map = get_traffic_port_vlan_mapping(streams, port_map, tg_ports)
+    ti_to_rx_port_map = get_traffic_port_vlan_mapping(
+        streams, port_map, tg_ports)
     for row in stats.Rows:
         if row['Rx Port'] in ti_to_rx_port_map[row['Traffic Item']]:
             assert tgen_utils_get_loss(row) == 0.000, \
@@ -202,16 +209,20 @@ async def test_vlan_basic_functionality(testbed):
 
     # 2. Set links to vlans per port_map configuration (all ports untagged, mixed vlans)
     port_setup = ({'port': 0, 'settings': [{'vlan': 1, 'untagged': True, 'pvid': True}]},
-                  {'port': 1, 'settings': [{'vlan': 1, 'untagged': True, 'pvid': True}]},
-                  {'port': 2, 'settings': [{'vlan': 1, 'untagged': True, 'pvid': True}]},
+                  {'port': 1, 'settings': [
+                      {'vlan': 1, 'untagged': True, 'pvid': True}]},
+                  {'port': 2, 'settings': [
+                      {'vlan': 1, 'untagged': True, 'pvid': True}]},
                   {'port': 3, 'settings': [{'vlan': 2, 'untagged': True, 'pvid': False}]})
 
     await configure_vlan_setup(device, port_setup, dut_ports)
 
     dev_groups = tgen_utils_dev_groups_from_config(
         [{'ixp': tg_ports[0], 'ip': '100.1.1.2', 'gw': '100.1.1.6', 'plen': 24, },
-         {'ixp': tg_ports[1], 'ip': '100.1.1.3', 'gw': '100.1.1.6', 'plen': 24, },
-         {'ixp': tg_ports[2], 'ip': '100.1.1.4', 'gw': '100.1.1.6', 'plen': 24, },
+         {'ixp': tg_ports[1], 'ip': '100.1.1.3',
+             'gw': '100.1.1.6', 'plen': 24, },
+         {'ixp': tg_ports[2], 'ip': '100.1.1.4',
+             'gw': '100.1.1.6', 'plen': 24, },
          {'ixp': tg_ports[3], 'ip': '100.1.1.5', 'gw': '100.1.1.6', 'plen': 24, }])
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, dut_ports, dev_groups)
 
@@ -238,7 +249,8 @@ async def test_vlan_basic_functionality(testbed):
 
     # 6. Verify traffic
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-    ti_to_rx_port_map = get_traffic_port_vlan_mapping(streams, port_setup, tg_ports)
+    ti_to_rx_port_map = get_traffic_port_vlan_mapping(
+        streams, port_setup, tg_ports)
     for row in stats.Rows:
         if row['Rx Port'] in ti_to_rx_port_map[row['Traffic Item']]:
             assert tgen_utils_get_loss(row) == 0.000, \
@@ -273,15 +285,18 @@ async def test_vlan_changing_default_pvid(testbed):
     device = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device][0]
     dut_ports = tgen_dev.links_dict[device][1]
-    vlans = ['X', 4094, 2]  # VLAN tag number contained in the transmitted packet
+    # VLAN tag number contained in the transmitted packet
+    vlans = ['X', 4094, 2]
     non_default_pvid = vlans[-1]
 
     await configure_bridge_setup(device, dut_ports, default_pvid=non_default_pvid)
 
     # 2. Set links to vlans per port_map configuration (all ports untagged, same vlan)
     port_setup = ({'port': 0, 'settings': [{'vlan': 4094, 'untagged': True, 'pvid': True}]},
-                  {'port': 1, 'settings': [{'vlan': 4094, 'untagged': True, 'pvid': True}]},
-                  {'port': 2, 'settings': [{'vlan': 4094, 'untagged': True, 'pvid': True}]},
+                  {'port': 1, 'settings': [
+                      {'vlan': 4094, 'untagged': True, 'pvid': True}]},
+                  {'port': 2, 'settings': [
+                      {'vlan': 4094, 'untagged': True, 'pvid': True}]},
                   {'port': 3, 'settings': [{'vlan': 4094, 'untagged': True, 'pvid': True}]})
     await configure_vlan_setup(device, port_setup, dut_ports)
 
@@ -325,7 +340,8 @@ async def test_vlan_changing_default_pvid(testbed):
 
     # 5. Verify traffic
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-    ti_to_rx_port_map = get_traffic_port_vlan_mapping(streams, port_setup, tg_ports, default_pvid=non_default_pvid)
+    ti_to_rx_port_map = get_traffic_port_vlan_mapping(
+        streams, port_setup, tg_ports, default_pvid=non_default_pvid)
     for row in stats.Rows:
         if row['Rx Port'] in ti_to_rx_port_map[row['Traffic Item']]:
             assert tgen_utils_get_loss(row) == 0.000, \

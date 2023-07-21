@@ -50,7 +50,8 @@ async def get_table_sizes(dent_device):
     rc, model = await dent_device.run_cmd('cat /etc/onl/platform')
     assert rc == 0, 'Failed to get device platform name'
     model = model.strip('\n')
-    table_sizes = LocalFileHandler(dent_device.applog).read(PLATFORMS_CONSTANTS)
+    table_sizes = LocalFileHandler(
+        dent_device.applog).read(PLATFORMS_CONSTANTS)
     return json.loads(table_sizes)[model]
 
 
@@ -69,14 +70,15 @@ async def test_ipv4_route_table_fill(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 1)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     port = tgen_dev.links_dict[dent][1][0]
     expected_route_entries = (await get_table_sizes(dent_dev))['route_table_size']
 
     # 2. Configure port up
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'}]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
     # 3. Fill up route table
@@ -110,7 +112,8 @@ async def test_bridging_mac_table_size(testbed):
     num_tg_ports = 2
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_tg_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
@@ -121,23 +124,25 @@ async def test_bridging_mac_table_size(testbed):
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Verify that bridge created.\n{out}'
+            {'dev': bridge, 'type': 'bridge'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Verify that bridge created.\n{out}'
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+            {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
     assert out[0][device_host_name]['rc'] == 0, \
         f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'learning': True} for port in ports]}])
+            {'dev': port, 'learning': True} for port in ports]}])
     assert out[0][device_host_name]['rc'] == 0, \
         f"Verify that entities set to learning 'ON' state.\n{out}"
 
@@ -199,7 +204,8 @@ async def test_acl_table_size(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 1)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     port = tgen_dev.links_dict[dent][1][0]
@@ -216,7 +222,8 @@ async def test_acl_table_size(testbed):
     # 3. Fill up acl table using a default chain
     rule_count = size['max_acl_rules']
     rc, out = await asyncio.wait_for(
-        dent_dev.run_cmd(fill_acl_table_cmd.format(port=port, count=rule_count + sw_rules)),
+        dent_dev.run_cmd(fill_acl_table_cmd.format(
+            port=port, count=rule_count + sw_rules)),
         timeout=3*60)  # 3mins
     assert rc == 0, 'Failed to fill acl table'
 
@@ -250,7 +257,8 @@ async def test_acl_table_size(testbed):
 
     rule_count = size['max_acl_rules_chain']
     rc, out = await asyncio.wait_for(
-        dent_dev.run_cmd(fill_acl_table_cmd.format(port=port, count=rule_count + sw_rules)),
+        dent_dev.run_cmd(fill_acl_table_cmd.format(
+            port=port, count=rule_count + sw_rules)),
         timeout=10*60)  # 10mins
     assert rc == 0, 'Failed to fill acl table'
 

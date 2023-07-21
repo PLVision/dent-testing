@@ -24,15 +24,19 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 pytestmark = [
     pytest.mark.suite_functional_storm_control,
     pytest.mark.asyncio,
-    pytest.mark.usefixtures('cleanup_tgen', 'cleanup_ip_addrs', 'define_bash_utils')
+    pytest.mark.usefixtures(
+        'cleanup_tgen', 'cleanup_ip_addrs', 'define_bash_utils')
 ]
 
 
 async def set_rates(kbyte_value_stream, ports, device_host_name):
     params = [
-        {'port': ports[0], 'name': 'bc_kbyte_per_sec_rate', 'value': kbyte_value_stream},
-        {'port': ports[0], 'name': 'unreg_mc_kbyte_per_sec_rate', 'value': kbyte_value_stream},
-        {'port': ports[0], 'name': 'unk_uc_kbyte_per_sec_rate', 'value': kbyte_value_stream}
+        {'port': ports[0], 'name': 'bc_kbyte_per_sec_rate',
+            'value': kbyte_value_stream},
+        {'port': ports[0], 'name': 'unreg_mc_kbyte_per_sec_rate',
+            'value': kbyte_value_stream},
+        {'port': ports[0], 'name': 'unk_uc_kbyte_per_sec_rate',
+            'value': kbyte_value_stream}
     ]
     for value in params:
         await devlink_rate_value(dev=f'pci/0000:01:00.0/{value["port"].replace("swp","")}',
@@ -62,7 +66,8 @@ async def test_storm_control_packets(testbed):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
@@ -75,14 +80,17 @@ async def test_storm_control_packets(testbed):
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'operstate': 'up'} for port in ports]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
+            {'dev': port, 'operstate': 'up'} for port in ports]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
 
     out = await IpAddress.add(
         input_data=[{device_host_name: [
-            {'dev': ports[0], 'prefix': '192.168.1.5/24', 'broadcast': '192.168.1.255'},
+            {'dev': ports[0], 'prefix': '192.168.1.5/24',
+                'broadcast': '192.168.1.255'},
             {'dev': ports[1], 'prefix': '192.168.1.4/24', 'broadcast': '192.168.1.255'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f'Failed to add IP address to ports.\n{out}'
+    assert out[0][device_host_name][
+        'rc'] == 0, f'Failed to add IP address to ports.\n{out}'
 
     # set a storm control rate limits
     kbyte_value_stream = [low_rate*pkt_size, high_rate*pkt_size]

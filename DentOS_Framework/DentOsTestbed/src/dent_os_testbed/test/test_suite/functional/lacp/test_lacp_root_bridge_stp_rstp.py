@@ -53,13 +53,13 @@ async def test_lacp_root_bridge_selection_stp(testbed, version):
     time_to_wait = 40 if version == 'stp' else 20
 
     # 1. Create 3 bridge entities and 6 bonds and set link up on them
-    out = await IpLink.add(input_data=[{dent: [{'device': bond,
+    out = await IpLink.add(input_data=[{dent: [{'dev': bond,
                                                 'type': 'bond',
                                                 'mode': '802.3ad'} for bond in bonds]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bond'
 
     out = await IpLink.add(input_data=[{dent: [{
-        'device': bridge,
+        'dev': bridge,
         'type': 'bridge',
         'stp_state': 1} for bridge in bridges]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
@@ -75,17 +75,17 @@ async def test_lacp_root_bridge_selection_stp(testbed, version):
 
     # 2. Enslave ports according to the test's setup topology
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'down'} for port in bonds.values()] +
-               [{'device': bond, 'operstate': 'down'} for bond in bonds] +
-               [{'device': bridge, 'operstate': 'down'} for bridge in bridges]
+        {dent: [{'dev': port, 'operstate': 'down'} for port in bonds.values()] +
+               [{'dev': bond, 'operstate': 'down'} for bond in bonds] +
+               [{'dev': bridge, 'operstate': 'down'} for bridge in bridges]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed setting interfaces to state down'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'master': bond}]} for bond, port in bonds.items()])
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'master': bond}]} for bond, port in bonds.items()])
     assert out[0][dent]['rc'] == 0, 'Failed enslaving port to bond'
 
     for bridge, lags in bridges.items():
-        out = await IpLink.set(input_data=[{dent: [{'device': lag, 'master': bridge} for lag in lags]}])
+        out = await IpLink.set(input_data=[{dent: [{'dev': lag, 'master': bridge} for lag in lags]}])
         assert out[0][dent]['rc'] == 0, f'Failed enslaving lag to {bridge}'
 
     # 3. Change the MAC addresses for all bridges
@@ -95,9 +95,9 @@ async def test_lacp_root_bridge_selection_stp(testbed, version):
 
     # 4. Set link up on all participant ports
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'up'} for port in bonds.values()] +
-               [{'device': bond, 'operstate': 'up'} for bond in bonds] +
-               [{'device': bridge, 'operstate': 'up'} for bridge in bridges]
+        {dent: [{'dev': port, 'operstate': 'up'} for port in bonds.values()] +
+               [{'dev': bond, 'operstate': 'up'} for bond in bonds] +
+               [{'dev': bridge, 'operstate': 'up'} for bridge in bridges]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed setting interfaces to state up'
 
@@ -127,7 +127,8 @@ async def test_lacp_root_bridge_selection_stp(testbed, version):
              'bridge': bridge,
              'options': '-f json'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get bridge detail'
-    assert out[0][dent]['parsed_output'][0]['root-port'] != '', f'Bridge {bridge} is a root bridge'
+    assert out[0][dent]['parsed_output'][0][
+        'root-port'] != '', f'Bridge {bridge} is a root bridge'
 
     # 7. Verify bridge_3 has a blocking port
     out = await Mstpctl.show(input_data=[{dent: [
@@ -165,7 +166,8 @@ async def test_lacp_root_bridge_selection_stp(testbed, version):
          'bridge': bridge_names[2],
          'options': '-f json'}]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, f'Failed to get detail of {bridge_names[2]}'
-    assert out[0][dent]['parsed_output'][0]['root-port'] == '', f'Bridge {bridge_names[2]} is not a root bridge'
+    assert out[0][dent]['parsed_output'][0][
+        'root-port'] == '', f'Bridge {bridge_names[2]} is not a root bridge'
 
     # bridge_1 and bridge_2 do not consider themselves as root-bridge
     for bridge in bridge_names[:2]:
@@ -174,7 +176,8 @@ async def test_lacp_root_bridge_selection_stp(testbed, version):
              'bridge': bridge,
              'options': '-f json'}]}], parse_output=True)
         assert out[0][dent]['rc'] == 0, f'Failed to get detail of {bridge}'
-        assert out[0][dent]['parsed_output'][0]['root-port'] != '', f'Bridge {bridge} is a root bridge'
+        assert out[0][dent]['parsed_output'][0][
+            'root-port'] != '', f'Bridge {bridge} is a root bridge'
 
     # 12. Verify bridge_2 has a blocking port
     out = await Mstpctl.show(input_data=[{dent: [

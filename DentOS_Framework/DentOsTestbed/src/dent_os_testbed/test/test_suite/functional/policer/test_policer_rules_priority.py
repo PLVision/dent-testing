@@ -22,7 +22,8 @@ from dent_os_testbed.utils.test_utils.tc_flower_utils import tcutil_tc_rules_to_
 
 pytestmark = [
     pytest.mark.suite_functional_policer,
-    pytest.mark.usefixtures('cleanup_bridges', 'cleanup_qdiscs', 'cleanup_tgen'),
+    pytest.mark.usefixtures(
+        'cleanup_bridges', 'cleanup_qdiscs', 'cleanup_tgen'),
     pytest.mark.asyncio,
 ]
 
@@ -62,7 +63,8 @@ async def test_policer_rules_priority(testbed, qdisc_type):
     block = random.randint(5, 3000)
     tc_rule_1_frame_rate = 250000  # bps
     tc_rule_2_frame_rate = tc_rule_1_frame_rate + tc_rule_1_frame_rate * 0.10  # bps
-    dev_or_block = {'dev': ports_with_rule[0]} if qdisc_type == 'port' else {'block': block}
+    dev_or_block = {'dev': ports_with_rule[0]} if qdisc_type == 'port' else {
+        'block': block}
     tolerance = 0.12
 
     # 1. Create a bridge entity and set link up on it.
@@ -72,18 +74,19 @@ async def test_policer_rules_priority(testbed, qdisc_type):
     }])
     assert out[0][dent]['rc'] == 0, 'Failed creating bridge.'
 
-    await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'}]}])
+    await IpLink.set(input_data=[{dent: [{'dev': bridge, 'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state UP.'
 
     # 2. Set link up on interfaces on all participant ports. Enslave all participant ports to the bridge.
     out = await IpLink.set(input_data=[{dent: [{
-        'device': port,
+        'dev': port,
         'operstate': 'up',
         'master': bridge
     } for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting link to state UP.'
 
-    config = [{'dev': port, 'ingress_block': block, 'direction': 'ingress'} for port in ports_with_rule]
+    config = [{'dev': port, 'ingress_block': block, 'direction': 'ingress'}
+              for port in ports_with_rule]
     if qdisc_type == 'port':
         for item in config:
             del item['ingress_block']
@@ -96,21 +99,21 @@ async def test_policer_rules_priority(testbed, qdisc_type):
     # and with: different police rate value first rule pref < second rule pref
 
     tc_rule_1 = {
-            'action': {
-                'police': {
-                    'rate': tc_rule_1_frame_rate,
-                    'burst': tc_rule_1_frame_rate + 1000,
-                    'conform-exceed': 'drop'}
-            },
-            'direction': 'ingress',
-            'protocol': '0x8100 ',
-            'filtertype': {
-                'skip_sw': '',
-                'src_mac': '02:15:53:62:36:d1',
-                'dst_mac': '02:06:a2:54:22:9f',
-                'vlan_id': 1942},
-            'pref': 100,
-        }
+        'action': {
+            'police': {
+                'rate': tc_rule_1_frame_rate,
+                'burst': tc_rule_1_frame_rate + 1000,
+                'conform-exceed': 'drop'}
+        },
+        'direction': 'ingress',
+        'protocol': '0x8100 ',
+        'filtertype': {
+            'skip_sw': '',
+            'src_mac': '02:15:53:62:36:d1',
+            'dst_mac': '02:06:a2:54:22:9f',
+            'vlan_id': 1942},
+        'pref': 100,
+    }
 
     # First rule
     tc_rule_1.update(dev_or_block)
@@ -160,10 +163,12 @@ async def test_policer_rules_priority(testbed, qdisc_type):
         if qdisc_type == 'port':
             if row['Port Name'] == tg_ports[0]:
                 continue
-            assert isclose(float(row['Rx. Rate (bps)']), tc_rule_1_frame_rate, rel_tol=tolerance), err_msg
+            assert isclose(
+                float(row['Rx. Rate (bps)']), tc_rule_1_frame_rate, rel_tol=tolerance), err_msg
         else:
             if row['Port Name'] == tg_ports[0]:
-                assert isclose(float(row['Rx. Rate (bps)']), tc_rule_1_frame_rate, rel_tol=tolerance), err_msg
+                assert isclose(
+                    float(row['Rx. Rate (bps)']), tc_rule_1_frame_rate, rel_tol=tolerance), err_msg
 
     # 7. Delete the first rule and add it again with the same priority as before
     out = await TcFilter.delete(input_data=[{dent: [tc_rule_1]}])
@@ -182,10 +187,12 @@ async def test_policer_rules_priority(testbed, qdisc_type):
         if qdisc_type == 'port':
             if row['Port Name'] == tg_ports[0]:
                 continue
-            assert isclose(float(row['Rx. Rate (bps)']), tc_rule_1_frame_rate, rel_tol=tolerance), err_msg
+            assert isclose(
+                float(row['Rx. Rate (bps)']), tc_rule_1_frame_rate, rel_tol=tolerance), err_msg
         else:
             if row['Port Name'] == tg_ports[0]:
-                assert isclose(float(row['Rx. Rate (bps)']), tc_rule_1_frame_rate, rel_tol=tolerance), err_msg
+                assert isclose(
+                    float(row['Rx. Rate (bps)']), tc_rule_1_frame_rate, rel_tol=tolerance), err_msg
 
     # 10. Delete the rule again and add it with higher priority than the other rule
     out = await TcFilter.delete(input_data=[{dent: [tc_rule_1]}])
@@ -205,9 +212,11 @@ async def test_policer_rules_priority(testbed, qdisc_type):
         if qdisc_type == 'port':
             if row['Port Name'] == tg_ports[0]:
                 continue
-            assert isclose(float(row['Rx. Rate (bps)']), tc_rule_2_frame_rate, rel_tol=tolerance), err_msg
+            assert isclose(
+                float(row['Rx. Rate (bps)']), tc_rule_2_frame_rate, rel_tol=tolerance), err_msg
         else:
             if row['Port Name'] == tg_ports[0]:
-                assert isclose(float(row['Rx. Rate (bps)']), tc_rule_2_frame_rate, rel_tol=tolerance), err_msg
+                assert isclose(
+                    float(row['Rx. Rate (bps)']), tc_rule_2_frame_rate, rel_tol=tolerance), err_msg
 
     await tgen_utils_stop_traffic(tgen_dev)

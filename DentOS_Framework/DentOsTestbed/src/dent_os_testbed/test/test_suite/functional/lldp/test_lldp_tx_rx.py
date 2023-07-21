@@ -48,7 +48,8 @@ async def test_lldp_bridge(testbed):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -60,18 +61,18 @@ async def test_lldp_bridge(testbed):
     # 1.Create bridge device
     out = await IpLink.add(
         input_data=[{dev_name: [
-            {'device': bridge, 'type': 'bridge'}]}])
+            {'dev': bridge, 'type': 'bridge'}]}])
     err_msg = f'Verify that bridge created and vlan filtering set successful\n{out}'
     assert not out[0][dev_name]['rc'], err_msg
     # 2.Add 4 ports to bridge
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': port, 'master': bridge} for port in dut_ports]}])
+            {'dev': port, 'master': bridge} for port in dut_ports]}])
     assert not out[0][dev_name]['rc'], f'Verify {dut_ports} set master to {bridge}.\n{out}'
     # 3.Set bridge and first added port to up
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': device, 'operstate': 'up'} for device in [dut_ports[0], bridge]]}])
+            {'dev': device, 'operstate': 'up'} for device in [dut_ports[0], bridge]]}])
     assert not out[0][dev_name]['rc'], f"Verify devices set to 'UP'.\n{out}"
     # 4.Init interfaces
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -85,7 +86,8 @@ async def test_lldp_bridge(testbed):
     out = await Lldp.configure(
         input_data=[{dev_name: [
             {'lldp': '', 'tx-interval': lldp_interval}]}])
-    assert not out[0][dev_name]['rc'], f'Failed to configure lldp tx-interval {lldp_interval}.\n{out}'
+    assert not out[0][dev_name][
+        'rc'], f'Failed to configure lldp tx-interval {lldp_interval}.\n{out}'
 
     # 6.Collect tx stats and set first DUT port to lldp status rx-and-tx
     tx_before = await get_lldp_statistic(dev_name, dut_ports[0])
@@ -100,18 +102,19 @@ async def test_lldp_bridge(testbed):
     ttl = 120
     port_subtype = 5
     lldp = {
-            'chassisLen': (len(chassis.replace(':', '')) // 2) + 1,
-            'chassisSubtype': 4,
-            'chassisVarLen': len(chassis.replace(':', '')) // 2,
-            'chassisId': chassis.replace(':', ''),
-            'portLen': (len(port.encode().hex()) // 2) + 1,
-            'portSubtype': port_subtype,
-            'portVarLen': len(port.encode().hex()) // 2,
-            'portId': port.encode().hex(),
-            'ttlLen': 2,
-            'ttlVal': ttl,
+        'chassisLen': (len(chassis.replace(':', '')) // 2) + 1,
+        'chassisSubtype': 4,
+        'chassisVarLen': len(chassis.replace(':', '')) // 2,
+        'chassisId': chassis.replace(':', ''),
+        'portLen': (len(port.encode().hex()) // 2) + 1,
+        'portSubtype': port_subtype,
+        'portVarLen': len(port.encode().hex()) // 2,
+        'portId': port.encode().hex(),
+        'ttlLen': 2,
+        'ttlVal': ttl,
     }
-    lldp_stream = get_lldp_stream(dev_groups[tg_ports[0]][0]['name'], dev_groups[tg_ports[1]][0]['name'], lldp)
+    lldp_stream = get_lldp_stream(
+        dev_groups[tg_ports[0]][0]['name'], dev_groups[tg_ports[1]][0]['name'], lldp)
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=lldp_stream)
     await tgen_utils_start_traffic(tgen_dev)
     await asyncio.sleep(lldp_interval * wait)
@@ -121,7 +124,8 @@ async def test_lldp_bridge(testbed):
 
     # 9.Verify lldp pkt's were transmitted with all fields set as expected
     tx_after = await get_lldp_statistic(dev_name, dut_ports[0])
-    assert tx_after >= tx_before + wait, f'tx_after {tx_after} >= tx_before {tx_before}'
+    assert tx_after >= tx_before + \
+        wait, f'tx_after {tx_after} >= tx_before {tx_before}'
     await verify_tx_lldp_fields(dev_name, dent_dev, dut_ports[0], lldp_interval, optional_tlvs=True)
 
 
@@ -141,7 +145,8 @@ async def test_lldp_enable_disable_ports(testbed):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -151,7 +156,7 @@ async def test_lldp_enable_disable_ports(testbed):
     # 1.Set 4 ports up and Init interfaces
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': port, 'operstate': 'up'} for port in dut_ports]}])
+            {'dev': port, 'operstate': 'up'} for port in dut_ports]}])
     assert not out[0][dev_name]['rc'], f"Verify {dut_ports} set to 'UP' state.\n{out}"
 
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -165,14 +170,17 @@ async def test_lldp_enable_disable_ports(testbed):
     out = await Lldp.configure(
         input_data=[{dev_name: [
             {'lldp': '', 'tx-interval': tx_interval}]}])
-    assert not out[0][dev_name]['rc'], f'Failed to configure lldp tx-interval {tx_interval}.\n{out}'
+    assert not out[0][dev_name][
+        'rc'], f'Failed to configure lldp tx-interval {tx_interval}.\n{out}'
 
     # 3.Configure lldp ports to disabled/rx-and-tx state
     out = await Lldp.configure(
         input_data=[{dev_name: [
-            {'interface': port, 'ports': '', 'lldp': '', 'status': 'rx-and-tx' if indx % 2 else 'disabled'}
+            {'interface': port, 'ports': '', 'lldp': '',
+                'status': 'rx-and-tx' if indx % 2 else 'disabled'}
             for indx, port in enumerate(dut_ports)]}])
-    assert not out[0][dev_name]['rc'], f'Failed to configure lldp status on port {dut_ports}.\n{out}'
+    assert not out[0][dev_name][
+        'rc'], f'Failed to configure lldp status on port {dut_ports}.\n{out}'
 
     # 4.Setup 4 lldp streams with different params and start transmitting traffic
     lldps_verify = {}
@@ -201,7 +209,8 @@ async def test_lldp_enable_disable_ports(testbed):
             'ttlLen': 2,
             'ttlVal': ttl
         }
-        lldp_stream = get_lldp_stream(dev_groups[src][0]['name'], dev_groups[dst][0]['name'], lldp, src_mac=random_mac(), name=index)
+        lldp_stream = get_lldp_stream(
+            dev_groups[src][0]['name'], dev_groups[dst][0]['name'], lldp, src_mac=random_mac(), name=index)
         streams.update(lldp_stream)
 
     await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=streams)
@@ -225,7 +234,8 @@ async def test_lldp_enable_disable_ports(testbed):
         if not indx % 2:
             assert tx_before == tx_after, f'tx_after {tx_after} are not equal to tx_before before {tx_before}'
         else:
-            assert tx_after >= tx_before + 3, f'tx_after {tx_after} are not >= tx_before counters {tx_before}'
+            assert tx_after >= tx_before + \
+                3, f'tx_after {tx_after} are not >= tx_before counters {tx_before}'
             await verify_tx_lldp_fields(dev_name, dent_dev, port, tx_interval, optional_tlvs=True)
 
 
@@ -248,7 +258,8 @@ async def test_lldp_lag(testbed):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 2)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dev_name = dent_devices[0].host_name
     dent_dev = dent_devices[0]
     tg_ports = tgen_dev.links_dict[dev_name][0]
@@ -266,20 +277,20 @@ async def test_lldp_lag(testbed):
 
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': dut_ports[0], 'operstate': 'down'}]}])
+            {'dev': dut_ports[0], 'operstate': 'down'}]}])
     assert not out[0][dev_name]['rc'], f"Verify {dut_ports[0]} set to 'DOWN' state.\n{out}"
 
     # 2.Add first port from DUT to lag
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': dut_ports[0], 'master': bond1}]}])
+            {'dev': dut_ports[0], 'master': bond1}]}])
     err_msg = f'Verify that {dut_ports[0]} set to master .\n{out}'
     assert not out[0][dev_name]['rc'], err_msg
 
     # 3.Set first port DUT and lag device to up state
     out = await IpLink.set(
         input_data=[{dev_name: [
-            {'device': dev, 'operstate': 'up'} for dev in [dut_ports[0], bond1]]}])
+            {'dev': dev, 'operstate': 'up'} for dev in [dut_ports[0], bond1]]}])
     assert not out[0][dev_name]['rc'], f"Verify {dut_ports[0]} and {bond1} set to 'UP' state.\n{out}"
     # 4.Init interfaces
     dev_groups = tgen_utils_dev_groups_from_config(
@@ -292,7 +303,8 @@ async def test_lldp_lag(testbed):
     out = await Lldp.configure(
         input_data=[{dev_name: [
             {'lldp': '', 'tx-interval': lldp_interval}]}])
-    assert not out[0][dev_name]['rc'], f'Failed to configure lldp tx-interval {lldp_interval}.\n{out}'
+    assert not out[0][dev_name][
+        'rc'], f'Failed to configure lldp tx-interval {lldp_interval}.\n{out}'
 
     out = await Lldp.configure(
         input_data=[{dev_name: [
@@ -303,7 +315,8 @@ async def test_lldp_lag(testbed):
     out = await Lldp.configure(
         input_data=[{dev_name: [
             {'interface': dut_ports[0], 'ports': '', 'lldp': '', 'status': 'rx-and-tx'}]}])
-    assert not out[0][dev_name]['rc'], f'Failed to configure lldp status on port {dut_ports[0]}.\n{out}'
+    assert not out[0][dev_name][
+        'rc'], f'Failed to configure lldp status on port {dut_ports[0]}.\n{out}'
 
     # 6.Setup lldp packet for trasmitting to first DUT port and start sending
     chassis = random_mac()
@@ -311,18 +324,19 @@ async def test_lldp_lag(testbed):
     ttl = 110
     port_subtype = 5
     lldp = {
-            'chassisLen': (len(chassis.replace(':', '')) // 2) + 1,
-            'chassisSubtype': 4,
-            'chassisVarLen': len(chassis.replace(':', '')) // 2,
-            'chassisId': chassis.replace(':', ''),
-            'portLen': (len(port.encode().hex()) // 2) + 1,
-            'portSubtype': port_subtype,
-            'portVarLen': len(port.encode().hex()) // 2,
-            'portId': port.encode().hex(),
-            'ttlLen': 2,
-            'ttlVal': ttl
+        'chassisLen': (len(chassis.replace(':', '')) // 2) + 1,
+        'chassisSubtype': 4,
+        'chassisVarLen': len(chassis.replace(':', '')) // 2,
+        'chassisId': chassis.replace(':', ''),
+        'portLen': (len(port.encode().hex()) // 2) + 1,
+        'portSubtype': port_subtype,
+        'portVarLen': len(port.encode().hex()) // 2,
+        'portId': port.encode().hex(),
+        'ttlLen': 2,
+        'ttlVal': ttl
     }
-    lldp_stream = get_lldp_stream(dev_groups[bond1][0]['name'], dev_groups[tg_ports[1]][0]['name'], lldp)
+    lldp_stream = get_lldp_stream(
+        dev_groups[bond1][0]['name'], dev_groups[tg_ports[1]][0]['name'], lldp)
 
     try:
         await tgen_utils_setup_streams(tgen_dev, config_file_name=None, streams=lldp_stream)
@@ -340,5 +354,6 @@ async def test_lldp_lag(testbed):
 
     # 8.Verify lldp pkt's were transmitted with all fields as expected
     tx_after = await get_lldp_statistic(dev_name, dut_ports[0])
-    assert tx_after >= tx_before + wait, f'tx_after {tx_after} >= tx_before {tx_before}'
+    assert tx_after >= tx_before + \
+        wait, f'tx_after {tx_after} >= tx_before {tx_before}'
     await verify_tx_lldp_fields(dev_name, dent_dev, dut_ports[0], lldp_interval, optional_tlvs=True)

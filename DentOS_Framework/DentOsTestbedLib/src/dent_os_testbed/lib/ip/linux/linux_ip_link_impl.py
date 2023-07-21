@@ -16,8 +16,8 @@ class LinuxIpLinkImpl(LinuxIpLink):
         params = kwarg['params']
         cmd = 'ip link {} '.format(command)
         # custom code here
-        if 'device' in params:
-            cmd += '{} '.format((params['device']))
+        if 'dev' in params:
+            cmd += '{} '.format((params['dev']))
         if 'link' in params:
             cmd += 'link {} '.format((params['link']))
         if 'name' in params:
@@ -45,7 +45,8 @@ class LinuxIpLinkImpl(LinuxIpLink):
         if 'vlan_filtering' in params:
             cmd += 'vlan_filtering {} '.format((params['vlan_filtering']))
         if 'vlan_default_pvid' in params:
-            cmd += 'vlan_default_pvid {} '.format((params['vlan_default_pvid']))
+            cmd += 'vlan_default_pvid {} '.format(
+                (params['vlan_default_pvid']))
         if 'mode' in params:
             cmd += 'mode {} '.format((params['mode']))
         if 'stp_state' in params:
@@ -74,8 +75,8 @@ class LinuxIpLinkImpl(LinuxIpLink):
         params = kwarg['params']
         cmd = 'ip link {} '.format(command)
         # custom code here
-        if 'device' in params:
-            cmd += '{} '.format((params['device']))
+        if 'dev' in params:
+            cmd += '{} '.format((params['dev']))
         if 'type' in params:
             cmd += 'type {} '.format((params['type']))
         return cmd
@@ -94,8 +95,8 @@ class LinuxIpLinkImpl(LinuxIpLink):
         params = kwarg['params']
         cmd = 'ip link {} '.format(command)
         # custom code here
-        if 'device' in params:
-            cmd += 'dev {} '.format((params['device']))
+        if 'dev' in params:
+            cmd += 'dev {} '.format((params['dev']))
         if 'group' in params:
             cmd += 'group {} '.format((params['group']))
         if 'type' in params:
@@ -153,13 +154,16 @@ class LinuxIpLinkImpl(LinuxIpLink):
         if 'mcast_snooping' in params:
             cmd += 'mcast_snooping {} '.format((params['mcast_snooping']))
         if 'mcast_igmp_version' in params:
-            cmd += 'mcast_igmp_version {} '.format((params['mcast_igmp_version']))
+            cmd += 'mcast_igmp_version {} '.format(
+                (params['mcast_igmp_version']))
         if 'mcast_querier' in params:
             cmd += 'mcast_querier {} '.format((params['mcast_querier']))
         if 'mcast_querier_interval' in params:
-            cmd += 'mcast_querier_interval {} '.format((params['mcast_querier_interval']))
+            cmd += 'mcast_querier_interval {} '.format(
+                (params['mcast_querier_interval']))
         if 'vlan_default_pvid' in params:
-            cmd += 'vlan_default_pvid {} '.format((params['vlan_default_pvid']))
+            cmd += 'vlan_default_pvid {} '.format(
+                (params['vlan_default_pvid']))
         if 'stp_state' in params:
             cmd += 'stp_state {} '.format(params['stp_state'])
         return cmd
@@ -170,13 +174,13 @@ class LinuxIpLinkImpl(LinuxIpLink):
         """
         params = kwarg['params']
         if params.get('dut_discovery', False):
-            params['cmd_options'] = '-j -d'
-        cmd = 'ip {} link {} '.format(params.get('cmd_options', ''), command)
+            params['options'] = '-j -d'
+        cmd = 'ip {} link {} '.format(params.get('options', ''), command)
         # custom code here
         if 'master' in params:
             cmd += 'master '
-        if 'device' in params:
-            cmd += '{} '.format((params['device']))
+        if 'dev' in params:
+            cmd += '{} '.format((params['dev']))
         if 'group' in params:
             cmd += 'group {} '.format((params['group']))
         if 'link_type' in params:

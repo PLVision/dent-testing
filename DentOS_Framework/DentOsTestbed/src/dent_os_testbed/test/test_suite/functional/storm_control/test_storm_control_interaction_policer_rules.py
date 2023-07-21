@@ -24,7 +24,8 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 pytestmark = [
     pytest.mark.suite_functional_storm_control,
     pytest.mark.asyncio,
-    pytest.mark.usefixtures('cleanup_bridges', 'cleanup_tgen', 'cleanup_qdiscs')
+    pytest.mark.usefixtures(
+        'cleanup_bridges', 'cleanup_tgen', 'cleanup_qdiscs')
 ]
 
 
@@ -54,7 +55,8 @@ async def test_storm_control_interaction_policer_rules(testbed, define_bash_util
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
@@ -68,12 +70,15 @@ async def test_storm_control_interaction_policer_rules(testbed, define_bash_util
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'operstate': 'up'} for port in ports]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
+            {'dev': port, 'operstate': 'up'} for port in ports]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
 
     params = [
-        {'port': ports[0], 'name': 'unk_uc_kbyte_per_sec_rate', 'value': 37686},
-        {'port': ports[1], 'name': 'unreg_mc_kbyte_per_sec_rate', 'value': 109413},
+        {'port': ports[0], 'name': 'unk_uc_kbyte_per_sec_rate',
+            'value': 37686},
+        {'port': ports[1], 'name': 'unreg_mc_kbyte_per_sec_rate',
+            'value': 109413},
         {'port': ports[2], 'name': 'bc_kbyte_per_sec_rate', 'value': 75373}
     ]
     for value in params:
@@ -85,7 +90,8 @@ async def test_storm_control_interaction_policer_rules(testbed, define_bash_util
         out = await TcQdisc.add(
             input_data=[{device_host_name: [
                 {'dev': port, 'kind': 'ingress'} for port in ports[:3]]}])
-        assert out[0][device_host_name]['rc'] == 0, f'Failed to configure ingress qdisc.\n{out}'
+        assert out[0][device_host_name][
+            'rc'] == 0, f'Failed to configure ingress qdisc.\n{out}'
 
         await tc_filter_add(dev=ports[0], vlan_id=853, src_mac='10:62:5a:cf:ab:39', dst_mac='34:1e:60:35:58:ac',
                             rate='14836kbit', burst=15836, device_host_name=device_host_name)
@@ -177,28 +183,32 @@ async def test_storm_control_interaction_policer_rules(testbed, define_bash_util
         rc, out = await dent_dev.run_cmd(f'get_cpu_traps_rate_code_avg {cpu_stat_code} {counter_type}')
         assert not rc, f'get_cpu_traps_rate_code_avg failed with rc {rc}'
         err_msg = 'Failed: CPU trapped packet rate does not meet police trap rules.'
-        assert math.isclose(int(out.strip()), expected_rate, rel_tol=deviation/2), err_msg
+        assert math.isclose(int(out.strip()), expected_rate,
+                            rel_tol=deviation/2), err_msg
 
         await tgen_utils_stop_traffic(tgen_dev)
 
         out = await TcFilter.delete(
             input_data=[{device_host_name: [
                 {'dev': port, 'direction': 'ingress', 'pref': '49152'} for port in ports[:3]]}])
-        assert out[0][device_host_name]['rc'] == 0, f'Failed to configure ingress qdisc.\n{out}'
+        assert out[0][device_host_name][
+            'rc'] == 0, f'Failed to configure ingress qdisc.\n{out}'
 
         out = await IpLink.add(
             input_data=[{device_host_name: [
-                {'device': bridge, 'type': 'bridge', 'vlan_default_pvid': 0}]}])
-        assert out[0][device_host_name]['rc'] == 0, f"Verify that vlan_default_pvid set to '0'.\n{out}"
+                {'dev': bridge, 'type': 'bridge', 'vlan_default_pvid': 0}]}])
+        assert out[0][device_host_name][
+            'rc'] == 0, f"Verify that vlan_default_pvid set to '0'.\n{out}"
 
         out = await IpLink.set(
             input_data=[{device_host_name: [
-                {'device': bridge, 'operstate': 'up'}]}])
-        assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+                {'dev': bridge, 'operstate': 'up'}]}])
+        assert out[0][device_host_name][
+            'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
         out = await IpLink.set(
             input_data=[{device_host_name: [
-                {'device': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
+                {'dev': port, 'master': bridge, 'operstate': 'up'} for port in ports]}])
         err_msg = f"Verify that bridge entities set to 'UP' state and links enslaved to bridge.\n{out}"
         assert out[0][device_host_name]['rc'] == 0, err_msg
 
@@ -217,7 +227,8 @@ async def test_storm_control_interaction_policer_rules(testbed, define_bash_util
         collected = {row['Traffic Item']:
                      {'tx_rate': row['Tx Rate (Bps)'], 'rx_rate': row['Rx Rate (Bps)']} for row in stats.Rows}
         assert all(math.isclose(float(collected[f'stream_4_swp3->swp{4-x if x <= 0 else 3-x}']['tx_rate']),
-                   float(collected[f'stream_4_swp3->swp{4-x if x <= 0 else 3-x}']['rx_rate']),
+                   float(
+                       collected[f'stream_4_swp3->swp{4-x if x <= 0 else 3-x}']['rx_rate']),
                    rel_tol=deviation) for x in range(3)), 'Failed: the rate is limited by storm control.'
     finally:
         await tgen_utils_stop_traffic(tgen_dev)

@@ -39,7 +39,7 @@ class LinuxIpRouteImpl(LinuxIpRoute):
         #        if "prefix" not in kwarg:
         #            raise NameError("Cannot find prefix " + command)
         params = kwarg['params']
-        cmd = 'ip {} route {} '.format(params.get('cmd_options', ''), command)
+        cmd = 'ip {} route {} '.format(params.get('options', ''), command)
         if 'table' in params:
             cmd += 'table {} '.format(params.get('table'))
         if 'vrf' in params:
@@ -126,7 +126,8 @@ class LinuxIpRouteImpl(LinuxIpRoute):
         cmd = 'ip route {} '.format(command)
         cmd += params.get('dst', '') + ' '
         if 'from' in params:
-            cmd += 'from {} iif {} '.format(params.get('from'), params.get('iif'))
+            cmd += 'from {} iif {} '.format(params.get('from'),
+                                            params.get('iif'))
         if 'oif' in params:
             cmd += 'oif {} '.format(params.get('oif'))
         if 'tos' in params:
@@ -148,8 +149,8 @@ class LinuxIpRouteImpl(LinuxIpRoute):
         """
         params = kwarg['params']
         if params.get('dut_discovery', False):
-            params['cmd_options'] = '-j -d'
-        cmd = 'ip {} route {} '.format(params.get('cmd_options', ''), command)
+            params['options'] = '-j -d'
+        cmd = 'ip {} route {} '.format(params.get('options', ''), command)
         cmd += params.get('dst', '') + ' '
         if 'dev' in params:
             cmd += 'dev {} '.format(params['dev'])
@@ -183,7 +184,7 @@ class LinuxIpRouteImpl(LinuxIpRoute):
 
         """
         params = kwarg['params']
-        cmd = 'ip {} route {} '.format(params.get('cmd_options', ''), command)
+        cmd = 'ip {} route {} '.format(params.get('options', ''), command)
         if 'root' in params:
             cmd += 'root {} '.format(params.get('root'))
         if 'match' in params:
@@ -206,7 +207,7 @@ class LinuxIpRouteImpl(LinuxIpRoute):
         ip route restore
         """
         params = kwarg['params']
-        cmd = 'ip {} route {} '.format(params.get('cmd_options', ''), command)
+        cmd = 'ip {} route {} '.format(params.get('options', ''), command)
         return cmd
 
     def parse_show(self, command, output, *argv, **kwarg):

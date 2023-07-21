@@ -36,7 +36,8 @@ async def test_l1_settings_(testbed, l1_settings):
 
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 1)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_port = tgen_dev.links_dict[device_host_name][0][0]
     port = tgen_dev.links_dict[device_host_name][1][0]
@@ -62,18 +63,18 @@ async def test_l1_settings_(testbed, l1_settings):
     }
 
     # 1. Create bridge entity
-    out = await IpLink.add(input_data=[{device_host_name: [{'device': 'br0', 'type': 'bridge'}]}])
+    out = await IpLink.add(input_data=[{device_host_name: [{'dev': 'br0', 'type': 'bridge'}]}])
     assert out[0][device_host_name]['rc'] == 0, 'Failed creating bridge.'
 
-    out = await IpLink.set(input_data=[{device_host_name: [{'device': 'br0', 'operstate': 'up'}]}])
+    out = await IpLink.set(input_data=[{device_host_name: [{'dev': 'br0', 'operstate': 'up'}]}])
     assert out[0][device_host_name]['rc'] == 0, "Verify that bridge set to 'up' state."
 
     # 2. Enslave port(s) to the created bridge entity
     out = await IpLink.set(input_data=[{device_host_name: [{
-        'device': port,
+        'dev': port,
         'operstate': 'up',
         'master': 'br0'
-        }]}])
+    }]}])
     assert out[0][device_host_name]['rc'] == 0, 'Failed setting link to state up.'
 
     # 3. Set up port(s) duplex, speed, advertise
@@ -96,7 +97,8 @@ async def test_l1_settings_(testbed, l1_settings):
     actual_speed = int(out[0][device_host_name]['parsed_output']['speed'][:-4])
     assert speed == actual_speed, f'Expected  speed: {speed}, actual speed: {actual_speed}'
     actual_duplex = out[0][device_host_name]['parsed_output']['duplex']
-    assert duplex.capitalize() == actual_duplex,  f'Expected  duplex: {duplex}, actual duplex: {actual_duplex}'
+    assert duplex.capitalize(
+    ) == actual_duplex,  f'Expected  duplex: {duplex}, actual duplex: {actual_duplex}'
 
     # 5. Verify "Link Partner Advertised Auto-negotiation" is set to `Yes`
     actual_partner_adv_autoneg = out[0][device_host_name]['parsed_output']['link_partner_advertised_auto-negotiation']

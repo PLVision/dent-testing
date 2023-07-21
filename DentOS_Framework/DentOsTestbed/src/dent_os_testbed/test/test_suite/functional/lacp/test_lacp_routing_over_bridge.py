@@ -56,19 +56,19 @@ async def test_lacp_routing_over_bridge(testbed):
     lag = 'LAG_1'
     # 1. Enable IPv4 forwarding
     # 2. Create bridge and 2 bonds
-    out = await IpLink.add(input_data=[{dent: [{'device': bridge, 'type': 'bridge'}]}])
+    out = await IpLink.add(input_data=[{dent: [{'dev': bridge, 'type': 'bridge'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bridge'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'}]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': bridge, 'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state up'
 
     out = await IpLink.add(input_data=[{dent: [
-        {'device': bond,
+        {'dev': bond,
          'type': 'bond',
          'mode': '802.3ad'} for bond in [bond_1, bond_2]]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add bond'
 
-    out = await IpLink.set(input_data=[{dent: [{'device': bond, 'operstate': 'up'} for bond in [bond_1, bond_2]]}])
+    out = await IpLink.set(input_data=[{dent: [{'dev': bond, 'operstate': 'up'} for bond in [bond_1, bond_2]]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bond to state up'
 
     # 3. Enslave DUT port <==> tgen port 1 to bond 1
@@ -76,11 +76,11 @@ async def test_lacp_routing_over_bridge(testbed):
     # DUT port <==> tgen port 3 to bond 2
     # DUT port <==>  tgen port 4 to bond 2
     out = await IpLink.set(input_data=[
-        {dent: [{'device': port, 'operstate': 'down'} for port in ports] +
-               [{'device': ports[0], 'master': bond_1}] +
-               [{'device': port, 'master': bond_2} for port in ports[1:]] +
-               [{'device': bond_2, 'master': bridge}] +
-               [{'device': port, 'operstate': 'up'} for port in ports]
+        {dent: [{'dev': port, 'operstate': 'down'} for port in ports] +
+               [{'dev': ports[0], 'master': bond_1}] +
+               [{'dev': port, 'master': bond_2} for port in ports[1:]] +
+               [{'dev': bond_2, 'master': bridge}] +
+               [{'dev': port, 'operstate': 'up'} for port in ports]
          }])
     assert out[0][dent]['rc'] == 0, 'Failed setting enslaving and settings links up'
 

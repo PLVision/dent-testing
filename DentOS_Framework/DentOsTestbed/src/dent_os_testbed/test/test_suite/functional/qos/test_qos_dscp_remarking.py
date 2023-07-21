@@ -32,7 +32,8 @@ from dent_os_testbed.utils.test_utils.data.tgen_constants import (
 
 pytestmark = [
     pytest.mark.suite_functional_qos,
-    pytest.mark.usefixtures('cleanup_qdiscs', 'cleanup_bridges', 'cleanup_dscp_prio'),
+    pytest.mark.usefixtures(
+        'cleanup_qdiscs', 'cleanup_bridges', 'cleanup_dscp_prio'),
     pytest.mark.asyncio,
 ]
 
@@ -55,7 +56,8 @@ async def test_qos_dscp_remarking(testbed):
     num_of_ports = 2
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
@@ -68,7 +70,8 @@ async def test_qos_dscp_remarking(testbed):
 
     table_headers = ['RX port', 'RX packets', 'RX DSCP', 'TX port', 'TX packets',
                      'TX DSCP', 'Prio', 'DSCP expected', 'DSCP correct', 'Loss']
-    table_columns = [header.replace(' ', '_').lower() for header in table_headers]
+    table_columns = [header.replace(' ', '_').lower()
+                     for header in table_headers]
     table_row_format = '{:<7} | {:10} | {:7} | {:<7} | {:10} | {:7} | {:^4} | {:13} | {!s:^12} | {!s:^4}'
     table_row = namedtuple('table_row', table_columns)
 
@@ -80,9 +83,9 @@ async def test_qos_dscp_remarking(testbed):
 
     # 3. Set all interfaces up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge} for port in ports
+        {'dev': port, 'operstate': 'up', 'master': bridge} for port in ports
     ] + [
-        {'device': bridge, 'operstate': 'up'}
+        {'dev': bridge, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to enslave ports to bridge'
 
@@ -96,7 +99,8 @@ async def test_qos_dscp_remarking(testbed):
 
     # 5. Configure 8 streams for each dscp
     dev_groups = tgen_utils_dev_groups_from_config((
-        {'ixp': port, 'ip': f'1.1.1.{idx}', 'gw': f'1.1.1.{len(tg_ports) - idx + 1}', 'plen': 24}
+        {'ixp': port, 'ip': f'1.1.1.{idx}',
+            'gw': f'1.1.1.{len(tg_ports) - idx + 1}', 'plen': 24}
         for idx, port in enumerate(tg_ports, start=1)
     ))
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)

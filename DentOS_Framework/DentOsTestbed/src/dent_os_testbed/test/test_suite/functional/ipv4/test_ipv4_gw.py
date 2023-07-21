@@ -19,14 +19,15 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv4,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
     pytest.mark.asyncio,
 ]
 
 
 async def get_routes_list(dent):
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of route entries'
     return out[0][dent]['parsed_output']
@@ -50,7 +51,8 @@ async def test_ipv4_default_gw(testbed):
     """
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0]
@@ -65,10 +67,14 @@ async def test_ipv4_default_gw(testbed):
         port_mac[port] = swp_info['mac']
     address_map = (
         # swp port, tg port,    swp ip,    tg ip,    plen, tg src mac
-        (ports[0], tg_ports[0], '1.1.1.1', '1.1.1.2', 24, '02:00:00:00:00:01', port_mac[ports[0]]),
-        (ports[1], tg_ports[1], '2.2.2.1', '2.2.2.2', 24, '02:00:00:00:00:02', port_mac[ports[1]]),
-        (ports[2], tg_ports[2], '3.3.3.1', '3.3.3.2', 24, '02:00:00:00:00:03', port_mac[ports[2]]),
-        (ports[3], tg_ports[3], '4.4.4.1', '4.4.4.2', 24, '02:00:00:00:00:04', port_mac[ports[3]]),
+        (ports[0], tg_ports[0], '1.1.1.1', '1.1.1.2',
+         24, '02:00:00:00:00:01', port_mac[ports[0]]),
+        (ports[1], tg_ports[1], '2.2.2.1', '2.2.2.2',
+         24, '02:00:00:00:00:02', port_mac[ports[1]]),
+        (ports[2], tg_ports[2], '3.3.3.1', '3.3.3.2',
+         24, '02:00:00:00:00:03', port_mac[ports[2]]),
+        (ports[3], tg_ports[3], '4.4.4.1', '4.4.4.2',
+         24, '02:00:00:00:00:04', port_mac[ports[3]]),
     )
 
     route_map = {
@@ -77,7 +83,7 @@ async def test_ipv4_default_gw(testbed):
     }
 
     # Configure ports up
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'}
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'operstate': 'up'}
                                                for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -114,7 +120,8 @@ async def test_ipv4_default_gw(testbed):
 
     # 3. Add default routes
     out = await IpRoute.add(input_data=[{dent: [
-        {'dev': port, 'type': 'default', 'via': route['gw'], 'metric': route['metric']}
+        {'dev': port, 'type': 'default',
+            'via': route['gw'], 'metric': route['metric']}
         for port, route in route_map.items() if route['metric']
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to add default routes'
@@ -191,7 +198,8 @@ async def test_ipv4_not_connected_gw(testbed):
     """
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     ports = tgen_dev.links_dict[dent][1]
     gw = '5.5.5.5'

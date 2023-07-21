@@ -21,8 +21,8 @@ class LinuxLldpImpl(LinuxLldp):
         """
         params = kwarg['params']
         if params.get('dut_discovery', False):
-            params['cmd_options'] = '-f json'
-        cmd = 'lldpctl {} '.format(params.get('cmd_options', ''))
+            params['options'] = '-f json'
+        cmd = 'lldpctl {} '.format(params.get('options', ''))
         if 'interface' in kwarg['params']:
             cmd += ' {} '.format(kwarg['params']['interface'])
         return cmd
@@ -33,7 +33,8 @@ class LinuxLldpImpl(LinuxLldp):
             parsed_out = json.loads(output)
             for interface in parsed_out['lldp']['interface']:
                 for port, data in interface.items():
-                    item = {'interface': port, 'remote_interface': data['port']['id']['value']}
+                    item = {'interface': port,
+                            'remote_interface': data['port']['id']['value']}
                     for chassis in data['chassis']:
                         item['remote_host'] = chassis
                     interfaces.append(item)
@@ -110,7 +111,7 @@ class LinuxLldpImpl(LinuxLldp):
         """
         params = kwarg['params']
         command = command.split('_')[0]
-        cmd = 'lldpcli {} {} '.format(params.get('cmd_options', ''), command)
+        cmd = 'lldpcli {} {} '.format(params.get('options', ''), command)
         if 'neighbors' in params:
             cmd += 'neighbors '
         if 'statistics' in params:

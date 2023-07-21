@@ -23,7 +23,8 @@ from dent_os_testbed.utils.test_utils.tc_flower_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_policer,
-    pytest.mark.usefixtures('cleanup_bridges', 'cleanup_qdiscs', 'cleanup_tgen'),
+    pytest.mark.usefixtures(
+        'cleanup_bridges', 'cleanup_qdiscs', 'cleanup_tgen'),
     pytest.mark.asyncio,
 ]
 
@@ -63,12 +64,12 @@ async def test_policer_rate_config(testbed, unit_type):
     }])
     assert out[0][dent]['rc'] == 0, 'Failed creating bridge.'
 
-    await IpLink.set(input_data=[{dent: [{'device': bridge, 'operstate': 'up'}]}])
+    await IpLink.set(input_data=[{dent: [{'dev': bridge, 'operstate': 'up'}]}])
     assert out[0][dent]['rc'] == 0, 'Failed setting bridge to state UP.'
 
     # 2. Set link up on interfaces on all participant ports. Enslave all participant ports to the bridge.
     out = await IpLink.set(input_data=[{dent: [{
-        'device': port,
+        'dev': port,
         'operstate': 'up',
         'master': bridge
     } for port in ports]}])
@@ -159,6 +160,7 @@ async def test_policer_rate_config(testbed, unit_type):
             actual_rate = float(row['Rx. Rate (bps)'])
             err_msg = f'Expected {actual_rate} got : {frame_rate + deviation} and {frame_rate - deviation}' \
                       f' with unit {unit} and and mul {mul}'
-            assert isclose(float(row['Rx. Rate (bps)']), frame_rate, rel_tol=tolerance), err_msg
+            assert isclose(float(row['Rx. Rate (bps)']),
+                           frame_rate, rel_tol=tolerance), err_msg
 
     await tgen_utils_stop_traffic(tgen_dev)

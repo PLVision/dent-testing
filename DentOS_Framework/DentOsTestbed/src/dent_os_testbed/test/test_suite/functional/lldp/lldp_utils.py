@@ -86,7 +86,7 @@ async def get_lldp_statistic(dev_name, port, stats='tx'):
     """
     out = await Lldp.show_lldpcli(
         input_data=[{dev_name: [
-            {'interface': port, 'statistics': '', 'ports': '', 'cmd_options': '-f json'}]}], parse_output=True)
+            {'interface': port, 'statistics': '', 'ports': '', 'options': '-f json'}]}], parse_output=True)
     assert not out[0][dev_name]['rc'], f'Failed to show LLDP statistics.\n{out}'
     return int(out[0][dev_name]['parsed_output']['lldp']['interface'][port][stats][stats])
 
@@ -102,7 +102,7 @@ async def get_neighbors_info(dev_name, port):
     """
     out = await Lldp.show_lldpcli(
         input_data=[{dev_name: [
-            {'interface': port, 'neighbors': '', 'ports': '', 'cmd_options': '-f json'}]}], parse_output=True)
+            {'interface': port, 'neighbors': '', 'ports': '', 'options': '-f json'}]}], parse_output=True)
     assert not out[0][dev_name]['rc'], f'Failed to show LLDP neighbors.\n{out}'
     return out[0][dev_name]['parsed_output']['lldp']
 
@@ -131,26 +131,37 @@ async def verify_rx_lldp_fields(dev_name, dut_port, chassis, port, port_type, tt
         chassis_info = out['interface'][dut_port]['chassis'][sys_name]
     port_info = out['interface'][dut_port]['port']
 
-    assert chassis_info['id']['type'] == 'mac', ERR_MSG_RX.format('mac', 'chassis_type', chassis_info['id']['type'])
-    assert chassis_info['id']['value'] == chassis, ERR_MSG_RX.format(chassis, 'chassis', chassis_info['id']['value'])
-    assert port_info['id']['type'] == PORT_TYPE_MAP[port_type], ERR_MSG_RX.format(PORT_TYPE_MAP[port_type], 'port_type', port_info['id']['type'])
-    assert port_info['id']['value'] == port, ERR_MSG_RX.format(port, 'port', port_info['id']['value'])
-    assert int(port_info['ttl']) == ttl, ERR_MSG_RX.format(ttl, 'ttl', port_info['ttl'])
+    assert chassis_info['id']['type'] == 'mac', ERR_MSG_RX.format(
+        'mac', 'chassis_type', chassis_info['id']['type'])
+    assert chassis_info['id']['value'] == chassis, ERR_MSG_RX.format(
+        chassis, 'chassis', chassis_info['id']['value'])
+    assert port_info['id']['type'] == PORT_TYPE_MAP[port_type], ERR_MSG_RX.format(
+        PORT_TYPE_MAP[port_type], 'port_type', port_info['id']['type'])
+    assert port_info['id']['value'] == port, ERR_MSG_RX.format(
+        port, 'port', port_info['id']['value'])
+    assert int(port_info['ttl']) == ttl, ERR_MSG_RX.format(
+        ttl, 'ttl', port_info['ttl'])
 
     if port_desc:
-        assert port_info['descr'] == port_desc, ERR_MSG_RX.format(port_desc, 'port_desc', port_info['descr'])
+        assert port_info['descr'] == port_desc, ERR_MSG_RX.format(
+            port_desc, 'port_desc', port_info['descr'])
     if sys_name:
         assert sys_name in list(out['interface'][dut_port]['chassis'].keys()), \
-            ERR_MSG_RX.format(sys_name, 'sys_name', out['interface'][dut_port]['chassis'].keys())
+            ERR_MSG_RX.format(sys_name, 'sys_name',
+                              out['interface'][dut_port]['chassis'].keys())
     if sys_desc:
-        assert chassis_info['descr'] == sys_desc, ERR_MSG_RX.format(sys_desc, 'sys_desc', chassis_info['descr'])
+        assert chassis_info['descr'] == sys_desc, ERR_MSG_RX.format(
+            sys_desc, 'sys_desc', chassis_info['descr'])
     if mgmt_ip:
-        assert chassis_info['mgmt-ip'] == mgmt_ip, ERR_MSG_RX.format(mgmt_ip, 'mgmt-ip', chassis_info['mgmt-ip'])
+        assert chassis_info['mgmt-ip'] == mgmt_ip, ERR_MSG_RX.format(
+            mgmt_ip, 'mgmt-ip', chassis_info['mgmt-ip'])
     if capabilities:
-        res_capabilities = {capab['type']: capab['enabled'] for capab in chassis_info['capability']}
+        res_capabilities = {capab['type']: capab['enabled']
+                            for capab in chassis_info['capability']}
         for cap, enabled in capabilities.items():
             assert res_capabilities[cap] == enabled, \
-                ERR_MSG_RX.format(enabled, 'capabilities', res_capabilities[cap])
+                ERR_MSG_RX.format(enabled, 'capabilities',
+                                  res_capabilities[cap])
 
 
 async def verify_tx_lldp_fields(dev_name, dent_dev, port, interval, optional_tlvs=False):
@@ -165,7 +176,7 @@ async def verify_tx_lldp_fields(dev_name, dent_dev, port, interval, optional_tlv
     """
     out = await Lldp.show_lldpcli(
         input_data=[{dev_name: [
-            {'interfaces': '', 'interface': port, 'ports': '', 'cmd_options': '-f json'}]}], parse_output=True)
+            {'interfaces': '', 'interface': port, 'ports': '', 'options': '-f json'}]}], parse_output=True)
     assert not out[0][dev_name]['rc'], f'Failed to LLDP port info.\n{out}'
     lldp_info = out[0][dev_name]['parsed_output']['lldp']['interface'][port]
 
@@ -184,13 +195,17 @@ async def verify_tx_lldp_fields(dev_name, dent_dev, port, interval, optional_tlv
     parsed_lldp = parse_lldp_pkt(tlvs, res)
 
     assert f'Subtype {chassis_info["type"].upper()}' in parsed_lldp[tlvs[0]], \
-        ERR_MSG_TX.format(chassis_info['type'].upper(), 'Chassis TLV Subtype', parsed_lldp[tlvs[0]])
+        ERR_MSG_TX.format(chassis_info['type'].upper(
+        ), 'Chassis TLV Subtype', parsed_lldp[tlvs[0]])
     assert chassis_info['value'] in parsed_lldp[tlvs[0]], \
-        ERR_MSG_TX.format(chassis_info['value'], 'Chassis TLV Value', parsed_lldp[tlvs[0]])
+        ERR_MSG_TX.format(chassis_info['value'],
+                          'Chassis TLV Value', parsed_lldp[tlvs[0]])
     assert f'Subtype {port_info["type"].upper()}' in parsed_lldp[tlvs[1]], \
-        ERR_MSG_TX.format(port_info['type'].upper(), 'Port TLV Subtype', parsed_lldp[tlvs[1]])
+        ERR_MSG_TX.format(port_info['type'].upper(),
+                          'Port TLV Subtype', parsed_lldp[tlvs[1]])
     assert port_info['value'] in parsed_lldp[tlvs[1]], \
-        ERR_MSG_TX.format(port_info['value'], 'Port TLV Value', parsed_lldp[tlvs[1]])
+        ERR_MSG_TX.format(port_info['value'],
+                          'Port TLV Value', parsed_lldp[tlvs[1]])
     assert str(ttl) in parsed_lldp[tlvs[2]], \
         ERR_MSG_TX.format(str(ttl), tlvs[2], parsed_lldp[tlvs[2]])
 
@@ -201,20 +216,27 @@ async def verify_tx_lldp_fields(dev_name, dent_dev, port, interval, optional_tlv
         capability = lldp_info['chassis'][sys_name]['capability']
         mgmt = lldp_info['chassis'][sys_name]['mgmt-ip']
 
-        assert system_name[0] in parsed_lldp[optional_tlvs[0]], ERR_MSG_TX.format(system_name[0], optional_tlvs[0], parsed_lldp[optional_tlvs[0]])
-        assert sys_descr in parsed_lldp[optional_tlvs[1]], ERR_MSG_TX.format(sys_descr, optional_tlvs[1], parsed_lldp[optional_tlvs[1]])
+        assert system_name[0] in parsed_lldp[optional_tlvs[0]], ERR_MSG_TX.format(
+            system_name[0], optional_tlvs[0], parsed_lldp[optional_tlvs[0]])
+        assert sys_descr in parsed_lldp[optional_tlvs[1]], ERR_MSG_TX.format(
+            sys_descr, optional_tlvs[1], parsed_lldp[optional_tlvs[1]])
         for cap in capability:
-            cap_name = cap['type'].upper() if cap['type'] == 'Wlan' else cap['type']
-            assert cap_name in parsed_lldp[optional_tlvs[2]], ERR_MSG_TX.format(cap_name, optional_tlvs[2], parsed_lldp[optional_tlvs[2]])
+            cap_name = cap['type'].upper(
+            ) if cap['type'] == 'Wlan' else cap['type']
+            assert cap_name in parsed_lldp[optional_tlvs[2]], ERR_MSG_TX.format(
+                cap_name, optional_tlvs[2], parsed_lldp[optional_tlvs[2]])
 
             if cap['enabled']:
                 assert cap_name in parsed_lldp[optional_tlvs[2]].split('Enabled Capabilities')[-1], \
-                    ERR_MSG_TX.format(cap_name, 'System Enabled Capabilities', parsed_lldp[optional_tlvs[2]].split('Enabled Capabilities')[-1])
+                    ERR_MSG_TX.format(cap_name, 'System Enabled Capabilities',
+                                      parsed_lldp[optional_tlvs[2]].split('Enabled Capabilities')[-1])
 
         assert mgmt[0] in parsed_lldp[optional_tlvs[3]], \
-            ERR_MSG_TX.format(mgmt[0], optional_tlvs[3], parsed_lldp[optional_tlvs[3]])
+            ERR_MSG_TX.format(mgmt[0], optional_tlvs[3],
+                              parsed_lldp[optional_tlvs[3]])
         assert port_descr in parsed_lldp[optional_tlvs[4]], \
-            ERR_MSG_TX.format(port_descr, optional_tlvs[4], parsed_lldp[optional_tlvs[4]])
+            ERR_MSG_TX.format(
+                port_descr, optional_tlvs[4], parsed_lldp[optional_tlvs[4]])
 
 
 def build_lldp_optional_pkt(chassis, port, ttl, port_desc=None, sys_name=None,

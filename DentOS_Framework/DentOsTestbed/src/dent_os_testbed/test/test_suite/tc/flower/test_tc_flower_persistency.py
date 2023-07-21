@@ -70,7 +70,7 @@ async def test_tc_flower_persistency_w_traffic(testbed):
     # get a link and mac address
     swp = swp_tgen_ports[0]
     out = await IpLink.show(
-        input_data=[{dent: [{'device': swp, 'cmd_options': '-j'}]}],
+        input_data=[{dent: [{'dev': swp, 'options': '-j'}]}],
     )
     dent_dev.applog.info(out)
     assert out[0][dent]['rc'] == 0

@@ -30,13 +30,13 @@ class IpLinkAttrSetAndUnsetMeta(AttrSetAndUnsetMeta):
         return re.compile('swp*').match(obj.ifname) and obj.operstate == 'UP'
 
     def dev_object_set_params(obj=None):
-        return {'device': obj.ifname, 'operstate': 'down'}
+        return {'dev': obj.ifname, 'operstate': 'down'}
 
     def dev_object_show_params(obj=None):
-        return {'device': obj.ifname}
+        return {'dev': obj.ifname}
 
     def dev_object_reset_params(obj=None):
-        return {'device': obj.ifname, 'operstate': 'up'}
+        return {'dev': obj.ifname, 'operstate': 'up'}
 
 
 class IpLinkAttrSetAndUnset(AttrSetAndUnsetBase):

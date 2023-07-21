@@ -33,7 +33,8 @@ from dent_os_testbed.test.test_suite.functional.ipv6.ipv6_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv6,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'enable_ipv6_forwarding', 'cleanup_sysctl'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'enable_ipv6_forwarding', 'cleanup_sysctl'),
     pytest.mark.asyncio,
 ]
 
@@ -45,13 +46,16 @@ async def wait_for_nei_state(dent_dev, expected_neis, timeout=60, poll_interval=
         try:
             await verify_dut_neighbors(dent_dev.host_name, expected_neis)
         except (AssertionError, LookupError) as e:
-            dent_dev.applog.debug(f'Neighbors did not match expectation. Trying again in {poll_interval}s\n{e}')
+            dent_dev.applog.debug(
+                f'Neighbors did not match expectation. Trying again in {poll_interval}s\n{e}')
             await asyncio.sleep(poll_interval)
         else:
-            dent_dev.applog.info(f'Neighbors matched expectation after {(time.time() - start) // 1}s')
+            dent_dev.applog.info(
+                f'Neighbors matched expectation after {(time.time() - start) // 1}s')
             return
 
-    raise TimeoutError(f'Neighbors did not have expected state\n{expected_neis}')
+    raise TimeoutError(
+        f'Neighbors did not have expected state\n{expected_neis}')
 
 
 async def test_ipv6_nei_ageing(testbed):
@@ -75,12 +79,14 @@ async def test_ipv6_nei_ageing(testbed):
     num_of_ports = 2
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     nei_update_time_s = 5
     base_reach_time_s = 15
     gc_interval_s = 5
@@ -106,7 +112,7 @@ async def test_ipv6_nei_ageing(testbed):
 
     # 0. Set IP addresses on DUT ports, add ip interfaces to TG
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port in ports
+        {'dev': port, 'operstate': 'up'} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -153,14 +159,16 @@ async def test_ipv6_nei_ageing(testbed):
     assert all(rc['success'] for rc in out), 'Failed to send NS from TG'
 
     out = await asyncio.gather(*[
-        tb_ping_device(dent_dev, info.tg_ip, pkt_loss_treshold=0, dump=True, count=1)
+        tb_ping_device(dent_dev, info.tg_ip,
+                       pkt_loss_treshold=0, dump=True, count=1)
         for info in address_map
     ])
     assert all(rc == 0 for rc in out), 'Some pings did not have a reply'
 
     # 1.3 Check that neighbor entries are STALE
     expected_neis = [
-        {'dev': info.swp, 'dst': info.tg_ip, 'should_exist': True, 'offload': True, 'states': ['STALE']}
+        {'dev': info.swp, 'dst': info.tg_ip, 'should_exist': True,
+            'offload': True, 'states': ['STALE']}
         for info in address_map
     ]
     # Neighbor ageing depends on linux behavior.
@@ -171,7 +179,8 @@ async def test_ipv6_nei_ageing(testbed):
     await wait_for_nei_state(dent_dev, expected_neis, timeout=60)
 
     # 1.4 Check that neighbor entries are still STALE and not aged
-    dent_dev.applog.info(f'Wait for a total of {gc_stale_time_s * 3 = }s to make sure that neighbors did not age')
+    dent_dev.applog.info(
+        f'Wait for a total of {gc_stale_time_s * 3 = }s to make sure that neighbors did not age')
     await asyncio.sleep(gc_stale_time_s * 3)
     await verify_dut_neighbors(dent, expected_neis)  # no need for polling here
 
@@ -193,7 +202,8 @@ async def test_ipv6_nei_ageing(testbed):
     assert all(rc['success'] for rc in out), 'Failed to send NS from TG'
 
     out = await asyncio.gather(*[
-        tb_ping_device(dent_dev, info.tg_ip, pkt_loss_treshold=0, dump=True, count=1)
+        tb_ping_device(dent_dev, info.tg_ip,
+                       pkt_loss_treshold=0, dump=True, count=1)
         for info in address_map
     ])
     assert all(rc == 0 for rc in out), 'Some pings did not have a reply'
@@ -202,7 +212,8 @@ async def test_ipv6_nei_ageing(testbed):
 
     # 2.3 Check that neighbor entries are REACHABLE
     expected_neis = [
-        {'dev': info.swp, 'dst': info.tg_ip, 'should_exist': True, 'offload': True, 'states': ['REACHABLE']}
+        {'dev': info.swp, 'dst': info.tg_ip, 'should_exist': True,
+            'offload': True, 'states': ['REACHABLE']}
         for info in address_map
     ]
     await wait_for_nei_state(dent_dev, expected_neis, poll_interval=nei_update_time_s)
@@ -260,12 +271,14 @@ async def test_ipv6_nei_change(testbed):
     num_of_ports = 2
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
     ports = tgen_dev.links_dict[dent][1][:num_of_ports]
-    addr_info = namedtuple('addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
+    addr_info = namedtuple(
+        'addr_info', ['swp', 'tg', 'swp_ip', 'tg_ip', 'plen'])
     traffic_duration = 10
     wait_for_stats = 5
     gc_interval_s = 15
@@ -292,7 +305,7 @@ async def test_ipv6_nei_change(testbed):
 
     # 1. Add IP addrs, configure hosts on TG
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port in ports
+        {'dev': port, 'operstate': 'up'} for port in ports
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -307,9 +320,9 @@ async def test_ipv6_nei_change(testbed):
         {'ifname': info.swp,
          'should_exist': True,
          'addr_info': {
-            'family': 'inet6',
-            'local': info.swp_ip,
-            'prefixlen': info.plen}}
+             'family': 'inet6',
+             'local': info.swp_ip,
+             'prefixlen': info.plen}}
         for info in address_map
     ]
     await verify_dut_addrs(dent, expected_addrs)
@@ -341,7 +354,8 @@ async def test_ipv6_nei_change(testbed):
 
     await asyncio.sleep(wait_for_stats)
     stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Flow Statistics')
-    assert all(tgen_utils_get_loss(row) == 0 for row in stats.Rows), 'Unexpected traffic loss'
+    assert all(tgen_utils_get_loss(row) ==
+               0 for row in stats.Rows), 'Unexpected traffic loss'
 
     # Verify neighbor on DUT
     expected_neis = [
@@ -356,7 +370,7 @@ async def test_ipv6_nei_change(testbed):
 
     # 4. Change neighbor nud state to permanent
     out = await IpNeighbor.show(input_data=[{dent: [
-        {'cmd_options': '-j -6'}
+        {'options': '-j -6'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get DUT neighbors'
 
@@ -367,7 +381,8 @@ async def test_ipv6_nei_change(testbed):
     }
 
     out = await IpNeighbor.change(input_data=[{dent: [
-        {'dev': dev, 'lladdr': nei['lladdr'], 'address': nei['ip'], 'nud': 'permanent'}
+        {'dev': dev, 'lladdr': nei['lladdr'],
+            'address': nei['ip'], 'nud': 'permanent'}
         for dev, nei in dut_nei.items()
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to update DUT neighbors'
@@ -385,7 +400,8 @@ async def test_ipv6_nei_change(testbed):
 
     # 5. Change neighbor nud state to reachable
     out = await IpNeighbor.change(input_data=[{dent: [
-        {'dev': dev, 'lladdr': nei['lladdr'], 'address': nei['ip'], 'nud': 'reachable'}
+        {'dev': dev, 'lladdr': nei['lladdr'],
+            'address': nei['ip'], 'nud': 'reachable'}
         for dev, nei in dut_nei.items()
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to update DUT neighbors'
@@ -401,7 +417,8 @@ async def test_ipv6_nei_change(testbed):
     # 6. Add two permanent neighbor entries and two stale neighbor entries
     rand_ip = [info.tg_ip[:-1] + f'{idx + 1:x}:{random.randint(0xf, 0xfff0):x}'
                for idx, info in enumerate(address_map + address_map)]
-    rand_mac = [f'02:00:00:00:{idx:02x}:{random.randint(1, 255):02x}' for idx in range(4)]
+    rand_mac = [
+        f'02:00:00:00:{idx:02x}:{random.randint(1, 255):02x}' for idx in range(4)]
     nei_state = ['permanent', 'permanent', 'stale', 'stale']
 
     out = await IpNeighbor.add(input_data=[{dent: [
@@ -425,7 +442,8 @@ async def test_ipv6_nei_change(testbed):
     # 7. Flush specific entries by prefix and state
     out = await IpNeighbor.flush(input_data=[{dent: [
         {'dev': address_map[0].swp,
-         'address': address_map[0].swp_ip[:-1] + f'/{address_map[0].plen}',  # 2001:1111::/64
+         # 2001:1111::/64
+         'address': address_map[0].swp_ip[:-1] + f'/{address_map[0].plen}',
          'nud': 'permanent'},
         {'dev': address_map[1].swp,
          'address': address_map[1].swp_ip[:-1] + f'/{address_map[1].plen}'},  # 2001:2222::/64

@@ -17,8 +17,8 @@ class PoectlMod(Module):
         for i, poectl in enumerate(src):
             if 'port' in poectl:
                 dst[i].port = poectl.get('port')
-            if 'cmd_options' in poectl:
-                dst[i].cmd_options = poectl.get('cmd_options')
+            if 'options' in poectl:
+                dst[i].cmd_options = poectl.get('options')
             if 'status' in poectl:
                 dst[i].status = poectl.get('status')
             if 'priority' in poectl:
@@ -64,5 +64,7 @@ class PoectlMod(Module):
                 print('Failed to get parsed_output poectl')
                 print(out)
                 continue
-            self.set_poectl(out[0][dev.host_name]['parsed_output'], self.report.duts[i].platform.poe.ports)
-            print('Finished poectl Discovery on {} with {} entries'.format(dev.host_name, len(self.report.duts[i].platform.poe.ports)))
+            self.set_poectl(out[0][dev.host_name]['parsed_output'],
+                            self.report.duts[i].platform.poe.ports)
+            print('Finished poectl Discovery on {} with {} entries'.format(
+                dev.host_name, len(self.report.duts[i].platform.poe.ports)))

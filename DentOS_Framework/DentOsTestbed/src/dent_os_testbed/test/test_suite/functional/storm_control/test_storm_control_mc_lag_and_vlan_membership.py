@@ -49,7 +49,8 @@ async def test_storm_control_mc_lag_and_vlan_membership(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     device_host_name = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
@@ -60,73 +61,83 @@ async def test_storm_control_mc_lag_and_vlan_membership(testbed):
     for x in range(2):
         out = await IpLink.add(
             input_data=[{device_host_name: [
-                {'device': f'bond{x+1}', 'type': 'bond mode 802.3ad'}]}])
+                {'dev': f'bond{x+1}', 'type': 'bond mode 802.3ad'}]}])
         err_msg = f"Verify that bond{x+1} created and type set to 'bond mode 802.3ad'.\n{out}"
         assert out[0][device_host_name]['rc'] == 0, err_msg
 
         out = await IpLink.set(
             input_data=[{device_host_name: [
-                {'device': f'bond{x+1}', 'operstate': 'up'},
-                {'device': ports[x if x == 0 else 2], 'operstate': 'down'},
-                {'device': ports[x if x == 0 else 2], 'master': f'bond{x+1}'}]}])
+                {'dev': f'bond{x+1}', 'operstate': 'up'},
+                {'dev': ports[x if x == 0 else 2], 'operstate': 'down'},
+                {'dev': ports[x if x == 0 else 2], 'master': f'bond{x+1}'}]}])
         err_msg = f"Verify that bond{x+2} set to 'UP' state, {ports[x if x == 0 else 2]} set to 'DOWN' state \
             and enslave {ports[x if x == 0 else 2]} port connected to Ixia.\n{out}"
         assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'operstate': 'up'} for port in ports]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
+            {'dev': port, 'operstate': 'up'} for port in ports]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'vlan_filtering': 1, 'type': 'bridge'}]}])
+            {'dev': bridge, 'vlan_filtering': 1, 'type': 'bridge'}]}])
     err_msg = f"Verify that bridge created and vlan filtering set to 'ON'.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': ports[x+1 if x == 0 else 3], 'master': bridge} for x in range(2)]}])
+            {'dev': ports[x+1 if x == 0 else 3], 'master': bridge} for x in range(2)]}])
     err_msg = f'Verify that swp2 and swp4 bridge entities enslaved to bridge.\n{out}'
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': f'bond{x+1}', 'master': bridge} for x in range(2)]}])
+            {'dev': f'bond{x+1}', 'master': bridge} for x in range(2)]}])
     err_msg = f'Verify that bond1 and bond2 entities enslaved to bridge.\n{out}'
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'type': 'bridge', 'vlan_default_pvid': 0}]}])
+            {'dev': bridge, 'type': 'bridge', 'vlan_default_pvid': 0}]}])
     err_msg = f"Verify that vlan_default_pvid set to '0'.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeVlan.add(
         input_data=[{device_host_name: [
-            {'device': ports[x+1 if x == 0 else 3], 'vid': f'{x+1}', 'untagged': True, 'pvid': True}
+            {'dev': ports[x+1 if x == 0 else 3],
+                'vid': f'{x+1}', 'untagged': True, 'pvid': True}
             for x in range(2)]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that entities added to vid '1' and '2'.\n{out}"
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that entities added to vid '1' and '2'.\n{out}"
 
     out = await BridgeVlan.add(
         input_data=[{device_host_name: [
-            {'device': f'bond{x+1}', 'vid': f'{x+1}', 'untagged': True, 'pvid': True}
+            {'dev': f'bond{x+1}', 'vid': f'{x+1}', 'untagged': True, 'pvid': True}
             for x in range(2)]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that entities added to vid '1' and '2'.\n{out}"
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that entities added to vid '1' and '2'.\n{out}"
 
     params = [
-        {'port': ports[0], 'name': 'unk_uc_kbyte_per_sec_rate', 'value': 94404},
+        {'port': ports[0], 'name': 'unk_uc_kbyte_per_sec_rate',
+            'value': 94404},
         {'port': ports[1], 'name': 'bc_kbyte_per_sec_rate', 'value': 1210},
-        {'port': ports[1], 'name': 'unreg_mc_kbyte_per_sec_rate', 'value': 35099},
-        {'port': ports[1], 'name': 'unk_uc_kbyte_per_sec_rate', 'value': 37519},
+        {'port': ports[1],
+            'name': 'unreg_mc_kbyte_per_sec_rate', 'value': 35099},
+        {'port': ports[1], 'name': 'unk_uc_kbyte_per_sec_rate',
+            'value': 37519},
         {'port': ports[2], 'name': 'bc_kbyte_per_sec_rate', 'value': 32678},
-        {'port': ports[2], 'name': 'unk_uc_kbyte_per_sec_rate', 'value': 36309},
-        {'port': ports[3], 'name': 'unreg_mc_kbyte_per_sec_rate', 'value': kbyte_value}
+        {'port': ports[2], 'name': 'unk_uc_kbyte_per_sec_rate',
+            'value': 36309},
+        {'port': ports[3], 'name': 'unreg_mc_kbyte_per_sec_rate',
+            'value': kbyte_value}
     ]
     for value in params:
         await devlink_rate_value(dev=f'pci/0000:01:00.0/{value["port"].replace("swp","")}',
@@ -176,7 +187,8 @@ async def test_storm_control_mc_lag_and_vlan_membership(testbed):
         # check the traffic stats
         stats = await tgen_utils_get_traffic_stats(tgen_dev, 'Port Statistics')
         await verify_expected_rx_rate(kbyte_value, stats,
-                                      rx_ports=[streams['stream_3_mc_swp4->swp3']['ip_destination']],
+                                      rx_ports=[
+                                          streams['stream_3_mc_swp4->swp3']['ip_destination']],
                                       deviation=0.10)
     finally:
         await tgen_utils_stop_traffic(tgen_dev)

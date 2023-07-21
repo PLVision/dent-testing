@@ -21,14 +21,15 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv4,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
     pytest.mark.asyncio,
 ]
 
 
 async def get_neigh_list(dent):
     out = await IpNeighbor.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of arp entries'
     return out[0][dent]['parsed_output']
@@ -123,7 +124,8 @@ async def test_ipv4_dynamic_arp(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
@@ -142,7 +144,7 @@ async def test_ipv4_dynamic_arp(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'}
+        {'dev': port, 'operstate': 'up'}
         for port, *_, in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
@@ -191,7 +193,8 @@ async def test_ipv4_static_arp(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     ports = tgen_dev.links_dict[dent][1]
     address_map = (
@@ -208,7 +211,7 @@ async def test_ipv4_static_arp(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'}
+        {'dev': port, 'operstate': 'up'}
         for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
@@ -254,7 +257,8 @@ async def test_ipv4_replace_dyn_stat_arp(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
@@ -273,7 +277,7 @@ async def test_ipv4_replace_dyn_stat_arp(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port, *_ in address_map
+        {'dev': port, 'operstate': 'up'} for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -345,7 +349,8 @@ async def test_ipv4_static_arp_with_traffic(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
@@ -363,7 +368,7 @@ async def test_ipv4_static_arp_with_traffic(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port, *_ in address_map
+        {'dev': port, 'operstate': 'up'} for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -421,17 +426,22 @@ async def test_ipv4_static_route_over_static_arp(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
     address_map = (
         # swp port, tg ports,   swp ip,    nei ip,   plen, nei mac,            route
-        (ports[0], tg_ports[0], '1.1.1.1', '1.1.1.2', 24, '02:00:00:00:00:01', '20.0.0.1'),
-        (ports[1], tg_ports[1], '2.2.2.1', '2.2.2.2', 24, '02:00:00:00:00:02', '21.0.0.1'),
-        (ports[2], tg_ports[2], '3.3.3.1', '3.3.3.2', 24, '02:00:00:00:00:03', '22.0.0.1'),
-        (ports[3], tg_ports[3], '4.4.4.1', '4.4.4.2', 24, '02:00:00:00:00:04', '23.0.0.1'),
+        (ports[0], tg_ports[0], '1.1.1.1', '1.1.1.2',
+         24, '02:00:00:00:00:01', '20.0.0.1'),
+        (ports[1], tg_ports[1], '2.2.2.1', '2.2.2.2',
+         24, '02:00:00:00:00:02', '21.0.0.1'),
+        (ports[2], tg_ports[2], '3.3.3.1', '3.3.3.2',
+         24, '02:00:00:00:00:03', '22.0.0.1'),
+        (ports[3], tg_ports[3], '4.4.4.1', '4.4.4.2',
+         24, '02:00:00:00:00:04', '23.0.0.1'),
     )
     port_nei_map = {
         port: {'dst': nei_ip, 'static_lladdr': lladdr}
@@ -440,7 +450,7 @@ async def test_ipv4_static_route_over_static_arp(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port, *_ in address_map
+        {'dev': port, 'operstate': 'up'} for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -515,7 +525,7 @@ async def test_ipv4_static_route_over_static_arp(testbed):
 
     # Check added static routes
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of routes'
 
@@ -552,7 +562,7 @@ async def test_ipv4_static_route_over_static_arp(testbed):
 
     # Check static routes have been removed
     out = await IpRoute.show(input_data=[{dent: [
-        {'cmd_options': '-j'}
+        {'options': '-j'}
     ]}], parse_output=True)
     assert out[0][dent]['rc'] == 0, 'Failed to get list of routes'
 
@@ -584,7 +594,8 @@ async def test_ipv4_arp_reachable_timeout(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
@@ -604,7 +615,7 @@ async def test_ipv4_arp_reachable_timeout(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port, *_ in address_map
+        {'dev': port, 'operstate': 'up'} for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -646,7 +657,8 @@ async def test_ipv4_arp_reachable_timeout(testbed):
                 break
             await asyncio.sleep(nei_update_time_s)
         else:
-            raise AssertionError(f'Arp entries should be aged {[nei for nei in neighs if nei["dev"] in ports]}')
+            raise AssertionError(
+                f'Arp entries should be aged {[nei for nei in neighs if nei["dev"] in ports]}')
 
     finally:
         # 6. Configure arp base reachable timeout back to default 30 sec
@@ -666,7 +678,8 @@ async def test_ipv4_arp_reachable_timeout(testbed):
             break
         await asyncio.sleep(nei_update_time_s)
     else:
-        raise AssertionError(f'Arp entries should be reachable {[nei for nei in neighs if nei["dev"] in ports]}')
+        raise AssertionError(
+            f'Arp entries should be reachable {[nei for nei in neighs if nei["dev"] in ports]}')
 
 
 async def test_ipv4_arp_ageing(testbed):
@@ -685,7 +698,8 @@ async def test_ipv4_arp_ageing(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[dent][0]
     ports = tgen_dev.links_dict[dent][1]
@@ -703,7 +717,7 @@ async def test_ipv4_arp_ageing(testbed):
 
     # 2. Configure ports up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up'} for port, *_ in address_map
+        {'dev': port, 'operstate': 'up'} for port, *_ in address_map
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 

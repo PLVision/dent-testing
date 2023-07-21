@@ -26,12 +26,12 @@ pytestmark = [pytest.mark.suite_functional_l1,
 
 @pytest.mark.parametrize('speed , duplex',
                          [
-                            pytest.param(10, 'full'),
-                            pytest.param(10, 'half'),
-                            pytest.param(100, 'full'),
-                            pytest.param(100, 'half'),
-                            pytest.param(1000, 'full'),
-                            pytest.param(10000, 'full'),
+                             pytest.param(10, 'full'),
+                             pytest.param(10, 'half'),
+                             pytest.param(100, 'full'),
+                             pytest.param(100, 'half'),
+                             pytest.param(1000, 'full'),
+                             pytest.param(10000, 'full'),
                          ])
 async def test_l1_forced_speed_(testbed, speed, duplex):
     """
@@ -69,15 +69,15 @@ async def test_l1_forced_speed_(testbed, speed, duplex):
         pytest.skip(str(e))
 
     # 1. Create bridge entity
-    out = await IpLink.add(input_data=[{device_host_name: [{'device': 'br0', 'type': 'bridge'}]}])
+    out = await IpLink.add(input_data=[{device_host_name: [{'dev': 'br0', 'type': 'bridge'}]}])
     assert out[0][device_host_name]['rc'] == 0, 'Failed creating bridge.'
 
-    out = await IpLink.set(input_data=[{device_host_name: [{'device': 'br0', 'operstate': 'up'}]}])
+    out = await IpLink.set(input_data=[{device_host_name: [{'dev': 'br0', 'operstate': 'up'}]}])
     assert out[0][device_host_name]['rc'] == 0, "Verify that bridge set to 'UP' state."
 
     # 2. Enslave ports to the created bridge entity
     out = await IpLink.set(input_data=[{device_host_name: [{
-        'device': port,
+        'dev': port,
         'operstate': 'up',
         'master': 'br0'
     } for port in ports]}])
@@ -103,8 +103,10 @@ async def test_l1_forced_speed_(testbed, speed, duplex):
     # 4. Verify port duplex and speed was configured
     for port in ports:
         out = await Ethtool.show(input_data=[{device_host_name: [{'devname': port}]}],  parse_output=True)
-        assert speed == int(out[0][device_host_name]['parsed_output']['speed'][:-4]), 'Failed speed test'
-        assert duplex.capitalize() == out[0][device_host_name]['parsed_output']['duplex'], 'Failed duplex test'
+        assert speed == int(
+            out[0][device_host_name]['parsed_output']['speed'][:-4]), 'Failed speed test'
+        assert duplex.capitalize(
+        ) == out[0][device_host_name]['parsed_output']['duplex'], 'Failed duplex test'
 
     supported_speed_ports = [name for name in speed_ports.keys()]
     first_port_index = ports.index(supported_speed_ports[0])

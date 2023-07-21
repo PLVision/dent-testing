@@ -24,7 +24,8 @@ from dent_os_testbed.test.test_suite.functional.ifupdown2.ifupdown2_utils import
 
 pytestmark = [
     pytest.mark.suite_functional_vrrp,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'enable_ipv4_forwarding', 'cleanup_bridges'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'enable_ipv4_forwarding', 'cleanup_bridges'),
     pytest.mark.asyncio,
 ]
 
@@ -82,14 +83,17 @@ async def test_vrrp_ifupdown2(testbed, configure_vrrp, modify_ifupdown_conf):
         DeviceType.INFRA_SWITCH,
     ], 0)
     if not tgen_dev or not dent_devices or len(dent_devices) < 3:
-        pytest.skip('The testbed does not have enough devices (1 agg + 2 infra)')
+        pytest.skip(
+            'The testbed does not have enough devices (1 agg + 2 infra)')
 
-    infra = [dent for dent in dent_devices if dent.type == DeviceType.INFRA_SWITCH]
+    infra = [dent for dent in dent_devices if dent.type ==
+             DeviceType.INFRA_SWITCH]
     if len(infra) < 2:
         pytest.skip('The testbed does not have enough infra devices')
     infra = infra[:2]
 
-    agg = [dent for dent in dent_devices if dent.type == DeviceType.AGGREGATION_ROUTER]
+    agg = [dent for dent in dent_devices if dent.type ==
+           DeviceType.AGGREGATION_ROUTER]
     if len(agg) < 1:
         pytest.skip('The testbed does not have enough agg devices')
     agg = agg[0]
@@ -123,7 +127,8 @@ async def test_vrrp_ifupdown2(testbed, configure_vrrp, modify_ifupdown_conf):
         'default_interfaces_configfile': INTERFACES_FILE,
     }
     out = await asyncio.gather(*[modify_ifupdown_conf(dent, config) for dent in infra + [agg]])
-    assert all(not rc for rc in out), 'Failed to prepare ifupdown2 enviroment config'
+    assert all(
+        not rc for rc in out), 'Failed to prepare ifupdown2 enviroment config'
 
     # 2. Make ifupdown2 configuration:
     # Add VLAN-aware bridge
@@ -135,14 +140,20 @@ async def test_vrrp_ifupdown2(testbed, configure_vrrp, modify_ifupdown_conf):
                                                 pvid=0, vlans=[vlan])
 
     # Create vlan interface on top of the bridge
-    full_config[agg] += VLAN_DEV_TEMPLATE.format(name=vlan_dev, vid=vlan, bridge=bridge)
-    full_config[infra[0]] += VLAN_DEV_TEMPLATE.format(name=vlan_dev, vid=vlan, bridge=bridge)
-    full_config[infra[1]] += VLAN_DEV_TEMPLATE.format(name=vlan_dev, vid=vlan, bridge=bridge)
+    full_config[agg] += VLAN_DEV_TEMPLATE.format(
+        name=vlan_dev, vid=vlan, bridge=bridge)
+    full_config[infra[0]
+                ] += VLAN_DEV_TEMPLATE.format(name=vlan_dev, vid=vlan, bridge=bridge)
+    full_config[infra[1]
+                ] += VLAN_DEV_TEMPLATE.format(name=vlan_dev, vid=vlan, bridge=bridge)
 
     # Add IP address to the vlan interface
-    full_config[agg] += config_ipv4_temp(vlan_dev, 'static', ipaddr='192.168.1.1/24')
-    full_config[infra[0]] += config_ipv4_temp(vlan_dev, 'static', ipaddr='192.168.1.3/24')
-    full_config[infra[1]] += config_ipv4_temp(vlan_dev, 'static', ipaddr='192.168.1.4/24')
+    full_config[agg] += config_ipv4_temp(vlan_dev,
+                                         'static', ipaddr='192.168.1.1/24')
+    full_config[infra[0]
+                ] += config_ipv4_temp(vlan_dev, 'static', ipaddr='192.168.1.3/24')
+    full_config[infra[1]
+                ] += config_ipv4_temp(vlan_dev, 'static', ipaddr='192.168.1.4/24')
 
     # 3. Apply ifupdown configuration
     await asyncio.gather(*[write_reload_check_ifupdown_config(dent, full_config[dent],
@@ -151,14 +162,15 @@ async def test_vrrp_ifupdown2(testbed, configure_vrrp, modify_ifupdown_conf):
 
     # 4. Configure VRRP and restart Keepalived
     await asyncio.gather(*[
-        configure_vrrp(dent, state=state, prio=prio, vr_ip=vrrp_ip, vr_id=vr_id, dev=vlan_dev)
+        configure_vrrp(dent, state=state, prio=prio,
+                       vr_ip=vrrp_ip, vr_id=vr_id, dev=vlan_dev)
         for dent, state, prio
         in zip([agg, infra[1]], ['MASTER', 'BACKUP'], [150, 100])])
     await asyncio.sleep(wait_for_keepalived)
 
     # 4. Verify Macvlan was created with a RIF
     out = await IpRoute.show(input_data=[{
-        dent.host_name: [{'cmd_options': '-j', 'dev': vlan_dev}]
+        dent.host_name: [{'options': '-j', 'dev': vlan_dev}]
         for dent in infra + [agg]
     }], parse_output=True)
     assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \
@@ -184,7 +196,7 @@ async def test_vrrp_ifupdown2(testbed, configure_vrrp, modify_ifupdown_conf):
 
     # 10. Verify Macvlan was created with a RIF
     out = await IpRoute.show(input_data=[{
-        dent.host_name: [{'cmd_options': '-j', 'dev': vlan_dev}]
+        dent.host_name: [{'options': '-j', 'dev': vlan_dev}]
         for dent in infra + [agg]
     }], parse_output=True)
     assert all(res[host_name]['rc'] == 0 for res in out for host_name in res), \

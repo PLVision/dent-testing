@@ -50,7 +50,7 @@
                 "show_fn": "IpLink.show",
                 "dev_objects" : "obj.network.layer1.links",
                 "dev_object_filter": "re.compile('swp*').match(obj.ifname) and obj.operstate == 'UP'",
-                "dev_object_set_params" : "{'device': obj.ifname, 'operstate':'down'}",
-                "dev_object_show_params" : "{'device': obj.ifname}",
-                "dev_object_reset_params" : "{'device': obj.ifname, 'operstate':'up'}"
+                "dev_object_set_params" : "{'dev': obj.ifname, 'operstate':'down'}",
+                "dev_object_show_params" : "{'dev': obj.ifname}",
+                "dev_object_reset_params" : "{'dev': obj.ifname, 'operstate':'up'}"
             }

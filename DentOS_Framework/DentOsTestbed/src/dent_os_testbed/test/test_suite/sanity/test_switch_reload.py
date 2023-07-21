@@ -53,7 +53,7 @@ async def test_switch_reload_all(testbed):
 
     for dev in devices:
         out = await IpLink.show(
-            input_data=[{dev.host_name: [{'cmd_options': '-j'}]}],
+            input_data=[{dev.host_name: [{'options': '-j'}]}],
         )
         assert out[0][dev.host_name]['rc'] == 0, f'Failed to get Links on {dev.host_name}'
         links = json.loads(out[0][dev.host_name]['result'])
@@ -76,7 +76,7 @@ async def test_switch_reload_all(testbed):
         await check_and_validate_switch_links(testbed)
         for dev in devices:
             out = await IpLink.show(
-                input_data=[{dev.host_name: [{'cmd_options': '-j'}]}],
+                input_data=[{dev.host_name: [{'options': '-j'}]}],
             )
             assert out[0][dev.host_name]['rc'] == 0, f'Failed to get Links on {dev.host_name}'
             links = json.loads(out[0][dev.host_name]['result'])
@@ -93,7 +93,8 @@ async def test_switch_reload_all(testbed):
                     # no need to check these out.
                     continue
                 if v['state'] != peers[k]['state']:
-                    assert 0, 'peer {} state has changed from {} to {}'.format(k, v['state'], peers[k]['state'])
+                    assert 0, 'peer {} state has changed from {} to {}'.format(
+                        k, v['state'], peers[k]['state'])
 
             # compare here
             for k, v in dut_state[host].items():
@@ -141,7 +142,7 @@ async def test_switch_reload_one_switch(testbed):
             dev.applog.error(out)
     for dev in devices:
         out = await IpLink.show(
-            input_data=[{dev.host_name: [{'cmd_options': '-j'}]}],
+            input_data=[{dev.host_name: [{'options': '-j'}]}],
         )
         assert out[0][dev.host_name]['rc'] == 0, f'Failed to get Links on {dev.host_name}'
         links = json.loads(out[0][dev.host_name]['result'])
@@ -168,9 +169,10 @@ async def test_switch_reload_one_switch(testbed):
             await check_and_validate_switch_links(testbed)
             for dev1 in devices:
                 out = await IpLink.show(
-                    input_data=[{dev1.host_name: [{'cmd_options': '-j'}]}],
+                    input_data=[{dev1.host_name: [{'options': '-j'}]}],
                 )
-                assert out[0][dev1.host_name]['rc'] == 0, f'Failed to get Links on {dev1.host_name}'
+                assert out[0][dev1.host_name][
+                    'rc'] == 0, f'Failed to get Links on {dev1.host_name}'
                 links = json.loads(out[0][dev1.host_name]['result'])
                 links = {link['ifname']: link for link in links}
                 host = dev1.host_name
@@ -193,7 +195,7 @@ async def get_link_operstate(host_name, link):
     if host_name == 'tgen':
         return 'UP'
     out = await IpLink.show(
-        input_data=[{host_name: [{'device': link, 'cmd_options': '-j'}]}],
+        input_data=[{host_name: [{'dev': link, 'options': '-j'}]}],
         parse_output=True,
     )
     assert out[0][host_name]['rc'] == 0
@@ -219,7 +221,7 @@ async def _test_switch_reload_disr1_switch(testbed):
     rc, out = await dev.run_cmd(cmd)
 
     out = await IpLink.show(
-        input_data=[{dev.host_name: [{'cmd_options': '-j'}]}],
+        input_data=[{dev.host_name: [{'options': '-j'}]}],
     )
     assert out[0][dev.host_name]['rc'] == 0, f'Failed to get Links on {dev.host_name}'
     prev_links = json.loads(out[0][dev.host_name]['result'])
@@ -255,7 +257,7 @@ async def _test_switch_reload_disr1_switch(testbed):
         cmd = 'sudo onlpdump -S'
         rc, out = await dev.run_cmd(cmd)
         out = await IpLink.show(
-            input_data=[{dev.host_name: [{'cmd_options': '-j'}]}],
+            input_data=[{dev.host_name: [{'options': '-j'}]}],
         )
         assert out[0][dev.host_name]['rc'] == 0, f'Failed to get Links on {dev.host_name}'
         cur_links = json.loads(out[0][dev.host_name]['result'])
@@ -291,4 +293,5 @@ async def _test_switch_reload_disr1_switch(testbed):
                 # no need to check these out.
                 continue
             if v['state'] != peers[k]['state']:
-                assert 0, 'peer {} state has changed from {} to {}'.format(k, v['state'], peers[k]['state'])
+                assert 0, 'peer {} state has changed from {} to {}'.format(
+                    k, v['state'], peers[k]['state'])

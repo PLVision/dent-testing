@@ -18,7 +18,8 @@ from dent_os_testbed.utils.test_utils.tgen_utils import (
 
 pytestmark = [
     pytest.mark.suite_functional_ipv4,
-    pytest.mark.usefixtures('cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
+    pytest.mark.usefixtures(
+        'cleanup_ip_addrs', 'cleanup_tgen', 'enable_ipv4_forwarding'),
     pytest.mark.asyncio,
 ]
 
@@ -40,7 +41,8 @@ async def test_ipv4_en_dis_fwd(testbed):
     # 1. Init interfaces
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0]
@@ -48,7 +50,7 @@ async def test_ipv4_en_dis_fwd(testbed):
     traffic_duration = 10
 
     # 2. Configure ports up
-    out = await IpLink.set(input_data=[{dent: [{'device': port, 'operstate': 'up'}
+    out = await IpLink.set(input_data=[{dent: [{'dev': port, 'operstate': 'up'}
                                                for port in ports]}])
     assert out[0][dent]['rc'] == 0, 'Failed to set port state UP'
 
@@ -111,7 +113,7 @@ async def test_ipv4_en_dis_fwd(testbed):
 
     # 6. Flush neighbor (ARP) table twice
     out = await IpNeighbor.flush(input_data=[{dent: [
-        {'device': port} for port in ports
+        {'dev': port} for port in ports
     ] * 2}])
     assert out[0][dent]['rc'] == 0, 'Failed to flush arp table'
 

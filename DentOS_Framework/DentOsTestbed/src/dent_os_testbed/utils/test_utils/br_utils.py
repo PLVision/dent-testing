@@ -13,18 +13,18 @@ async def configure_bridge_setup(device, dut_ports, default_pvid=0):
     """
 
     out = await IpLink.add(input_data=[{device: [{
-        'device': 'br0',
+        'dev': 'br0',
         'type': 'bridge',
         'vlan_filtering': 1,
         'vlan_default_pvid': default_pvid}]
     }])
     assert out[0][device]['rc'] == 0, 'Failed creating bridge.'
 
-    await IpLink.set(input_data=[{device: [{'device': 'br0', 'operstate': 'up'}]}])
+    await IpLink.set(input_data=[{device: [{'dev': 'br0', 'operstate': 'up'}]}])
     assert out[0][device]['rc'] == 0, 'Failed setting bridge to state UP.'
 
     out = await IpLink.set(input_data=[{device: [{
-        'device': port,
+        'dev': port,
         'operstate': 'up',
         'master': 'br0'
     } for port in dut_ports]}])
@@ -46,7 +46,7 @@ async def configure_vlan_setup(device, port_vlan_map, dut_ports):
     for config in port_vlan_map:
         port = dut_ports[config['port']]
         out = await BridgeVlan.add(input_data=[{device: [{
-            'device': port,
+            'dev': port,
             'vid': setting['vlan'],
             'pvid': setting['pvid'],
             'untagged': setting['untagged']
@@ -85,5 +85,6 @@ def get_traffic_port_vlan_mapping(streams, port_vlan_map, tg_ports, tx_port=0, d
         for port in port_vlan_map:
             for setting in port['settings']:
                 if vid == setting['vlan'] or vid == default_pvid:
-                    ti_to_rx_port_map[stream_name].append(tg_ports[port['port']])
+                    ti_to_rx_port_map[stream_name].append(
+                        tg_ports[port['port']])
     return ti_to_rx_port_map

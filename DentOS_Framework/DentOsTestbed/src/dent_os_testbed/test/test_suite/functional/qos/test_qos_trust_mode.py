@@ -34,7 +34,8 @@ from dent_os_testbed.test.test_suite.functional.qos.conftest import (
 
 pytestmark = [
     pytest.mark.suite_functional_qos,
-    pytest.mark.usefixtures('cleanup_qdiscs', 'cleanup_bridges', 'cleanup_dscp_prio'),
+    pytest.mark.usefixtures(
+        'cleanup_qdiscs', 'cleanup_bridges', 'cleanup_dscp_prio'),
     pytest.mark.asyncio,
 ]
 
@@ -61,7 +62,8 @@ async def test_qos_trust_mode(testbed, trust_mode, scheduler_type):
     num_of_ports = 2
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], num_of_ports)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     dent_dev = dent_devices[0]
     dent = dent_dev.host_name
     tg_ports = tgen_dev.links_dict[dent][0][:num_of_ports]
@@ -74,13 +76,15 @@ async def test_qos_trust_mode(testbed, trust_mode, scheduler_type):
     table_tg_headers = ['DSCP' if trust_mode == 'L3' else ' PCP',
                         'PRIO', 'Rx Rate, Mbit',
                         'Loss, %', 'Duration, s', 'Status']
-    table_tg_columns = ['dscp_pcp', 'prio', 'rx_rate', 'loss', 'duration', 'status']
+    table_tg_columns = ['dscp_pcp', 'prio',
+                        'rx_rate', 'loss', 'duration', 'status']
     table_tg_row_format = '{:4} | {:4} | {:13.02f} | {:7.2f} | {:11.2f} | {!s:6}'
     table_tg_row = namedtuple('table_tg_row', table_tg_columns)
 
     table_swp_headers = ['Band', 'PRIO', 'Statistics, bytes', 'Rate, Mbit',
                          'Expected, Mbit', 'Deviation, %', 'Duration, s', 'Status']
-    table_swp_columns = ['band', 'prio', 'bytes', 'rate', 'expected_rate', 'deviation', 'duration', 'status']
+    table_swp_columns = ['band', 'prio', 'bytes', 'rate',
+                         'expected_rate', 'deviation', 'duration', 'status']
     table_swp_row_format = '{:4} | {:4} | {:17} | {:10.02f} | {:14.02f} | {:12.1f} | {:11.2f} | {!s:6}'
     table_swp_row = namedtuple('table_swp_row', table_swp_columns)
 
@@ -92,9 +96,9 @@ async def test_qos_trust_mode(testbed, trust_mode, scheduler_type):
 
     # 3. Set all interfaces up
     out = await IpLink.set(input_data=[{dent: [
-        {'device': port, 'operstate': 'up', 'master': bridge} for port in ports
+        {'dev': port, 'operstate': 'up', 'master': bridge} for port in ports
     ] + [
-        {'device': bridge, 'operstate': 'up'}
+        {'dev': bridge, 'operstate': 'up'}
     ]}])
     assert out[0][dent]['rc'] == 0, 'Failed to enslave ports to bridge'
 
@@ -109,19 +113,20 @@ async def test_qos_trust_mode(testbed, trust_mode, scheduler_type):
         # 4. Configure vlans on bridge members
         vlan = random.randint(2, 4094)
         out = await BridgeVlan.delete(input_data=[{dent: [
-            {'device': port, 'vid': 1} for port in ports
+            {'dev': port, 'vid': 1} for port in ports
         ]}])
         assert out[0][dent]['rc'] == 0, 'Failed to remove default vlan'
 
         out = await BridgeVlan.add(input_data=[{dent: [
-            {'device': port, 'vid': vlan} for port in ports
+            {'dev': port, 'vid': vlan} for port in ports
         ]}])
         assert out[0][dent]['rc'] == 0, f'Failed to add ports {ports} to vlan {vlan}'
 
     # 5. Configure ets qdisc on egress port: 8 bands - SP or WRR
     # 6. Configure tbf (shaper) qdisc for each band with max limit, burst and rate
     if scheduler_type == 'wrr':
-        quanta = sorted((random.randint(1, 10) for _ in range(num_of_bands)), reverse=True)
+        quanta = sorted((random.randint(1, 10)
+                        for _ in range(num_of_bands)), reverse=True)
         await configure_qdiscs_and_verify(dent, [ports[1]],
                                           ['10Gbit'] * num_of_bands,
                                           quanta=quanta)
@@ -134,8 +139,10 @@ async def test_qos_trust_mode(testbed, trust_mode, scheduler_type):
     tg1_ip = '1.1.1.2'
     plen = 24
     dev_groups = tgen_utils_dev_groups_from_config((
-        {'ixp': tg_ports[0], 'ip': tg0_ip, 'gw': tg1_ip, 'plen': plen, 'vlan': vlan},
-        {'ixp': tg_ports[1], 'ip': tg1_ip, 'gw': tg0_ip, 'plen': plen, 'vlan': vlan},
+        {'ixp': tg_ports[0], 'ip': tg0_ip,
+            'gw': tg1_ip, 'plen': plen, 'vlan': vlan},
+        {'ixp': tg_ports[1], 'ip': tg1_ip,
+            'gw': tg0_ip, 'plen': plen, 'vlan': vlan},
     ))
     await tgen_utils_traffic_generator_connect(tgen_dev, tg_ports, ports, dev_groups)
 

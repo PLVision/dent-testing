@@ -46,7 +46,8 @@ async def test_port_isolation_interaction_ports_inside_lag(testbed):
     bridge = 'br0'
     tgen_dev, dent_devices = await tgen_utils_get_dent_devices_with_tgen(testbed, [], 4)
     if not tgen_dev or not dent_devices:
-        pytest.skip('The testbed does not have enough dent with tgen connections')
+        pytest.skip(
+            'The testbed does not have enough dent with tgen connections')
     device_host_name = dent_devices[0].host_name
     tg_ports = tgen_dev.links_dict[device_host_name][0]
     ports = tgen_dev.links_dict[device_host_name][1]
@@ -57,51 +58,53 @@ async def test_port_isolation_interaction_ports_inside_lag(testbed):
     for x in range(2):
         out = await IpLink.add(
             input_data=[{device_host_name: [
-                {'device': f'bond{x+1}', 'type': 'bond mode 802.3ad'}]}])
+                {'dev': f'bond{x+1}', 'type': 'bond mode 802.3ad'}]}])
         err_msg = f"Verify that bond{x+1} created and type set to 'bond mode 802.3ad'.\n{out}"
         assert out[0][device_host_name]['rc'] == 0, err_msg
 
         out = await IpLink.set(
             input_data=[{device_host_name: [
-                {'device': f'bond{x+1}', 'operstate': 'up'},
-                {'device': ports[x], 'operstate': 'down'},
-                {'device': ports[x], 'master': f'bond{x+1}'}]}])
+                {'dev': f'bond{x+1}', 'operstate': 'up'},
+                {'dev': ports[x], 'operstate': 'down'},
+                {'dev': ports[x], 'master': f'bond{x+1}'}]}])
         err_msg = f"Verify that bond{x+1} set to 'UP' state, {ports[x]} set to 'DOWN' state \
             and enslave {ports[x]} port connected to Ixia.\n{out}"
         assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'operstate': 'up'} for port in ports]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
+            {'dev': port, 'operstate': 'up'} for port in ports]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that entities set to 'UP' state.\n{out}"
 
     out = await IpLink.add(
         input_data=[{device_host_name: [
-            {'device': bridge, 'vlan_filtering': 1, 'type': 'bridge'}]}])
+            {'dev': bridge, 'vlan_filtering': 1, 'type': 'bridge'}]}])
     err_msg = f"Verify that bridge created and vlan filtering set to 'ON'.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': bridge, 'operstate': 'up'}]}])
-    assert out[0][device_host_name]['rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
+            {'dev': bridge, 'operstate': 'up'}]}])
+    assert out[0][device_host_name][
+        'rc'] == 0, f"Verify that bridge set to 'UP' state.\n{out}"
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': port, 'master': bridge} for port in ports[2:]]}])
+            {'dev': port, 'master': bridge} for port in ports[2:]]}])
     err_msg = f'Verify that bridge entities {ports[2]} and {ports[3]} enslaved to bridge.\n{out}'
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await IpLink.set(
         input_data=[{device_host_name: [
-            {'device': f'bond{x+1}', 'master': bridge} for x in range(2)]}])
+            {'dev': f'bond{x+1}', 'master': bridge} for x in range(2)]}])
     err_msg = f'Verify that bond1 and bond2 enslaved to bridge.\n{out}'
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
     out = await BridgeLink.set(
         input_data=[{device_host_name: [
-            {'device': 'bond1', 'isolated': True},
-            {'device': ports[2], 'isolated': True}]}])
+            {'dev': 'bond1', 'isolated': True},
+            {'dev': ports[2], 'isolated': True}]}])
     err_msg = f"Verify that bond1 and {ports[2]} set to isolated state 'ON'.\n{out}"
     assert out[0][device_host_name]['rc'] == 0, err_msg
 
